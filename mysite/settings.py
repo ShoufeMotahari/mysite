@@ -166,4 +166,5 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'  # برای collectstatic در دیپلو
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-print("KEY = ", env("AWS_ACCESS_KEY_ID", default="NOT FOUND"))
+AUTH_USER_MODEL = 'users.User'
+SMS_API_KEY = env("SMS_API_KEY")

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<head><title>ثبت‌نام با موبایل</title></head>
+<body>
+    <h2>ثبت‌نام / ورود با موبایل</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">ارسال کد تأیید</button>
+    </form>
+</body>
+</html>

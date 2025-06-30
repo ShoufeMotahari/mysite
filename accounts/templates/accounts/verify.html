@@ -1,0 +1,6 @@
+<h2>کد تأیید</h2>
+<form method="post">
+    {% csrf_token %}
+    <input type="text" name="code" placeholder="کد دریافتی">
+    <button type="submit">تأیید</button>
+</form>
