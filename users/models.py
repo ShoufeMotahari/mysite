@@ -38,4 +38,3 @@ class RegisterToken(models.Model):
         return f"{self.user} - {self.code}"
 
 
-##jhkkdkkdlkl
