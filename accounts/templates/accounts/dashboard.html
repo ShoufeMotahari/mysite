@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <title>داشبورد</title>
+</head>
+<body>
+    <h2>خوش آمدید {{ user.username }} 👋</h2>
+    <p>موبایل: {{ user.mobile }}</p>
+    <p>ایمیل: {{ user.email }}</p>
+    <p>آخرین ورود: {{ user.last_login|date:"Y/m/d H:i" }}</p>
+
+    <a href="{% url 'logout' %}">خروج</a>
+</body>
+</html>
