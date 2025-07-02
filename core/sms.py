@@ -1,23 +1,7 @@
-import requests
-import json
-from django.conf import settings
+from sms_ir import SmsIr
 
-def send_verification_sms(mobile, code):
-    url = "https://api.sms.ir/v1/send/verify"
+sms_ir = SmsIr('un7i93fQdsGxOqFHpF5Z3bccQfA8MWFFJKb24lpUWeJfpufG', 30007732904200, )
 
-    payload = {
-        "mobile": mobile,
-        "templateId": "کد_تمپلیت_شما",  # باید از پنل sms.ir بگیری
-        "parameters": [
-            {"name": "CODE", "value": code}
-        ]
-    }
-
-    headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-API-KEY': settings.SMS_API_KEY
-    }
-
-    response = requests.post(url, data=json.dumps(payload), headers=headers)
-    return response.json()
+sms_ir.send_verify_code(+989931755521, 808559, [
+    {"name": "CODE", "value": '45455'}
+], )
