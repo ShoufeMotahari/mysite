@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 import os
 from pathlib import Path
 import environ
+import logging
 
 # مسیر پروژه
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -152,8 +153,7 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-import os
-from pathlib import Path
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -168,3 +168,21 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 AUTH_USER_MODEL = 'users.User'
 SMS_API_KEY = env("SMS_API_KEY")
+SMS_TEMPLATE_ID = env("SMS_TEMPLATE_ID")
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',  # 👈 یا DEBUG برای اطلاعات بیشتر
+    },
+}
