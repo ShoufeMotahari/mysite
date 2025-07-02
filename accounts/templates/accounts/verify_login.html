@@ -1,0 +1,6 @@
+<h2>کد تأیید ورود</h2>
+<form method="post">
+    {% csrf_token %}
+    <input type="text" name="code" placeholder="کد ۶ رقمی">
+    <button type="submit">تأیید ورود</button>
+</form>
