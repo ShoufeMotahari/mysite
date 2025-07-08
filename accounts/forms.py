@@ -25,3 +25,23 @@ class LoginForm(forms.Form):
             return value
         else:
             raise forms.ValidationError("ایمیل یا شماره موبایل معتبر وارد کنید.")
+
+class SecondPasswordForm(forms.Form):
+    second_password = forms.CharField(
+        label="رمز دوم",
+        max_length=6,
+        widget=forms.PasswordInput(attrs={'placeholder': 'رمز عددی'}),
+    )
+class ChangeSecondPasswordForm(forms.Form):
+    current_password = forms.CharField(
+        label="رمز دوم فعلی",
+        widget=forms.PasswordInput(attrs={'placeholder': 'رمز دوم فعلی'}),
+        max_length=6,
+        required=True
+    )
+    new_password = forms.CharField(
+        label="رمز دوم جدید",
+        widget=forms.PasswordInput(attrs={'placeholder': 'رمز دوم جدید'}),
+        max_length=6,
+        required=True
+    )
