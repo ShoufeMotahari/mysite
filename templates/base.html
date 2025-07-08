@@ -1,0 +1,27 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}سایت من{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <header>
+        <h1>سایت من</h1>
+        {% if user.is_authenticated %}
+            سلام {{ user.username }} | <a href="{% url 'logout' %}">خروج</a>
+        {% else %}
+            <a href="{% url 'login' %}">ورود</a>
+        {% endif %}
+    </header>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <p>تمامی حقوق محفوظ است ©</p>
+    </footer>
+</body>
+</html>
