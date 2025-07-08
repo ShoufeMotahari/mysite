@@ -61,13 +61,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'users',
     'accounts',
     'comments',
     'core',
     'sections',
     'dashboard',
-    
+    'users.apps.UsersConfig',
 ]
 
 MIDDLEWARE = [
@@ -82,10 +81,12 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'mysite.urls'
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / "templates"],  # ✅ پوشه templates سراسری
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -168,21 +169,103 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 AUTH_USER_MODEL = 'users.User'
 SMS_API_KEY = env("SMS_API_KEY")
+SMS_LINE_NUMBER = env("SMS_LINE_NUMBER")
 SMS_TEMPLATE_ID = env("SMS_TEMPLATE_ID")
 
+
+
+LOG_DIR = os.path.join(BASE_DIR, 'logs')  # مسیر ذخیره‌ی فایل‌های لاگ
+
+if not os.path.exists(LOG_DIR):
+    os.makedirs(LOG_DIR)  # اگر فولدر logs وجود نداشت، بساز
+
+import os
+
+LOG_DIR = os.path.join(BASE_DIR, 'logs')
+if not os.path.exists(LOG_DIR):
+    os.makedirs(LOG_DIR)
 
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
 
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} [{name}] {message}',
+            'style': '{',
         },
     },
 
-    'root': {
-        'handlers': ['console'],
-        'level': 'INFO',  # 👈 یا DEBUG برای اطلاعات بیشتر
+    'handlers': {
+        'accounts_file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(LOG_DIR, 'accounts.log'),
+            'formatter': 'verbose',
+        },
+        'comments_file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(LOG_DIR, 'comments.log'),
+            'formatter': 'verbose',
+        },
+        'core_file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(LOG_DIR, 'core.log'),
+            'formatter': 'verbose',
+        },
+        'sections_file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(LOG_DIR, 'sections.log'),
+            'formatter': 'verbose',
+        },
+        'dashboard_file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(LOG_DIR, 'dashboard.log'),
+            'formatter': 'verbose',
+        },
+        'users_file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(LOG_DIR, 'users.log'),
+            'formatter': 'verbose',
+        },
     },
+
+    'loggers': {
+        'accounts': {
+            'handlers': ['accounts_file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'comments': {
+            'handlers': ['comments_file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'core': {
+            'handlers': ['core_file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'sections': {
+            'handlers': ['sections_file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'dashboard': {
+            'handlers': ['dashboard_file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'users': {
+            'handlers': ['users_file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    }
 }
+

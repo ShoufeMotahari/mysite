@@ -8,7 +8,10 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 import logging
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('accounts')
+
+def my_view(request):
+    logger.info('کاربر وارد صفحه‌ی لاگین شد')
 
 def signup_view(request):
     if request.method == 'POST':
@@ -27,30 +30,6 @@ def signup_view(request):
     else:
         form = SignupForm()
     return render(request, 'accounts/signup.html', {'form': form})
-
-
-def verify_view(request):
-    mobile = request.session.get('mobile')
-    if not mobile:
-        return redirect('signup')
-
-    if request.method == 'POST':
-        code = request.POST.get('code')
-        try:
-            user = User.objects.get(mobile=mobile)
-            token = RegisterToken.objects.get(user=user)
-
-            if token.code == code and token.is_valid():
-                user.is_active = True
-                user.save()
-                token.delete()
-                messages.success(request, "ثبت‌نام با موفقیت انجام شد!")
-                return redirect('home')
-            else:
-                messages.error(request, "کد وارد شده اشتباه یا منقضی است.")
-        except:
-            messages.error(request, "کاربر یا کد پیدا نشد.")
-    return render(request, 'accounts/verify.html')
 
 
 def verify_view(request):
@@ -137,3 +116,12 @@ def verify_login_view(request):
 def dashboard_view(request):
     user = request.user
     return render(request, 'accounts/dashboard.html', {'user': user})
+
+
+from django.http import JsonResponse
+
+def send_sms_view(request):
+    phone = request.GET.get("phone")
+    code = "1234"  # یا کد تولید شده دینامیک
+    send_verification_sms(phone, code)
+    return JsonResponse({"status": "sms sent"})
