@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% load static %}
+<h2>ویرایش پروفایل</h2>
+<form method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ u_form.as_p }}
+    {{ p_form.as_p }}
+    <button type="submit">ذخیره تغییرات</button>
+</form>
