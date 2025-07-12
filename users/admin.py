@@ -1,7 +1,9 @@
 from django.contrib import admin
 
 from django.contrib import admin
-from .models import Profile
+from django.utils.html import format_html
+
+from .models import Profile, User
 import django_jalali.admin as jadmin
 from django_jalali.admin.filters import JDateFieldListFilter
 
@@ -22,3 +24,5 @@ class ProfileAdmin(admin.ModelAdmin):
         (None, {'fields': ('user', 'image')}),
         ('تاریخ‌ها', {'fields': ('created_jalali', 'updated_jalali')}),
     )
+
+    

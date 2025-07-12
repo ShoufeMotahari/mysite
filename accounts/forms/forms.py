@@ -1,15 +1,23 @@
 from django import forms
 from users.models import User
-
+from django.core.validators import validate_email
 
 class SignupForm(forms.Form):
     mobile = forms.CharField(max_length=11)
+    email = forms.EmailField(required=False)  # 👈 فیلد ایمیل اختیاری
 
     def clean_mobile(self):
         mobile = self.cleaned_data['mobile']
+        # اعتبارسنجی دلخواه مثلاً:
         # if not mobile.startswith('09') or len(mobile) != 11:
         #     raise forms.ValidationError("شماره موبایل نامعتبر است.")
         return mobile
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if email:
+            validate_email(email)
+        return email
 
 
 class LoginForm(forms.Form):

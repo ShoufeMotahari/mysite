@@ -14,6 +14,7 @@ class Profile(models.Model):
 
 class User(AbstractUser):
     mobile = models.CharField(max_length=11, unique=True, null=True, blank=True)
+    email = models.CharField(max_length=11, unique=True, null=True, blank=True)
     slug = models.SlugField(unique=True, blank=True)
     created_at = jmodels.jDateTimeField(auto_now_add=True)
     second_password = models.CharField(max_length=6, null=True, blank=True)

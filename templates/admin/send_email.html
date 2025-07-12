@@ -1,0 +1,130 @@
+<!-- templates/admin/send_email.html -->
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}ارسال ایمیل{% endblock %}
+
+{% block content %}
+<h1>ارسال ایمیل به کاربران انتخاب شده</h1>
+
+<div class="module">
+    <h2>خلاصه کاربران انتخاب شده</h2>
+    <div style="margin-bottom: 20px;">
+        <strong>تعداد کل: {{ users.count }}</strong> |
+        <strong style="color: green;">معتبر: {{ valid_users|length }}</strong> |
+        <strong style="color: red;">نامعتبر: {{ invalid_users|length }}</strong>
+    </div>
+
+    {% if valid_users %}
+    <div class="module" style="margin-bottom: 20px;">
+        <h3 style="color: green;">✅ کاربران معتبر ({{ valid_users|length }})</h3>
+        <ul>
+            {% for user in valid_users %}
+                <li style="color: green;">
+                    <strong>{{ user.username }}</strong> ({{ user.email }})
+                    {% if not user.is_active %}<span style="color: orange;"> - غیرفعال</span>{% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    {% if invalid_users %}
+    <div class="module" style="margin-bottom: 20px; background-color: #fff2f2; border: 1px solid #ffcccc;">
+        <h3 style="color: red;">❌ کاربران نامعتبر ({{ invalid_users|length }}) - این کاربران نادیده گرفته می‌شوند</h3>
+        <ul>
+            {% for invalid_user in invalid_users %}
+                <li style="color: red;">
+                    <strong>{{ invalid_user.user.username }}</strong>
+                    ({{ invalid_user.user.email|default:"بدون ایمیل" }})
+                    - مشکلات:
+                    {% for issue in invalid_user.issues %}
+                        {% if issue == "inactive_user" %}غیرفعال{% endif %}
+                        {% if issue == "invalid_email" %}ایمیل نامعتبر{% endif %}
+                        {% if not forloop.last %}, {% endif %}
+                    {% endfor %}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    {% if not valid_users %}
+    <div class="module" style="background-color: #fff2f2; border: 1px solid #ffcccc; padding: 15px;">
+        <h3 style="color: red;">⚠️ هیچ کاربر معتبری برای ارسال ایمیل یافت نشد</h3>
+        <p>لطفاً کاربران دیگری را انتخاب کنید.</p>
+        <a href="{% url 'admin:users_user_changelist' %}" class="button">بازگشت به لیست کاربران</a>
+    </div>
+    {% else %}
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <fieldset class="module aligned">
+        <div class="form-row">
+            <div>
+                <label for="{{ form.template.id_for_label }}">{{ form.template.label }}:</label>
+                {{ form.template }}
+                {% if form.template.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.template.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div>
+                <label for="{{ form.subject.id_for_label }}">{{ form.subject.label }}:</label>
+                {{ form.subject }}
+                <p class="help">اگر خالی باشد، موضوع قالب استفاده می‌شود</p>
+                {% if form.subject.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.subject.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div>
+                <label for="{{ form.content.id_for_label }}">{{ form.content.label }}:</label>
+                {{ form.content }}
+                <p class="help">اگر خالی باشد، محتوای قالب استفاده می‌شود</p>
+                {% if form.content.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.content.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+        </div>
+    </fieldset>
+
+    <div class="submit-row">
+        <input type="submit" value="ارسال ایمیل به {{ valid_users|length }} کاربر معتبر" class="default" name="_save">
+        <a href="{% url 'admin:users_user_changelist' %}" class="button cancel-link">انصراف</a>
+    </div>
+</form>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const templateSelect = document.getElementById('{{ form.template.id_for_label }}');
+    const subjectInput = document.getElementById('{{ form.subject.id_for_label }}');
+    const contentTextarea = document.querySelector('textarea[name="content"]');
+
+    templateSelect.addEventListener('change', function() {
+        if (this.value) {
+            console.log('Template selected:', this.value);
+            // You can add AJAX call here to fetch template data
+        }
+    });
+});
+</script>
+{% endblock %}
