@@ -1,0 +1,112 @@
+{% extends 'filemanager/base.html' %}
+
+{% block title %}لیست تصاویر{% endblock %}
+
+{% block page_title %}تصاویر{% endblock %}
+
+{% block header_actions %}
+<a href="{% url 'filemanager:photo_upload' %}" class="btn btn-primary">
+    <i class="fas fa-plus"></i> آپلود تصویر
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Search Box -->
+<div class="search-box">
+    <form method="get" class="row g-3">
+        <div class="col-md-10">
+            <input type="text" name="search" class="form-control" placeholder="جستجو در تصاویر..." value="{{ search_query }}">
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary w-100">
+                <i class="fas fa-search"></i> جستجو
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Photos Grid -->
+{% if page_obj %}
+<div class="row">
+    {% for photo in page_obj %}
+    <div class="col-md-4 col-lg-3 mb-4" id="photo-{{ photo.id }}">
+        <div class="card h-100">
+            <div class="position-relative">
+                <img src="{{ photo.image.url }}" alt="{{ photo.title }}" class="photo-thumbnail">
+                <div class="position-absolute top-0 end-0 p-2">
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'filemanager:photo_detail' photo.pk %}">
+                                <i class="fas fa-eye"></i> مشاهده
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'filemanager:photo_edit' photo.pk %}">
+                                <i class="fas fa-edit"></i> ویرایش
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="#" onclick="deleteAjax('{% url 'filemanager:photo_delete_ajax' photo.pk %}', 'photo-{{ photo.id }}', 'تصویر حذف شد')">
+                                <i class="fas fa-trash"></i> حذف
+                            </a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <h6 class="card-title">{{ photo.title|truncatechars:25 }}</h6>
+                <p class="card-text small text-muted">
+                    {{ photo.description|truncatechars:50 }}
+                </p>
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">{{ photo.uploaded_at|date:"Y/m/d" }}</small>
+                    <small class="text-muted">{{ photo.get_file_size_display }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<nav aria-label="Page navigation">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">قبلی</a>
+            </li>
+        {% endif %}
+        
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+                <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                </li>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}">{{ num }}</a>
+                </li>
+            {% endif %}
+        {% endfor %}
+        
+        {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}">بعدی</a>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+{% else %}
+<div class="text-center py-5">
+    <i class="fas fa-images fa-4x text-muted mb-3"></i>
+    <h4 class="text-muted">تصویری یافت نشد</h4>
+    <p class="text-muted">هیچ تصویری برای نمایش وجود ندارد.</p>
+    <a href="{% url 'filemanager:photo_upload' %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> آپلود اولین تصویر
+    </a>
+</div>
+{% endif %}
+{% endblock %}

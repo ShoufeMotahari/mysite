@@ -14,10 +14,13 @@ class Profile(models.Model):
 
 class User(AbstractUser):
     mobile = models.CharField(max_length=11, unique=True, null=True, blank=True)
-    email = models.CharField(max_length=11, unique=True, null=True, blank=True)
+    email = models.EmailField(max_length=254, unique=True)  # Changed to EmailField with proper length
+    username = models.CharField(max_length=150, unique=True, null=True, blank=True)  # Increased length
     slug = models.SlugField(unique=True, blank=True)
     created_at = jmodels.jDateTimeField(auto_now_add=True)
     second_password = models.CharField(max_length=6, null=True, blank=True)
+    is_active = models.BooleanField(default=False, verbose_name='فعال')
+
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.username or self.email or self.mobile)

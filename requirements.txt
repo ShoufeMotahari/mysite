@@ -21,3 +21,6 @@ tzdata==2025.2
 urllib3==2.5.0
 smsir-python==1.0.8
 django-ckeditor==6.5.1
+django-storages
+boto3
+Pillow

@@ -1,0 +1,114 @@
+{% extends 'filemanager/base.html' %}
+
+{% block title %}{{ photo.title }}{% endblock %}
+
+{% block page_title %}جزئیات تصویر{% endblock %}
+
+{% block header_actions %}
+<a href="{% url 'filemanager:photo_list' %}" class="btn btn-outline-secondary">
+    <i class="fas fa-arrow-right"></i> بازگشت
+</a>
+<a href="{% url 'filemanager:photo_edit' photo.pk %}" class="btn btn-primary">
+    <i class="fas fa-edit"></i> ویرایش
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <img src="{{ photo.image.url }}" alt="{{ photo.title }}" class="img-fluid rounded" style="max-height: 500px;">
+                </div>
+                
+                <h3>{{ photo.title }}</h3>
+                
+                {% if photo.description %}
+                <p class="text-muted">{{ photo.description }}</p>
+                {% endif %}
+                
+                {% if photo.alt_text %}
+                <p><strong>متن جایگزین:</strong> {{ photo.alt_text }}</p>
+                {% endif %}
+                
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <p><strong>آپلود شده توسط:</strong> {{ photo.uploaded_by.get_full_name|default:photo.uploaded_by.username }}</p>
+                        <p><strong>تاریخ آپلود:</strong> {{ photo.uploaded_at|date:"Y/m/d H:i" }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>اندازه فایل:</strong> {{ photo.get_file_size_display }}</p>
+                        <p><strong>آخرین بروزرسانی:</strong> {{ photo.updated_at|date:"Y/m/d H:i" }}</p>
+                    </div>
+                </div>
+                
+                <div class="d-flex gap-2 mt-4">
+                    <a href="{{ photo.image.url }}" target="_blank" class="btn btn-outline-primary">
+                        <i class="fas fa-external-link-alt"></i> باز کردن تصویر
+                    </a>
+                    <a href="{{ photo.image.url }}" download="{{ photo.title }}" class="btn btn-outline-success">
+                        <i class="fas fa-download"></i> دانلود
+                    </a>
+                    <button class="btn btn-outline-info" onclick="copyToClipboard('{{ photo.image.url }}')">
+                        <i class="fas fa-copy"></i> کپی لینک
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">عملیات</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'filemanager:photo_edit' photo.pk %}" class="btn btn-primary">
+                        <i class="fas fa-edit"></i> ویرایش تصویر
+                    </a>
+                    <a href="{{ photo.image.url }}" target="_blank" class="btn btn-outline-info">
+                        <i class="fas fa-external-link-alt"></i> باز کردن در تب جدید
+                    </a>
+                    <a href="{{ photo.image.url }}" download="{{ photo.title }}" class="btn btn-outline-success">
+                        <i class="fas fa-download"></i> دانلود تصویر
+                    </a>
+                    <button class="btn btn-outline-secondary" onclick="copyToClipboard('{{ photo.image.url }}')">
+                        <i class="fas fa-copy"></i> کپی لینک
+                    </button>
+                    <hr>
+                    <button class="btn btn-danger" onclick="confirmDelete('{% url 'filemanager:photo_delete' photo.pk %}', 'آیا از حذف این تصویر مطمئن هستید؟')">
+                        <i class="fas fa-trash"></i> حذف تصویر
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0">اطلاعات فنی</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tr>
+                        <td><strong>نام فایل:</strong></td>
+                        <td>{{ photo.image.name|basename }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>اندازه:</strong></td>
+                        <td>{{ photo.get_file_size_display }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>URL:</strong></td>
+                        <td><small>{{ photo.image.url }}</small></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyToClipboard(text) {
+    navigator.clipboard.write

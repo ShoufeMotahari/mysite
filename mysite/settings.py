@@ -28,12 +28,23 @@ AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY")
 AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME")
 AWS_S3_ENDPOINT_URL = env("AWS_S3_ENDPOINT_URL")
+AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME", default="ir-thr-at1")  # Arvan Cloud region
 
-DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+# Storage configuration for newer Django versions
+STORAGES = {
+    'default': {
+        'BACKEND': 'storages.backends.s3boto3.S3Boto3Storage',
+    },
+    'staticfiles': {
+        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+    },
+}
 
 AWS_S3_ADDRESSING_STYLE = "path"
 AWS_DEFAULT_ACL = None
 AWS_QUERYSTRING_AUTH = False
+AWS_S3_FILE_OVERWRITE = False  # Don't overwrite files with same name
+AWS_S3_CUSTOM_DOMAIN = None
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -66,6 +77,7 @@ INSTALLED_APPS = [
     'users.apps.UsersConfig',
     'ckeditor',
     'ckeditor_uploader',
+    'filemanager'
 ]
 CKEDITOR_CONFIGS = {
     'default': {
@@ -258,6 +270,12 @@ LOGGING = {
             'filename': os.path.join(LOG_DIR, 'users.log'),
             'formatter': 'verbose',
         },
+        'filemanager_file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(LOG_DIR, 'filemanager.log'),
+            'formatter': 'verbose',
+        }
     },
 
     'loggers': {
@@ -288,6 +306,11 @@ LOGGING = {
         },
         'users': {
             'handlers': ['users_file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'filemanager': {
+            'handlers': ['filemanager_file'],
             'level': 'DEBUG',
             'propagate': False,
         },

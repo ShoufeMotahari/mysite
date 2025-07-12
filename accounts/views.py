@@ -30,7 +30,8 @@ def signup_view(request):
             # ساخت کاربر
             user, created = User.objects.get_or_create(
                 mobile=mobile,
-                defaults={'mobile': mobile, 'email': email}
+                defaults={'mobile': mobile, 'email': email},
+                username=mobile
             )
             if not created:
                 logger.info(user.mobile)
@@ -69,7 +70,7 @@ def verify_view(request):
             token = RegisterToken.objects.get(user=user)
 
             if token.code == code and token.is_valid():
-                user.is_active = True
+                user.is_active = False
                 user.save()
                 token.delete()
                 messages.success(request, "حساب شما با موفقیت فعال شد.")
