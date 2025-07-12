@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <title>فعالسازی حساب</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #f5f5f5;
+            padding: 40px;
+            color: #333;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        .code-box {
+            background-color: #eee;
+            padding: 10px;
+            font-weight: bold;
+            border-radius: 4px;
+            direction: ltr;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>سلام {{ user.username }} عزیز 👋</h2>
+        <p>برای فعال‌سازی حساب کاربری خود، روی دکمه زیر کلیک کنید:</p>
+
+        <a href="{{ activation_link }}" class="btn">فعالسازی حساب</a>
+
+        <p>یا لینک زیر را کپی و در مرورگر خود باز کنید:</p>
+        <div class="code-box">{{ activation_link }}</div>
+
+        <p style="margin-top:30px; color: #777;">اگر شما این درخواست را نداده‌اید، این ایمیل را نادیده بگیرید.</p>
+    </div>
+</body>
+</html>

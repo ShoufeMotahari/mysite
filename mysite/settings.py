@@ -35,10 +35,8 @@ AWS_S3_ADDRESSING_STYLE = "path"
 AWS_DEFAULT_ACL = None
 AWS_QUERYSTRING_AUTH = False
 
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
@@ -50,7 +48,6 @@ SECRET_KEY = 'django-insecure-%&r-xz_$%zjxpv6j5!7j77vo&_c_37p_=rzwc*w@v%)wy+976*
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
 
 # Application definition
 
@@ -67,7 +64,32 @@ INSTALLED_APPS = [
     'sections',
     'dashboard',
     'users.apps.UsersConfig',
+    'ckeditor',
+    'ckeditor_uploader',
 ]
+CKEDITOR_CONFIGS = {
+    'default': {
+        'toolbar': 'full',
+        'height': 300,
+        'width': '100%',
+        'extraPlugins': ','.join([
+            'uploadimage',
+            'div',
+            'autolink',
+            'autoembed',
+            'embedsemantic',
+            'autogrow',
+            'widget',
+            'lineutils',
+            'clipboard',
+            'dialog',
+            'dialogui',
+            'elementspath'
+        ]),
+    },
+}
+
+CKEDITOR_UPLOAD_PATH = "uploads/"
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -101,7 +123,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'mysite.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
@@ -111,7 +132,6 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
@@ -131,7 +151,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/5.0/topics/i18n/
 
@@ -143,7 +162,6 @@ USE_I18N = True
 USE_L10N = False
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
@@ -153,8 +171,6 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -172,7 +188,16 @@ SMS_API_KEY = env("SMS_API_KEY")
 SMS_LINE_NUMBER = env("SMS_LINE_NUMBER")
 SMS_TEMPLATE_ID = env("SMS_TEMPLATE_ID")
 
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'# smpt باید فعال بشه فعلا برای تست ما کد پیین را میذاریم
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# EMAIL_HOST = 'smtp.yourprovider.com'
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'your@emails.com'
+# Epython manage.py runserverMAIL_HOST_PASSWORD = 'yourpassword'
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
+SITE_URL = 'http://127.0.0.1:8000'  # برای لینک فعال‌سازی
 
 LOG_DIR = os.path.join(BASE_DIR, 'logs')  # مسیر ذخیره‌ی فایل‌های لاگ
 
@@ -268,4 +293,3 @@ LOGGING = {
         },
     }
 }
-

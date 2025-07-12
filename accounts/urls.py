@@ -2,6 +2,7 @@ from django.urls import path
 from .views import signup_view, verify_view, login_view, verify_login_view, dashboard_view
 from django.contrib.auth.views import LogoutView
 from .views import second_password_view, change_second_password_view
+from .views import activate_account_view
 
 
 urlpatterns = [
@@ -14,4 +15,5 @@ urlpatterns = [
     path('second-password/', second_password_view, name='second-password'),
     path('dashboard/', dashboard_view, name='dashboard'),
     path('change-second-password/', change_second_password_view, name='change-second-password'),
+    path('activate/', activate_account_view, name='activate'),
 ]

@@ -1,37 +1,58 @@
 from django.shortcuts import render
 from django.shortcuts import render, redirect
-from .forms import SignupForm, LoginForm
-from users.models import User, RegisterToken
+
+from accounts.forms.forms import SignupForm, LoginForm, SecondPasswordForm, ChangeSecondPasswordForm
 from core.sms import send_verification_sms
+from users.models import User, RegisterToken
 import random
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from .forms import SecondPasswordForm
-from .forms import ChangeSecondPasswordForm
+from core.email import send_activation_email
+import uuid
+from users.models import RegisterToken
 import logging
 logger = logging.getLogger('accounts')
 
 def my_view(request):
     logger.info('کاربر وارد صفحه‌ی لاگین شد')
 
+User = get_user_model()
+
 def signup_view(request):
     if request.method == 'POST':
         form = SignupForm(request.POST)
         if form.is_valid():
             mobile = form.cleaned_data['mobile']
-            user, created = User.objects.get_or_create(mobile=mobile, defaults={'username': mobile})
+            email = form.cleaned_data.get('email')
 
-            code = str(random.randint(100000, 999999))
+            # ساخت کاربر
+            user, created = User.objects.get_or_create(
+                mobile=mobile,
+                defaults={'mobile': mobile, 'email': email}
+            )
+            if not created:
+                logger.info(user.mobile)
+                logger.info(email)
+                logger.info('user.mobile')
+            # ساخت توکن (با uuid برای امنیت بیشتر)
+            token = str(uuid.uuid4())
+            RegisterToken.objects.update_or_create(user=user, defaults={'code': token})
+            logger.info(mobile)
+            logger.info(token)
+            # ارسال پیامک
+            send_verification_sms(mobile, '1234')
 
-            RegisterToken.objects.update_or_create(user=user, defaults={'code': code})
-            send_verification_sms(mobile, code)
+            # ارسال ایمیل (اگه ایمیل وارد شده باشه)
+            if email:
+                send_activation_email(user, token)
 
             request.session['mobile'] = mobile
             return redirect('verify')
     else:
         form = SignupForm()
+
     return render(request, 'accounts/signup.html', {'form': form})
 
 
@@ -61,7 +82,6 @@ def verify_view(request):
     return render(request, 'accounts/verify.html')
 
 
-User = get_user_model()
 
 
 def login_view(request):
@@ -115,11 +135,6 @@ def verify_login_view(request):
             messages.error(request, "کاربر یا کد معتبر نیست.")
     return render(request, 'accounts/verify_login.html')
 
-@login_required
-def dashboard_view(request):
-    user = request.user
-    return render(request, 'accounts/dashboard.html', {'user': user})
-
 
 def send_sms_view(request):
     phone = request.GET.get("phone")
@@ -167,3 +182,21 @@ def change_second_password_view(request):
         form = ChangeSecondPasswordForm()
 
     return render(request, 'accounts/change_second_password.html', {'form': form})
+
+def activate_account_view(request):
+    token = request.GET.get('token')
+    if not token:
+        messages.error(request, "توکن وجود ندارد.")
+        return redirect('signup')
+
+    try:
+        register_token = RegisterToken.objects.get(code=token)
+        user = register_token.user
+        user.is_active = True
+        user.save()
+        register_token.delete()
+        messages.success(request, "حساب شما با موفقیت فعال شد.")
+        return redirect('login')
+    except RegisterToken.DoesNotExist:
+        messages.error(request, "توکن معتبر نیست یا قبلاً استفاده شده.")
+        return redirect('signup')
