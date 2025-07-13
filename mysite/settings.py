@@ -23,13 +23,6 @@ env = environ.Env()
 env_path = os.path.join(BASE_DIR, '.env')
 if os.path.exists(env_path):
     environ.Env.read_env(env_file=env_path)
-
-AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID")
-AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY")
-AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME")
-AWS_S3_ENDPOINT_URL = env("AWS_S3_ENDPOINT_URL")
-AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME", default="ir-thr-at1")  # Arvan Cloud region
-
 # Storage configuration for newer Django versions
 STORAGES = {
     'default': {
@@ -40,11 +33,27 @@ STORAGES = {
     },
 }
 
+# Arvan Cloud S3 Configuration
+AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY")
+AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME")
+AWS_S3_ENDPOINT_URL = env("AWS_S3_ENDPOINT_URL")
+AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME", default="ir-thr-at1")
+
+# Fixed custom domain - this is the key fix
+AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.ir-thr-at1.arvanstorage.ir"
+
+# S3 Configuration
 AWS_S3_ADDRESSING_STYLE = "path"
 AWS_DEFAULT_ACL = None
 AWS_QUERYSTRING_AUTH = False
-AWS_S3_FILE_OVERWRITE = False  # Don't overwrite files with same name
-AWS_S3_CUSTOM_DOMAIN = None
+AWS_S3_FILE_OVERWRITE = False
+AWS_S3_SECURE_URLS = True  # Use HTTPS
+AWS_S3_USE_SSL = True      # Force SSL
+
+AWS_S3_OBJECT_PARAMETERS = {
+    'CacheControl': 'max-age=86400',
+}
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -192,8 +201,8 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'  # برای collectstatic در دیپلوی
 
 # 🔸 Media files (user uploads)
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/"
+# MEDIA_ROOT = BASE_DIR / 'media'
 
 AUTH_USER_MODEL = 'users.User'
 SMS_API_KEY = env("SMS_API_KEY")

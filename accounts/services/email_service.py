@@ -56,11 +56,29 @@ class EmailValidator:
 
         return valid_users, invalid_users
 
+    @classmethod
+    def validate_email(cls, email):
+        """Validate single email address"""
+        if not email:
+            raise ValidationError("Email is required")
+
+        try:
+            validate_email(email)
+            return True
+        except ValidationError as e:
+            raise ValidationError(f"Invalid email format: {email}")
+
 
 class EmailStrategy(ABC):
     @abstractmethod
     def send_email(self, recipients, subject, content, sender_info):
         pass
+
+
+def _is_html_content(content):
+    """Check if content contains HTML tags"""
+    html_pattern = re.compile(r'<[^>]+>')
+    return bool(html_pattern.search(content))
 
 
 class DjangoEmailStrategy(EmailStrategy):
@@ -104,13 +122,17 @@ class DjangoEmailStrategy(EmailStrategy):
 
             logger.info(f"📨 Sending email: '{subject}' to {len(recipient_emails)} recipients")
 
+            # Create email message
             msg = EmailMultiAlternatives(
                 subject=subject,
                 body=content,
                 from_email=from_email,
                 to=recipient_emails
             )
-            msg.attach_alternative(content, "text/html")
+
+            # Add HTML alternative if content contains HTML
+            if _is_html_content(content):
+                msg.attach_alternative(content, "text/html")
 
             # Send email
             result = msg.send()
@@ -155,28 +177,135 @@ class DjangoEmailStrategy(EmailStrategy):
             }
 
 
+class SMTPEmailStrategy(EmailStrategy):
+    """Alternative SMTP email strategy for future use"""
+
+    def __init__(self, smtp_config=None):
+        self.smtp_config = smtp_config or {}
+
+    def send_email(self, recipients, subject, content, sender_info):
+        # Implementation for SMTP strategy
+        # This can be implemented later if needed
+        logger.info("SMTP email strategy not implemented yet")
+        return False, "SMTP strategy not implemented", {}
+
+
 class EmailService:
     def __init__(self, strategy: EmailStrategy):
         self._strategy = strategy
         self.logger = logging.getLogger('email_service')
 
     def set_strategy(self, strategy: EmailStrategy):
+        """Change email sending strategy"""
         self._strategy = strategy
         self.logger.info(f"🔄 Email strategy changed to: {strategy.__class__.__name__}")
 
     def send_email(self, recipients, subject, content, sender_info):
+        """Send email using the current strategy"""
         self.logger.info(f"🚀 Email service initiated for: '{subject}'")
         self.logger.info(f"📋 Processing {len(recipients)} recipients")
+
+        # Validate inputs
+        if not recipients:
+            error_msg = "No recipients provided"
+            self.logger.error(f"❌ {error_msg}")
+            return False, error_msg, {}
+
+        if not subject:
+            error_msg = "No subject provided"
+            self.logger.error(f"❌ {error_msg}")
+            return False, error_msg, {}
+
+        if not content:
+            error_msg = "No content provided"
+            self.logger.error(f"❌ {error_msg}")
+            return False, error_msg, {}
+
         return self._strategy.send_email(recipients, subject, content, sender_info)
+
+    def get_current_strategy(self):
+        """Get the current email strategy"""
+        return self._strategy.__class__.__name__
 
 
 # Factory Pattern for Email Service
 class EmailServiceFactory:
+    _services = {
+        'django': DjangoEmailStrategy,
+        'smtp': SMTPEmailStrategy,
+    }
+
     @staticmethod
-    def create_email_service(service_type='django'):
+    def create_email_service(service_type='django', **kwargs):
+        """Create email service with specified strategy"""
         logger.info(f"🏭 Creating email service of type: {service_type}")
-        if service_type == 'django':
-            return EmailService(DjangoEmailStrategy())
-        else:
-            logger.error(f"❌ Unknown email service type requested: {service_type}")
-            raise ValueError(f"Unknown email service type: {service_type}")
+
+        if service_type not in EmailServiceFactory._services:
+            available_types = ', '.join(EmailServiceFactory._services.keys())
+            error_msg = f"Unknown email service type: {service_type}. Available types: {available_types}"
+            logger.error(f"❌ {error_msg}")
+            raise ValueError(error_msg)
+
+        strategy_class = EmailServiceFactory._services[service_type]
+        strategy = strategy_class(**kwargs)
+
+        return EmailService(strategy)
+
+    @staticmethod
+    def get_available_services():
+        """Get list of available email service types"""
+        return list(EmailServiceFactory._services.keys())
+
+
+# Utility functions for email processing
+class EmailUtils:
+    @staticmethod
+    def sanitize_subject(subject):
+        """Sanitize email subject line"""
+        if not subject:
+            return "No Subject"
+
+        # Remove potentially harmful characters
+        sanitized = re.sub(r'[^\w\s\-_.,!?()[\]{}:;@#$%^&*+=|\\/<>"`~]', '', subject)
+
+        # Limit length
+        if len(sanitized) > 200:
+            sanitized = sanitized[:197] + "..."
+
+        return sanitized.strip()
+
+    @staticmethod
+    def sanitize_content(content):
+        """Basic content sanitization"""
+        if not content:
+            return ""
+
+        # Remove null bytes and other control characters
+        sanitized = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]', '', content)
+
+        return sanitized.strip()
+
+    @staticmethod
+    def extract_plain_text(html_content):
+        """Extract plain text from HTML content"""
+        if not html_content:
+            return ""
+
+        # Simple HTML tag removal
+        plain_text = re.sub(r'<[^>]+>', '', html_content)
+
+        # Decode HTML entities
+        plain_text = plain_text.replace('&nbsp;', ' ')
+        plain_text = plain_text.replace('&amp;', '&')
+        plain_text = plain_text.replace('&lt;', '<')
+        plain_text = plain_text.replace('&gt;', '>')
+        plain_text = plain_text.replace('&quot;', '"')
+        plain_text = plain_text.replace('&#39;', "'")
+
+        return plain_text.strip()
+
+
+# Email service instance factory
+def get_email_service(service_type='django'):
+    """Convenience function to get email service instance"""
+    return EmailServiceFactory.create_email_service(service_type)

@@ -1,0 +1,33 @@
+<!-- templates/admin/users/user/change_list.html -->
+{% extends "admin/change_list.html" %}
+{% load i18n %}
+
+{% block content_title %}
+    {{ block.super }}
+    {% if show_send_all_email_button %}
+        <div style="float: right; margin-top: -40px;">
+            <a href="{% url 'admin:send_email_all' %}" class="btn btn-primary" style="
+                background-color: #417690;
+                color: white;
+                padding: 8px 16px;
+                text-decoration: none;
+                border-radius: 4px;
+                font-size: 13px;
+                border: none;
+                cursor: pointer;
+                margin-left: 10px;
+            ">
+                📧 ارسال ایمیل به همه کاربران
+            </a>
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <style>
+        .btn-primary:hover {
+            background-color: #2d5aa0 !important;
+        }
+    </style>
+{% endblock %}

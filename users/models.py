@@ -11,13 +11,12 @@ import uuid
 
 class User(AbstractUser):
     mobile = models.CharField(max_length=11, unique=True, null=True, blank=True)
-    email = models.EmailField(max_length=254, unique=True, null=True,
-                              blank=True)  # Allow null for mobile-only registration
+    email = models.EmailField(max_length=254, unique=True, null=True, blank=True)
     username = models.CharField(max_length=150, unique=True, null=True, blank=True)
     slug = models.SlugField(unique=True, blank=True)
     created_at = jmodels.jDateTimeField(auto_now_add=True)
     second_password = models.CharField(max_length=6, null=True, blank=True)
-    is_active = models.BooleanField(default=False, verbose_name='فعال')
+    is_active = models.BooleanField(default=True, verbose_name='فعال')  # Changed to True
     is_phone_verified = models.BooleanField(default=False, verbose_name='تلفن تایید شده')
     is_email_verified = models.BooleanField(default=False, verbose_name='ایمیل تایید شده')
 
