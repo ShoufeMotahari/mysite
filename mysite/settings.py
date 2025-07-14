@@ -23,6 +23,31 @@ env = environ.Env()
 env_path = os.path.join(BASE_DIR, '.env')
 if os.path.exists(env_path):
     environ.Env.read_env(env_file=env_path)
+# Arvan Cloud S3 Configuration
+AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY")
+AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME")
+AWS_S3_ENDPOINT_URL = env("AWS_S3_ENDPOINT_URL")  # Should be https://s3.ir-thr-at1.arvanstorage.com
+AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME", default="ir-thr-at1")
+
+# FIXED: Correct custom domain configuration
+AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.ir-thr-at1.arvanstorage.com"
+
+# S3 Configuration
+AWS_S3_ADDRESSING_STYLE = "virtual"  # Changed to virtual
+AWS_DEFAULT_ACL = 'public-read'  # IMPORTANT: Set to public-read for access
+AWS_QUERYSTRING_AUTH = False
+AWS_S3_FILE_OVERWRITE = False  # Prevent overwriting files with same name
+AWS_S3_SECURE_URLS = True
+AWS_S3_USE_SSL = True
+AWS_S3_SIGNATURE_VERSION = 's3v4'  # Required for Arvan
+AWS_S3_VERIFY = True
+
+# Object parameters
+AWS_S3_OBJECT_PARAMETERS = {
+    'CacheControl': 'max-age=86400',
+}
+
 # Storage configuration for newer Django versions
 STORAGES = {
     'default': {
@@ -33,31 +58,20 @@ STORAGES = {
     },
 }
 
-# Arvan Cloud S3 Configuration
-AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID")
-AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY")
-AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME")
-AWS_S3_ENDPOINT_URL = env("AWS_S3_ENDPOINT_URL")
-AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME", default="ir-thr-at1")
+# FIXED: Media configuration
+MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/"
 
-# Fixed custom domain - this is the key fix
-AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.ir-thr-at1.arvanstorage.ir"
+# REMOVE this line - it's for older Django versions:
+# DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 
-# S3 Configuration
-AWS_S3_ADDRESSING_STYLE = "path"
-AWS_DEFAULT_ACL = None
-AWS_QUERYSTRING_AUTH = False
-AWS_S3_FILE_OVERWRITE = False
-AWS_S3_SECURE_URLS = True  # Use HTTPS
-AWS_S3_USE_SSL = True      # Force SSL
+# Static files configuration
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-AWS_S3_OBJECT_PARAMETERS = {
-    'CacheControl': 'max-age=86400',
-}
-
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
-
+# CKEditor configuration
+CKEDITOR_UPLOAD_PATH = "uploads/"
+CKEDITOR_BASEPATH = "/static/ckeditor/ckeditor/"
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
@@ -86,7 +100,8 @@ INSTALLED_APPS = [
     'users.apps.UsersConfig',
     'ckeditor',
     'ckeditor_uploader',
-    'filemanager'
+    'filemanager',
+    'arvan_integration',
 ]
 CKEDITOR_CONFIGS = {
     'default': {
@@ -110,8 +125,6 @@ CKEDITOR_CONFIGS = {
     },
 }
 
-CKEDITOR_UPLOAD_PATH = "uploads/"
-
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -123,8 +136,6 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'mysite.urls'
-
-BASE_DIR = Path(__file__).resolve().parent.parent
 
 TEMPLATES = [
     {
@@ -183,25 +194,12 @@ USE_I18N = True
 USE_L10N = False
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.0/howto/static-files/
-
-STATIC_URL = 'static/'
-
 # Default primary key field type
-# https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# 🔹 Static files (CSS, JS, images)
-STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / 'static']
-STATIC_ROOT = BASE_DIR / 'staticfiles'  # برای collectstatic در دیپلوی
-
-# 🔸 Media files (user uploads)
-MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/"
 # MEDIA_ROOT = BASE_DIR / 'media'
 
 AUTH_USER_MODEL = 'users.User'
@@ -224,8 +222,6 @@ LOG_DIR = os.path.join(BASE_DIR, 'logs')  # مسیر ذخیره‌ی فایل‌
 
 if not os.path.exists(LOG_DIR):
     os.makedirs(LOG_DIR)  # اگر فولدر logs وجود نداشت، بساز
-
-import os
 
 LOG_DIR = os.path.join(BASE_DIR, 'logs')
 if not os.path.exists(LOG_DIR):
@@ -284,7 +280,13 @@ LOGGING = {
             'class': 'logging.FileHandler',
             'filename': os.path.join(LOG_DIR, 'filemanager.log'),
             'formatter': 'verbose',
-        }
+        },
+        'arvan_integration_file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(LOG_DIR, 'arvan_integration.log'),  # ✅ اصلاح مسیر
+            'formatter': 'verbose',
+        },
     },
 
     'loggers': {
@@ -320,6 +322,11 @@ LOGGING = {
         },
         'filemanager': {
             'handlers': ['filemanager_file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'arvan_integration': {
+            'handlers': ['arvan_integration_file'],
             'level': 'DEBUG',
             'propagate': False,
         },

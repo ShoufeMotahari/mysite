@@ -14,22 +14,25 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+# Replace your urls.py with this corrected version:
+
 from django.contrib import admin
-
 from django.urls import path, include
-
 from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('accounts.urls')),
-    path('', include('core.urls')),  # صفحه اصلی سایت
+    path('', include('core.urls')),
     path('users/', include('users.urls')),
     path('filemanager/', include('filemanager.urls')),
+    path('ckeditor/', include('ckeditor_uploader.urls')),  # Add this for CKEditor
 ]
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
+# IMPORTANT: Only serve static files in debug mode
+# Do NOT serve MEDIA files when using cloud storage
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    # Remove this line when using cloud storage:
+    # urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
