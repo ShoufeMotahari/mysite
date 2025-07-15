@@ -13,21 +13,53 @@ class User(AbstractUser):
     mobile = models.CharField(max_length=11, unique=True, null=True, blank=True)
     email = models.EmailField(max_length=254, unique=True, null=True, blank=True)
     username = models.CharField(max_length=150, unique=True, null=True, blank=True)
-    slug = models.SlugField(unique=True, blank=True)
+    slug = models.SlugField(unique=True, blank=True, max_length=255)
     created_at = jmodels.jDateTimeField(auto_now_add=True)
     second_password = models.CharField(max_length=6, null=True, blank=True)
-    is_active = models.BooleanField(default=True, verbose_name='فعال')  # Changed to True
+    is_active = models.BooleanField(default=True, verbose_name='فعال')
     is_phone_verified = models.BooleanField(default=False, verbose_name='تلفن تایید شده')
     is_email_verified = models.BooleanField(default=False, verbose_name='ایمیل تایید شده')
 
+    def _generate_unique_slug(self, base_slug):
+        """Generate a unique slug by appending numbers if needed"""
+        slug = base_slug
+        counter = 1
+
+        while User.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+            slug = f"{base_slug}-{counter}"
+            counter += 1
+
+        return slug
+
     def save(self, *args, **kwargs):
         if not self.slug:
-            base_slug = slugify(self.username or self.email or self.mobile)
-            self.slug = base_slug or str(uuid.uuid4())[:8]
+            # Try to create slug from username first, then email, then mobile
+            if self.username:
+                base_slug = slugify(self.username)
+            elif self.email:
+                # Use part before @ for email
+                base_slug = slugify(self.email.split('@')[0])
+            elif self.mobile:
+                base_slug = f"user-{self.mobile}"
+            else:
+                # Fallback to UUID
+                base_slug = str(uuid.uuid4())[:8]
+
+            # Ensure we have a valid slug
+            if not base_slug:
+                base_slug = str(uuid.uuid4())[:8]
+
+            self.slug = self._generate_unique_slug(base_slug)
+
         super().save(*args, **kwargs)
 
     def __str__(self):
         return self.username or self.mobile or self.email
+
+    def get_absolute_url(self):
+        """Get the URL for this user's profile"""
+        from django.urls import reverse
+        return reverse('user_profile', kwargs={'slug': self.slug})
 
 
 class Profile(models.Model):

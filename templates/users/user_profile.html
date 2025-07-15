@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<h2>پروفایل {{ profile_user.username }}</h2>
+
+{% if profile.image %}
+    <img src="{{ profile.image.url }}" alt="Profile Image" style="width: 150px; height: 150px;">
+{% endif %}
+
+<p><strong>نام کاربری:</strong> {{ profile_user.username }}</p>
+<p><strong>ایمیل:</strong> {{ profile_user.email }}</p>
+<p><strong>تاریخ عضویت:</strong> {{ profile_user.created_at }}</p>
+
+{% if user == profile_user %}
+    <a href="{% url 'profile_edit' %}">ویرایش پروفایل</a>
+{% endif %}
+{% endblock %}

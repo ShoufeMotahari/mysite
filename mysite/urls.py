@@ -28,6 +28,7 @@ urlpatterns = [
     path('users/', include('users.urls')),
     path('filemanager/', include('filemanager.urls')),
     path('ckeditor/', include('ckeditor_uploader.urls')),  # Add this for CKEditor
+    path('comments/', include('comments.urls')),
 ]
 
 # IMPORTANT: Only serve static files in debug mode
