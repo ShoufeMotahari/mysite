@@ -98,10 +98,11 @@ INSTALLED_APPS = [
     'sections',
     'dashboard',
     'users.apps.UsersConfig',
-    'ckeditor',
     'ckeditor_uploader',
     'filemanager',
     'arvan_integration',
+    'emails',
+    'ckeditor',
 ]
 CKEDITOR_CONFIGS = {
     'default': {
@@ -207,15 +208,6 @@ SMS_API_KEY = env("SMS_API_KEY")
 SMS_LINE_NUMBER = env("SMS_LINE_NUMBER")
 SMS_TEMPLATE_ID = env("SMS_TEMPLATE_ID")
 
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'# smpt باید فعال بشه فعلا برای تست ما کد پیین را میذاریم
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-# EMAIL_HOST = 'smtp.yourprovider.com'
-# EMAIL_PORT = 587
-# EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'your@emails.com'
-# Epython manage.py runserverMAIL_HOST_PASSWORD = 'yourpassword'
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
-
 SITE_URL = 'http://127.0.0.1:8000'  # برای لینک فعال‌سازی
 
 LOG_DIR = os.path.join(BASE_DIR, 'logs')  # مسیر ذخیره‌ی فایل‌های لاگ
@@ -227,6 +219,62 @@ LOG_DIR = os.path.join(BASE_DIR, 'logs')
 if not os.path.exists(LOG_DIR):
     os.makedirs(LOG_DIR)
 
+# Email Configuration
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'# smpt باید فعال بشه فعلا برای تست ما کد پیین را میذاریم
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# EMAIL_HOST = 'smtp.gmail.com'  # Or your SMTP server
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'your-email@gmail.com'  # Your email
+EMAIL_HOST_PASSWORD = 'your-password'  # Your password or app password
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+# CKEditor Configuration
+CKEDITOR_CONFIGS = {
+    'default': {
+        'toolbar': 'Full',
+        'height': 300,
+        'width': '100%',
+        'filebrowserBrowseUrl': '',
+        'filebrowserUploadUrl': '',
+        'extraPlugins': ','.join([
+            'uploadimage',
+            'div',
+            'autolink',
+            'autoembed',
+            'embedsemantic',
+            'autogrow',
+            'widget',
+            'lineutils',
+            'clipboard',
+            'dialog',
+            'dialogui',
+            'elementspath'
+        ]),
+        'removePlugins': 'stylesheetparser',
+        'allowedContent': True,
+        'tabSpaces': 4,
+        'mathJaxLib': '//cdn.mathjax.org/mathjax/2.2-latest/MathJax.js?config=TeX-AMS_HTML',
+        'toolbar_Full': [
+            ['Source', '-', 'Save', 'NewPage', 'Preview', '-', 'Templates'],
+            ['Cut', 'Copy', 'Paste', 'PasteText', 'PasteFromWord', '-', 'Undo', 'Redo'],
+            ['Find', 'Replace', '-', 'SelectAll', '-', 'SpellChecker', 'Scayt'],
+            ['Form', 'Checkbox', 'Radio', 'TextField', 'Textarea', 'Select', 'Button', 'ImageButton', 'HiddenField'],
+            '/',
+            ['Bold', 'Italic', 'Underline', 'Strike', '-', 'Subscript', 'Superscript'],
+            ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-', 'Blockquote', 'CreateDiv'],
+            ['JustifyLeft', 'JustifyCenter', 'JustifyRight', 'JustifyBlock'],
+            ['BidiLtr', 'BidiRtl'],
+            ['Link', 'Unlink', 'Anchor'],
+            ['Image', 'Flash', 'Table', 'HorizontalRule', 'Smiley', 'SpecialChar', 'PageBreak'],
+            '/',
+            ['Styles', 'Format', 'Font', 'FontSize'],
+            ['TextColor', 'BGColor'],
+            ['Maximize', 'ShowBlocks', '-', 'About'],
+        ],
+    },
+}
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -236,9 +284,18 @@ LOGGING = {
             'format': '{levelname} {asctime} [{name}] {message}',
             'style': '{',
         },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
     },
 
     'handlers': {
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
         'accounts_file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
@@ -284,7 +341,14 @@ LOGGING = {
         'arvan_integration_file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(LOG_DIR, 'arvan_integration.log'),  # ✅ اصلاح مسیر
+            'filename': os.path.join(LOG_DIR, 'arvan_integration.log'),
+            'formatter': 'verbose',
+        },
+        # NEW: Email logging handler
+        'emails_file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(LOG_DIR, 'emails.log'),
             'formatter': 'verbose',
         },
     },
@@ -328,6 +392,18 @@ LOGGING = {
         'arvan_integration': {
             'handlers': ['arvan_integration_file'],
             'level': 'DEBUG',
+            'propagate': False,
+        },
+        # NEW: Email logger configuration
+        'emails': {
+            'handlers': ['emails_file', 'console'],  # Log to both file and console
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        # Optional: Log Django's email backend
+        'django.core.mail': {
+            'handlers': ['emails_file'],
+            'level': 'INFO',
             'propagate': False,
         },
     }

@@ -1,0 +1,74 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_modify %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block branding %}
+<h1 id="site-name"><a href="{% url 'admin:index' %}">{{ site_header|default:_('Django administration') }}</a></h1>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}
+
+{% block content %}
+<div class="module filtered">
+    <h2>{{ title }}</h2>
+    
+    <div class="results">
+        <div class="alert alert-warning" style="padding: 15px; margin: 20px 0; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px;">
+            <strong>⚠️ Confirmation Required</strong><br>
+            You are about to send the following email to <strong>{{ recipient_count }}</strong> active users.
+        </div>
+        
+        <div class="email-preview" style="margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 4px; background-color: #f9f9f9;">
+            <h3>Email Preview:</h3>
+            <div style="margin: 10px 0;">
+                <strong>Subject:</strong> {{ broadcast.subject }}
+            </div>
+            <div style="margin: 10px 0;">
+                <strong>Content:</strong>
+                <div style="border: 1px solid #ccc; padding: 10px; background-color: white; max-height: 300px; overflow-y: auto;">
+                    {{ broadcast.content|safe }}
+                </div>
+            </div>
+        </div>
+        
+        <div class="recipient-info" style="margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 4px; background-color: #e8f5e8;">
+            <h3>Recipients Information:</h3>
+            <p><strong>Total Recipients:</strong> {{ recipient_count }} active users</p>
+            <p><strong>Created By:</strong> {{ broadcast.created_by.username }}</p>
+            <p><strong>Created At:</strong> {{ broadcast.created_at|date:"F j, Y, g:i A" }}</p>
+        </div>
+        
+        <form method="post" style="margin: 20px 0;">
+            {% csrf_token %}
+            <div class="submit-row">
+                <button type="submit" class="default" style="background-color: #417690; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px;">
+                    ✉️ Send Email to {{ recipient_count }} Users
+                </button>
+                <a href="{% url 'admin:emails_emailbroadcast_changelist' %}" class="button" style="background-color: #6c757d; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">
+                    Cancel
+                </a>
+            </div>
+        </form>
+        
+        <div class="help" style="margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-left: 4px solid #007cba;">
+            <h3>Important Notes:</h3>
+            <ul>
+                <li>This action cannot be undone</li>
+                <li>All active users with email addresses will receive this email</li>
+                <li>You can monitor the sending progress in the broadcast details</li>
+                <li>Failed deliveries will be logged for review</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+// Add confirmation dialog for extra safety
+document.querySelector('button[type="submit"]').addEventListener('click', function(e) {
+    if (!confirm('Are you sure you want to send this email to {{ recipient_count }} users? This action cannot be undone.')) {
+        e.preventDefault();
+    }
+});
+</script>
+{% endblock %}

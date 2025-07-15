@@ -1,0 +1,116 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static %}
+
+{% block title %}Email Logs | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block branding %}
+<h1 id="site-name"><a href="{% url 'admin:index' %}">{{ site_header|default:_('Django administration') }}</a></h1>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}
+
+{% block content %}
+<div class="module filtered">
+    <h2>📄 Email Delivery Logs</h2>
+    
+    <div class="results">
+        <!-- Filters -->
+        <div class="filters" style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+            <h3>🔍 Filters</h3>
+            <form method="get" style="display: flex; gap: 20px; align-items: end; flex-wrap: wrap;">
+                <div>
+                    <label for="status" style="display: block; margin-bottom: 5px; font-weight: bold;">Status:</label>
+                    <select name="status" id="status" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="">All</option>
+                        <option value="sent" {% if current_status == 'sent' %}selected{% endif %}>Sent</option>
+                        <option value="failed" {% if current_status == 'failed' %}selected{% endif %}>Failed</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="broadcast" style="display: block; margin-bottom: 5px; font-weight: bold;">Broadcast:</label>
+                    <select name="broadcast" id="broadcast" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="">All Broadcasts</option>
+                        {% for broadcast in broadcasts %}
+                            <option value="{{ broadcast.pk }}" {% if current_broadcast == broadcast.pk|stringformat:"s" %}selected{% endif %}>
+                                {{ broadcast.subject|truncatechars:50 }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <button type="submit" style="background: #007cba; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">
+                        Apply Filters
+                    </button>
+                    <a href="{% url 'emails:email_logs' %}" style="background: #6c757d; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; margin-left: 10px;">
+                        Clear Filters
+                    </a>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Logs Table -->
+        {% if page_obj %}
+            <div style="margin: 20px 0;">
+                <p><strong>Total Results:</strong> {{ page_obj.paginator.count }} logs</p>
+            </div>
+            
+            <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+                <thead>
+                    <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                        <th style="padding: 12px; text-align: left; border-bottom: 1px solid #dee2e6;">Broadcast</th>
+                        <th style="padding: 12px; text-align: left; border-bottom: 1px solid #dee2e6;">Recipient</th>
+                        <th style="padding: 12px; text-align: left; border-bottom: 1px solid #dee2e6;">Status</th>
+                        <th style="padding: 12px; text-align: left; border-bottom: 1px solid #dee2e6;">Error Message</th>
+                        <th style="padding: 12px; text-align: left; border-bottom: 1px solid #dee2e6;">Sent At</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in page_obj %}
+                    <tr style="border-bottom: 1px solid #dee2e6;">
+                        <td style="padding: 12px;">
+                            <a href="{% url 'admin:emails_emailbroadcast_change' log.broadcast.pk %}" style="text-decoration: none; color: #007cba;">
+                                {{ log.broadcast.subject|truncatechars:40 }}
+                            </a>
+                        </td>
+                        <td style="padding: 12px;">
+                            <strong>{{ log.recipient.email }}</strong><br>
+                            <small style="color: #6c757d;">{{ log.recipient.get_full_name|default:log.recipient.username }}</small>
+                        </td>
+                        <td style="padding: 12px;">
+                            {% if log.status == 'sent' %}
+                                <span style="color: #28a745; font-weight: bold;">✅ Sent</span>
+                            {% elif log.status == 'failed' %}
+                                <span style="color: #dc3545; font-weight: bold;">❌ Failed</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 12px;">
+                            {% if log.error_message %}
+                                <span style="color: #dc3545; font-size: 0.9em;">{{ log.error_message|truncatechars:60 }}</span>
+                            {% else %}
+                                <span style="color: #28a745;">-</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 12px;">{{ log.sent_at|date:"M j, Y g:i A" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+                <div style="margin: 20px 0; text-align: center;">
+                    <div class="pagination" style="display: inline-block; padding: 0;">
+                        {% if page_obj.has_previous %}
+                            <a href="?page=1{% if current_status %}&status={{ current_status }}{% endif %}{% if current_broadcast %}&broadcast={{ current_broadcast }}{% endif %}" style="padding: 8px 12px; margin: 0 2px; text-decoration: none; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px;">First</a>
+                            <a href="?page={{ page_obj.previous_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_broadcast %}&broadcast={{ current_broadcast }}{% endif %}" style="padding: 8px 12px; margin: 0 2px; text-decoration: none; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px;">Previous</a>
+                        {% endif %}
+                        
+                        <span style="padding: 8px 12px; margin: 0 2px; background: #007cba; color: white; border-radius: 4px;">
+                            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                        </span>
+                        
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_broadcast %}&broadcast={{ current_broadcast }}{% endif %}" style="padding: 8px 12px; margin: 0 2px; text-decoration: none; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px;">Next</a>
+                            <a href="?page={{ page_obj.paginator.num_pages }}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_broadcast %}&broadcast={{ current_broadcast }}{% endif %}" style="padding: 8px 12px

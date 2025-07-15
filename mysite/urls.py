@@ -23,6 +23,9 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('emails/', include('emails.urls')),  # Add this line
+    path('ckeditor/', include('ckeditor_uploader.urls')),  # If using file uploads
+    path('admin/', admin.site.urls),
     path('accounts/', include('accounts.urls')),
     path('', include('core.urls')),
     path('users/', include('users.urls')),
@@ -31,9 +34,11 @@ urlpatterns = [
     path('comments/', include('comments.urls')),
 ]
 
-# IMPORTANT: Only serve static files in debug mode
-# Do NOT serve MEDIA files when using cloud storage
 if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-    # Remove this line when using cloud storage:
-    # urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# Customize admin site
+admin.site.site_header = "Email Broadcasting Admin"
+admin.site.site_title = "Email Admin"
+admin.site.index_title = "Welcome to Email Broadcasting Administration"    # urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
