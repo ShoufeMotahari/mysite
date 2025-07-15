@@ -32,7 +32,7 @@ AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME")
 AWS_S3_ENDPOINT_URL = env("AWS_S3_ENDPOINT_URL")  # Should be https://s3.ir-thr-at1.arvanstorage.com
 AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME", default="ir-thr-at1")
 
-ENCRYPTION_KEY = b'your-secret-key-here'
+ENCRYPTION_KEY = env("ENCRYPTION_KEY")
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-%&r-xz_$%zjxpv6j5!7j77vo&_c_37p_=rzwc*w@v%)wy+976*'
 DEBUG = config('DEBUG', default=True, cast=bool)
@@ -140,6 +140,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # Add this custom middleware for additional logging
+    'passwords.middleware.SecurityLoggingMiddleware',
 ]
 
 ROOT_URLCONF = 'mysite.urls'
@@ -284,23 +286,34 @@ CKEDITOR_CONFIGS = {
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
-
     'formatters': {
         'verbose': {
-            'format': '{levelname} {asctime} [{name}] {message}',
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
             'style': '{',
         },
         'simple': {
-            'format': '{levelname} {message}',
+            'format': '{levelname} {asctime} {message}',
+            'style': '{',
+        },
+        'detailed': {
+            'format': '[{asctime}] {levelname} {name} {module}.{funcName}:{lineno} - {message}',
             'style': '{',
         },
     },
-
+    'filters': {
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
+        },
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse',
+        },
+    },
     'handlers': {
         'console': {
             'level': 'INFO',
+            'filters': ['require_debug_true'],
             'class': 'logging.StreamHandler',
-            'formatter': 'simple',
+            'formatter': 'simple'
         },
         'accounts_file': {
             'level': 'DEBUG',
@@ -338,6 +351,46 @@ LOGGING = {
             'filename': os.path.join(LOG_DIR, 'users.log'),
             'formatter': 'verbose',
         },
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOGS_DIR / 'password_manager.log',
+            'maxBytes': 1024 * 1024 * 5,  # 5 MB
+            'backupCount': 5,
+            'formatter': 'detailed',
+        },
+        'security_file': {
+            'level': 'WARNING',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOGS_DIR / 'security.log',
+            'maxBytes': 1024 * 1024 * 5,  # 5 MB
+            'backupCount': 10,
+            'formatter': 'detailed',
+        },
+        'error_file': {
+            'level': 'ERROR',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOGS_DIR / 'errors.log',
+            'maxBytes': 1024 * 1024 * 5,  # 5 MB
+            'backupCount': 10,
+            'formatter': 'detailed',
+        },
+        'auth_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOGS_DIR / 'auth.log',
+            'maxBytes': 1024 * 1024 * 5,  # 5 MB
+            'backupCount': 10,
+            'formatter': 'detailed',
+        },
+        'admin_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOGS_DIR / 'admin.log',
+            'maxBytes': 1024 * 1024 * 5,  # 5 MB
+            'backupCount': 10,
+            'formatter': 'detailed',
+        },
         'filemanager_file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
@@ -364,7 +417,6 @@ LOGGING = {
             'formatter': 'verbose',
         },
     },
-
     'loggers': {
         'accounts': {
             'handlers': ['accounts_file'],
@@ -418,10 +470,59 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
-        'passwords': {
-            'handlers': ['passwords_file'],
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'django.request': {
+            'handlers': ['error_file'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'django.security': {
+            'handlers': ['security_file'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'django.contrib.auth': {
+            'handlers': ['auth_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.contrib.admin': {
+            'handlers': ['admin_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'passwords': {  # Your app name
+            'handlers': ['console', 'file', 'security_file'],
             'level': 'DEBUG',
             'propagate': False,
         },
-    }
+        'passwords.models': {
+            'handlers': ['file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'passwords.views': {
+            'handlers': ['file', 'security_file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'passwords.forms': {
+            'handlers': ['file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'passwords.admin': {
+            'handlers': ['admin_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+    'root': {
+        'handlers': ['console', 'file'],
+        'level': 'INFO',
+    },
 }

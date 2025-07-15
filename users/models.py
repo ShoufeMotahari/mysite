@@ -120,3 +120,40 @@ class VerificationToken(models.Model):
     class Meta:
         verbose_name = 'کد تایید'
         verbose_name_plural = 'کدهای تایید'
+
+
+class Comment(models.Model):
+    """Model for user comments"""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='comment_set',
+        verbose_name='کاربر'
+    )
+    content = models.TextField(verbose_name='متن نظر')
+    is_approved = models.BooleanField(default=False, verbose_name='تایید شده')
+    is_active = models.BooleanField(default=True, verbose_name='فعال')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='تاریخ بروزرسانی')
+
+    # Optional: Add reference to what the comment is about
+    # For example, if comments are about products, articles, etc.
+    object_id = models.PositiveIntegerField(null=True, blank=True)
+    content_type = models.ForeignKey(
+        'contenttypes.ContentType',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
+
+    class Meta:
+        verbose_name = 'نظر'
+        verbose_name_plural = 'نظرات'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.user} - {self.content[:50]}...'
+
+    def get_absolute_url(self):
+        """Get URL for this comment"""
+        return f'/comments/{self.id}/'

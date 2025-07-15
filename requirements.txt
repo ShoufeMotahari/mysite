@@ -24,3 +24,6 @@ django-ckeditor==6.5.1
 django-storages
 boto3
 Pillow
+django-pwned>=1.0.0
+cryptography>=3.4.8
+python-decouple~=3.8

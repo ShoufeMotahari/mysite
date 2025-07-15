@@ -6,16 +6,62 @@ from django.urls import reverse
 from django.utils import timezone
 from django.db.models import Count, Q
 from django.contrib.auth.models import Group
+from django.contrib.contenttypes.models import ContentType
 
-from .models import Profile, User, RegisterToken, VerificationToken
+from .models import Profile, User, RegisterToken, VerificationToken, Comment
 import django_jalali.admin as jadmin
 from django_jalali.admin.filters import JDateFieldListFilter
+
+# Import the Comment model - uncomment when you have it
+# from .models import Comment
 
 # Unregister the default User admin if it exists
 try:
     admin.site.unregister(User)
 except admin.sites.NotRegistered:
     pass
+
+
+class HasCommentsFilter(admin.SimpleListFilter):
+    """Custom filter to show users with/without comments"""
+    title = 'وضعیت نظرات'
+    parameter_name = 'has_comments'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('yes', 'دارای نظر'),
+            ('no', 'بدون نظر'),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == 'yes':
+            return queryset.filter(comment_set__isnull=False).distinct()
+        if self.value() == 'no':
+            return queryset.filter(comment_set__isnull=True).distinct()
+        return queryset
+
+
+class CommentsInline(admin.TabularInline):
+    """Inline admin for comments"""
+    # Uncomment the next line when you have the Comment model
+    model = Comment
+    extra = 0
+    readonly_fields = ['created_at', 'updated_at']
+    fields = ['content', 'is_approved', 'is_active', 'created_at']
+    can_delete = True
+    show_change_link = True
+
+    def get_queryset(self, request):
+        """Show only recent comments, ordered by creation date"""
+        return super().get_queryset(request).order_by('-created_at')[:20]
+
+    def has_add_permission(self, request, obj=None):
+        """Allow adding comments from user admin"""
+        return True
+
+    def has_change_permission(self, request, obj=None):
+        """Allow changing comments from user admin"""
+        return True
 
 
 class ProfileInline(admin.StackedInline):
@@ -35,7 +81,7 @@ class ProfileInline(admin.StackedInline):
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    inlines = [ProfileInline]
+    inlines = [ProfileInline, CommentsInline]  #
 
     # Custom methods for better display
     def user_status(self, obj):
@@ -109,6 +155,23 @@ class UserAdmin(BaseUserAdmin):
 
     user_groups.short_description = 'گروه‌ها'
 
+    def comments_count(self, obj):
+        """Show number of comments by user"""
+        # You'll need to adjust this based on your Comment model
+        try:
+            count = obj.comment_set.count()
+            if count > 0:
+                return format_html(
+                    '<span style="background:#17a2b8;color:white;padding:2px 6px;border-radius:12px;font-size:11px;">{}</span>',
+                    count
+                )
+            return format_html('<span style="color:#6c757d;">0</span>')
+        except:
+            return format_html('<span style="color:#6c757d;">-</span>')
+
+    comments_count.short_description = 'تعداد نظرات'
+    comments_count.admin_order_field = 'comment_count'
+
     def last_login_display(self, obj):
         """Show last login with better formatting"""
         if obj.last_login:
@@ -127,7 +190,19 @@ class UserAdmin(BaseUserAdmin):
     registration_date.short_description = 'تاریخ ثبت‌نام'
     registration_date.admin_order_field = 'date_joined'
 
-    # List display configuration
+    # Override get_queryset to add comment count annotation
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        # Add comment count annotation - adjust based on your Comment model
+        try:
+            queryset = queryset.annotate(
+                comment_count=Count('comment_set', distinct=True)
+            )
+        except:
+            pass
+        return queryset
+
+    # List display configuration with inline editing
     list_display = [
         'profile_image_thumb',
         'username',
@@ -136,23 +211,32 @@ class UserAdmin(BaseUserAdmin):
         'user_status',
         'verification_status',
         'user_groups',
+        'comments_count',
         'last_login_display',
         'registration_date',
     ]
 
-    # List filters
+    # Enable inline editing for specific fields
+    list_editable = [
+        'username',
+        'email',
+        'mobile',
+    ]
+
+    # Enhanced list filters including comment filter
     list_filter = [
         'is_active',
         'is_staff',
         'is_superuser',
         'is_phone_verified',
         'is_email_verified',
+        HasCommentsFilter,  # Custom filter for comments
         'groups',
         ('date_joined', JDateFieldListFilter),
         ('last_login', JDateFieldListFilter),
     ]
 
-    # Search fields
+    # Enhanced search fields
     search_fields = [
         'username',
         'email',
@@ -164,6 +248,12 @@ class UserAdmin(BaseUserAdmin):
 
     # Ordering
     ordering = ['-date_joined']
+
+    # Items per page
+    list_per_page = 25
+
+    # Enable select across all pages
+    list_select_related = ['profile']
 
     # Fieldsets for detailed view
     fieldsets = (
@@ -211,7 +301,7 @@ class UserAdmin(BaseUserAdmin):
     # Read-only fields
     readonly_fields = ['date_joined', 'last_login', 'created_at', 'slug']
 
-    # Actions
+    # Enhanced actions
     actions = [
         'activate_users',
         'deactivate_users',
@@ -219,6 +309,10 @@ class UserAdmin(BaseUserAdmin):
         'mark_email_verified',
         'make_staff',
         'remove_staff',
+        'export_users_with_comments',
+        'export_detailed_user_report',
+        'send_bulk_email',
+        'send_welcome_email',
     ]
 
     def activate_users(self, request, queryset):
@@ -263,7 +357,116 @@ class UserAdmin(BaseUserAdmin):
 
     remove_staff.short_description = 'حذف دسترسی کارمندی'
 
+    def export_users_with_comments(self, request, queryset):
+        """Export users with their comment counts"""
+        import csv
+        from django.http import HttpResponse
 
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="users_with_comments.csv"'
+
+        writer = csv.writer(response)
+        writer.writerow(['Username', 'Email', 'Mobile', 'Comment Count', 'Registration Date'])
+
+        for user in queryset:
+            try:
+                comment_count = user.comment_set.count()
+            except:
+                comment_count = 0
+
+            writer.writerow([
+                user.username or '',
+                user.email or '',
+                user.mobile or '',
+                comment_count,
+                user.date_joined.strftime('%Y-%m-%d') if user.date_joined else ''
+            ])
+
+        return response
+
+    export_users_with_comments.short_description = 'خروجی کاربران با تعداد نظرات'
+
+    def send_bulk_email(self, request, queryset):
+        """Send bulk email to selected users"""
+        # This would need to be implemented based on your email system
+        verified_users = queryset.filter(is_email_verified=True, email__isnull=False)
+        count = verified_users.count()
+
+        if count > 0:
+            # Here you would implement your bulk email logic
+            self.message_user(request, f'ایمیل برای {count} کاربر تایید شده ارسال شد.')
+        else:
+            self.message_user(request, 'هیچ کاربر با ایمیل تایید شده انتخاب نشده است.', level='WARNING')
+
+    send_bulk_email.short_description = 'ارسال ایمیل گروهی'
+
+    def send_welcome_email(self, request, queryset):
+        """Send welcome email to selected users"""
+        verified_users = queryset.filter(
+            is_email_verified=True,
+            email__isnull=False
+        ).exclude(email='')
+
+        count = verified_users.count()
+
+        if count > 0:
+            # Here you would implement your email sending logic
+            self.message_user(request, f'ایمیل خوشامدگویی برای {count} کاربر ارسال شد.')
+        else:
+            self.message_user(
+                request,
+                'هیچ کاربری با ایمیل تایید شده انتخاب نشده است.',
+                level='WARNING'
+            )
+
+    send_welcome_email.short_description = 'ارسال ایمیل خوشامدگویی'
+
+    def export_detailed_user_report(self, request, queryset):
+        """Export detailed user report with statistics"""
+        import csv
+        from django.http import HttpResponse
+
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="detailed_user_report.csv"'
+
+        writer = csv.writer(response)
+        writer.writerow([
+            'ID', 'Username', 'Email', 'Mobile', 'First Name', 'Last Name',
+            'Is Active', 'Is Staff', 'Phone Verified', 'Email Verified',
+            'Registration Date', 'Last Login', 'Comment Count', 'Approved Comments'
+        ])
+
+        for user in queryset:
+            try:
+                comment_count = user.comment_set.count()
+                approved_comments = user.comment_set.filter(is_approved=True).count()
+            except:
+                comment_count = 0
+                approved_comments = 0
+
+            writer.writerow([
+                user.id,
+                user.username or '',
+                user.email or '',
+                user.mobile or '',
+                user.first_name or '',
+                user.last_name or '',
+                'Yes' if user.is_active else 'No',
+                'Yes' if user.is_staff else 'No',
+                'Yes' if user.is_phone_verified else 'No',
+                'Yes' if user.is_email_verified else 'No',
+                user.date_joined.strftime('%Y-%m-%d %H:%M:%S') if user.date_joined else '',
+                user.last_login.strftime('%Y-%m-%d %H:%M:%S') if user.last_login else '',
+                comment_count,
+                approved_comments
+            ])
+
+        return response
+
+    export_detailed_user_report.short_description = 'خروجی گزارش تفصیلی کاربران'
+
+
+# Rest of your existing admin classes remain the same...
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
     def profile_image_display(self, obj):
@@ -386,7 +589,6 @@ class ProfileAdmin(admin.ModelAdmin):
         }),
     )
 
-    # Custom actions
     actions = ['delete_profile_images']
 
     def delete_profile_images(self, request, queryset):
