@@ -13,11 +13,13 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 import os
 from pathlib import Path
 import environ
+from cryptography.fernet import Fernet
 import logging
-
+from decouple import config
 # مسیر پروژه
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+LOGS_DIR = BASE_DIR / 'logs'
+LOGS_DIR.mkdir(exist_ok=True)
 # خواندن فایل env
 env = environ.Env()
 env_path = os.path.join(BASE_DIR, '.env')
@@ -30,6 +32,10 @@ AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME")
 AWS_S3_ENDPOINT_URL = env("AWS_S3_ENDPOINT_URL")  # Should be https://s3.ir-thr-at1.arvanstorage.com
 AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME", default="ir-thr-at1")
 
+ENCRYPTION_KEY = b'your-secret-key-here'
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = 'django-insecure-%&r-xz_$%zjxpv6j5!7j77vo&_c_37p_=rzwc*w@v%)wy+976*'
+DEBUG = config('DEBUG', default=True, cast=bool)
 # FIXED: Correct custom domain configuration
 AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.ir-thr-at1.arvanstorage.com"
 
@@ -75,11 +81,9 @@ CKEDITOR_BASEPATH = "/static/ckeditor/ckeditor/"
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-%&r-xz_$%zjxpv6j5!7j77vo&_c_37p_=rzwc*w@v%)wy+976*'
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
 
 ALLOWED_HOSTS = []
 
@@ -103,6 +107,8 @@ INSTALLED_APPS = [
     'arvan_integration',
     'emails',
     'ckeditor',
+    'passwords',
+    'django_pwned',
 ]
 CKEDITOR_CONFIGS = {
     'default': {
@@ -351,6 +357,12 @@ LOGGING = {
             'filename': os.path.join(LOG_DIR, 'emails.log'),
             'formatter': 'verbose',
         },
+        'passwords_file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(LOG_DIR, 'passwords.log'),
+            'formatter': 'verbose',
+        },
     },
 
     'loggers': {
@@ -404,6 +416,11 @@ LOGGING = {
         'django.core.mail': {
             'handlers': ['emails_file'],
             'level': 'INFO',
+            'propagate': False,
+        },
+        'passwords': {
+            'handlers': ['passwords_file'],
+            'level': 'DEBUG',
             'propagate': False,
         },
     }
