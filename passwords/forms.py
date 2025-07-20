@@ -2,9 +2,10 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
-from .models import PasswordEntry
 from django_pwned.validators import PwnedPasswordValidator
 import logging
+
+from users.models import PasswordEntry
 
 logger = logging.getLogger(__name__)
 

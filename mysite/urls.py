@@ -25,13 +25,13 @@ urlpatterns = [
     path('emails/', include('emails.urls')),  # Add this line
     path('ckeditor/', include('ckeditor_uploader.urls')),  # If using file uploads
     path('admin/', admin.site.urls),
-    path('accounts/', include('accounts.urls')),
     path('', include('core.urls')),
     path('users/', include('users.urls')),
     path('filemanager/', include('filemanager.urls')),
     path('ckeditor/', include('ckeditor_uploader.urls')),  # Add this for CKEditor
     # path('comments/', include('comments.urls')),
-    path('passwords/', include('passwords.urls')),
+
+    path('sections/', include('sections.urls')),
 
 ]
 

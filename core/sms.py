@@ -9,7 +9,7 @@ import logging
 from sms_ir import SmsIr
 from django.conf import settings
 
-logger = logging.getLogger('accounts')
+logger = logging.getLogger('accounts_')
 
 # تنظیمات اولیه API از settings یا .env
 API_KEY = getattr(settings, "SMS_API_KEY", "your-api-key")
