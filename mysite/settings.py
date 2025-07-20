@@ -132,6 +132,7 @@ CKEDITOR_CONFIGS = {
 }
 
 MIDDLEWARE = [
+
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -139,8 +140,11 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.rate_limit.RateLimitMiddleware',
+
     # Add this custom middleware for additional logging
     'users.middleware.SecurityLoggingMiddleware',
+
 ]
 
 ROOT_URLCONF = 'mysite.urls'
@@ -236,6 +240,70 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'your-email@gmail.com'  # Your email
 EMAIL_HOST_PASSWORD = 'your-password'  # Your password or app password
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+# Basic rate limiting settings
+RATE_LIMIT_REQUESTS = 30         # Only 1 request allowed
+RATE_LIMIT_WINDOW = 300           # In 60 seconds (1 minute)
+RATE_LIMIT_BLOCK_RESPONSE = True
+
+# IP whitelist - These IPs will bypass rate limiting
+RATE_LIMIT_WHITELIST_IPS = [
+    # '127.0.0.1',  # Localhost
+    '::1',  # IPv6 localhost
+    # Add your trusted IPs here
+    # '192.168.1.100',  # Example internal IP
+    # '203.0.113.1',    # Example external IP
+]
+
+# Paths to exclude from rate limiting
+RATE_LIMIT_SKIP_PATHS = [
+    # '/admin/',  # Django admin
+    # '/static/',  # Static files
+    # '/media/',  # Media files
+    # '/favicon.ico',  # Favicon
+    # '/robots.txt',  # Robots file
+    # '/health/',  # Health check endpoints
+    # Add more paths as needed
+]
+
+# Enhanced cache configuration for production
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "rate-limit-cache",
+        "OPTIONS": {
+            "MAX_ENTRIES": 10000,
+        }
+    }
+}
+    # For production, consider using Redis:
+    # "default": {
+    #     "BACKEND": "django_redis.cache.RedisCache",
+    #     "LOCATION": "redis://127.0.0.1:6379/1",
+    #     "OPTIONS": {
+    #         "CLIENT_CLASS": "django_redis.client.DefaultClient",
+    #         "CONNECTION_POOL_KWARGS": {"max_connections": 50},
+    #         "SERIALIZER": "django_redis.serializers.json.JSONSerializer",
+    #     },
+    #     "KEY_PREFIX": "mysite_rl",
+    #     "TIMEOUT": 300,  # 5 minutes default timeout
+    # }
+
+
+# Different rate limits for different user types (optional)
+RATE_LIMIT_TIERS = {
+    'anonymous': {'requests': 30, 'window': 300},  # 30 req/5min for anonymous
+    'authenticated': {'requests': 60, 'window': 300},  # 60 req/5min for authenticated
+    'premium': {'requests': 120, 'window': 300},  # 120 req/5min for premium users
+    'staff': {'requests': 300, 'window': 300},  # 300 req/5min for staff
+}
+
+# Rate limiting by endpoint patterns (optional)
+RATE_LIMIT_ENDPOINTS = {
+    r'^/api/auth/': {'requests': 5, 'window': 300},  # Login endpoints - stricter
+    r'^/api/search/': {'requests': 100, 'window': 300},  # Search endpoints - more lenient
+    r'^/api/upload/': {'requests': 10, 'window': 600},  # Upload endpoints - very strict
+}
 
 # CKEditor Configuration
 CKEDITOR_CONFIGS = {
@@ -363,7 +431,7 @@ LOGGING = {
             'level': 'WARNING',
             'class': 'logging.handlers.RotatingFileHandler',
             'filename': LOGS_DIR / 'security.log',
-            'maxBytes': 1024 * 1024 * 5,  # 5 MB
+            'maxBytes': 1024 * 1024 * 5,
             'backupCount': 10,
             'formatter': 'detailed',
         },
@@ -371,7 +439,7 @@ LOGGING = {
             'level': 'ERROR',
             'class': 'logging.handlers.RotatingFileHandler',
             'filename': LOGS_DIR / 'errors.log',
-            'maxBytes': 1024 * 1024 * 5,  # 5 MB
+            'maxBytes': 1024 * 1024 * 5,
             'backupCount': 10,
             'formatter': 'detailed',
         },
@@ -379,7 +447,7 @@ LOGGING = {
             'level': 'INFO',
             'class': 'logging.handlers.RotatingFileHandler',
             'filename': LOGS_DIR / 'auth.log',
-            'maxBytes': 1024 * 1024 * 5,  # 5 MB
+            'maxBytes': 1024 * 1024 * 5,
             'backupCount': 10,
             'formatter': 'detailed',
         },
@@ -387,7 +455,7 @@ LOGGING = {
             'level': 'INFO',
             'class': 'logging.handlers.RotatingFileHandler',
             'filename': LOGS_DIR / 'admin.log',
-            'maxBytes': 1024 * 1024 * 5,  # 5 MB
+            'maxBytes': 1024 * 1024 * 5,
             'backupCount': 10,
             'formatter': 'detailed',
         },
@@ -403,7 +471,6 @@ LOGGING = {
             'filename': os.path.join(LOG_DIR, 'arvan_integration.log'),
             'formatter': 'verbose',
         },
-        # NEW: Email logging handler
         'emails_file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
@@ -415,6 +482,14 @@ LOGGING = {
             'class': 'logging.FileHandler',
             'filename': os.path.join(LOG_DIR, 'passwords.log'),
             'formatter': 'verbose',
+        },
+        'rate_limit_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(LOG_DIR, 'rate_limit.log'),
+            'maxBytes': 1024 * 1024 * 10,  # 10 MB
+            'backupCount': 5,
+            'formatter': 'detailed',
         },
     },
     'loggers': {
@@ -431,6 +506,11 @@ LOGGING = {
         'core': {
             'handlers': ['core_file'],
             'level': 'DEBUG',
+            'propagate': False,
+        },
+        'core.middleware.rate_limit': {
+            'handlers': ['rate_limit_file', 'console'],
+            'level': 'INFO',
             'propagate': False,
         },
         'sections': {
@@ -458,13 +538,11 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': False,
         },
-        # NEW: Email logger configuration
         'emails': {
-            'handlers': ['emails_file', 'console'],  # Log to both file and console
+            'handlers': ['emails_file', 'console'],
             'level': 'DEBUG',
             'propagate': False,
         },
-        # Optional: Log Django's email backend
         'django.core.mail': {
             'handlers': ['emails_file'],
             'level': 'INFO',
@@ -495,7 +573,7 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
-        'passwords': {  # Your app name
+        'passwords': {
             'handlers': ['console', 'file', 'security_file'],
             'level': 'DEBUG',
             'propagate': False,
