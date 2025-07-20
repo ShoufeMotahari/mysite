@@ -27,3 +27,4 @@ Pillow
 django-pwned>=1.0.0
 cryptography>=3.4.8
 python-decouple~=3.8
+smsir~=1.0.5

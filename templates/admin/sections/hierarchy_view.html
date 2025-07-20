@@ -1,0 +1,130 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}{% trans 'Section Hierarchy' %} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block extrahead %}
+<style>
+    .hierarchy-tree {
+        font-family: monospace;
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 20px 0;
+    }
+    
+    .tree-node {
+        margin: 5px 0;
+        padding: 8px;
+        border-left: 3px solid #007cba;
+        background: white;
+        border-radius: 0 5px 5px 0;
+    }
+    
+    .tree-node.level-1 {
+        margin-left: 0;
+        border-left-color: #28a745;
+        font-weight: bold;
+    }
+    
+    .tree-node.level-2 {
+        margin-left: 30px;
+        border-left-color: #ffc107;
+    }
+    
+    .tree-node.level-3 {
+        margin-left: 60px;
+        border-left-color: #dc3545;
+    }
+    
+    .section-title {
+        color: #333;
+    }
+    
+    .section-meta {
+        font-size: 12px;
+        color: #666;
+        margin-top: 5px;
+    }
+    
+    .level-badge {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 10px;
+        font-size: 10px;
+        font-weight: bold;
+        color: white;
+        margin-left: 10px;
+    }
+    
+    .level-1-badge { background-color: #28a745; }
+    .level-2-badge { background-color: #ffc107; }
+    .level-3-badge { background-color: #dc3545; }
+    
+    .action-links {
+        margin-top: 10px;
+    }
+    
+    .action-links a {
+        margin-right: 10px;
+        padding: 5px 10px;
+        background: #007cba;
+        color: white;
+        text-decoration: none;
+        border-radius: 3px;
+        font-size: 12px;
+    }
+    
+    .action-links a:hover {
+        background: #005a87;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="module">
+    <h1>{% trans 'Section Hierarchy' %}</h1>
+    
+    <div class="hierarchy-tree">
+        {% for item in tree_structure %}
+            {% include 'admin/sections/tree_node.html' with node=item %}
+        {% empty %}
+            <p>{% trans 'No sections found.' %}</p>
+        {% endfor %}
+    </div>
+    
+    <div class="action-links">
+        <a href="{% url 'admin:sections_section_changelist' %}">
+            ← {% trans 'Back to sections list' %}
+        </a>
+        <a href="{% url 'admin:sections_section_drag_drop' %}">
+            {% trans 'Reorder Sections' %}
+        </a>
+        <a href="{% url 'admin:sections_section_add' %}">
+            {% trans 'Add New Section' %}
+        </a>
+    </div>
+</div>
+
+<!-- Tree node template (inline for simplicity) -->
+<script type="text/template" id="tree-node-template">
+{% verbatim %}
+<div class="tree-node level-{{ node.section.level }}">
+    <div class="section-title">
+        {{ node.section.display_title }}
+        <span class="level-badge level-{{ node.section.level }}-badge">L{{ node.section.level }}</span>
+    </div>
+    <div class="section-meta">
+        Slug: {{ node.section.slug }} | 
+        Order: {{ node.section.order }} |
+        Active: {{ node.section.is_active|yesno:"Yes,No" }}
+    </div>
+    {% if node.children %}
+        {% for child in node.children %}
+            {{ child|safe }}
+        {% endfor %}
+    {% endif %}
+</div>
+{% endverbatim %}
+</script>
+{% endblock %}

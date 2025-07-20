@@ -1,0 +1,20 @@
+<div class="tree-node level-{{ node.section.level }}">
+    <div class="section-title">
+        {{ node.section.display_title }}
+        <span class="level-badge level-{{ node.section.level }}-badge">L{{ node.section.level }}</span>
+        {% if not node.section.is_active %}
+            <span style="color: #dc3545; font-weight: bold;">(INACTIVE)</span>
+        {% endif %}
+    </div>
+    <div class="section-meta">
+        Slug: {{ node.section.slug }} | 
+        Order: {{ node.section.order }} |
+        Active: {{ node.section.is_active|yesno:"Yes,No" }}
+        {% if node.section.content %}
+            | Has content
+        {% endif %}
+    </div>
+    {% for child in node.children %}
+        {% include 'admin/sections/tree_node.html' with node=child %}
+    {% endfor %}
+</div>

@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>{{ title }}</h1>
+    
+    {% if sections %}
+        <div class="sections-container">
+            {% for section in sections %}
+                <div class="section-item" id="section-{{ section.id }}">
+                    <div class="section-header">
+                        <h2>{{ section.title }}</h2>
+                        <span class="section-order">{{ section.order }}</span>
+                    </div>
+                    <div class="section-content">
+                        {{ section.content|safe }}
+                    </div>
+                    <div class="section-meta">
+                        <small>{% trans "Updated:" %} {{ section.updated_at|date:"M d, Y H:i" }}</small>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="no-sections">
+            <p>{% trans "No sections available at the moment." %}</p>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+.sections-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.section-item {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin: 20px 0;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: box-shadow 0.3s ease;
+}
+
+.section-item:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.section-header h2 {
+    margin: 0;
+    color: #333;
+    font-size: 1.5em;
+}
+
+.section-order {
+    background: #0073aa;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.section-content {
+    margin: 15px 0;
+    line-height: 1.6;
+}
+
+.section-meta {
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+    color: #666;
+}
+
+.no-sections {
+    text-align: center;
+    padding: 60px 20px;
+    color: #666;
+}
+
+.no-sections p {
+    font-size: 1.2em;
+}
+</style>
+{% endblock %}

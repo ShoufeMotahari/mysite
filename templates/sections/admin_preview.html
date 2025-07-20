@@ -1,0 +1,220 @@
+{% extends 'admin/base_site.html' %}
+{% load i18n %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content_title %}
+    <h1>{{ title }}</h1>
+{% endblock %}
+
+{% block content %}
+<div class="admin-preview-container">
+    <div class="preview-header">
+        <a href="{% url 'admin:sections_section_changelist' %}" class="back-link">
+            ← {% trans "Back to Sections" %}
+        </a>
+        <a href="{% url 'admin:sections_section_drag_drop' %}" class="reorder-link">
+            {% trans "Drag & Drop Reorder" %}
+        </a>
+    </div>
+    
+    {% if sections %}
+        <div class="sections-preview">
+            {% for section in sections %}
+                <div class="section-preview-item {% if not section.is_active %}inactive{% endif %}">
+                    <div class="section-preview-header">
+                        <h3>{{ section.title }}</h3>
+                        <div class="section-preview-meta">
+                            <span class="order-badge">{{ section.order }}</span>
+                            <span class="status-badge {% if section.is_active %}active{% else %}inactive{% endif %}">
+                                {% if section.is_active %}
+                                    {% trans "Active" %}
+                                {% else %}
+                                    {% trans "Inactive" %}
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="section-preview-content">
+                        {{ section.content|safe|truncatewords:50 }}
+                    </div>
+                    <div class="section-preview-actions">
+                        <a href="{% url 'admin:sections_section_change' section.id %}" class="button">
+                            {% trans "Edit" %}
+                        </a>
+                        <small>{% trans "Updated:" %} {{ section.updated_at|date:"M d, Y H:i" }}</small>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="no-sections-preview">
+            <p>{% trans "No sections created yet." %}</p>
+            <a href="{% url 'admin:sections_section_add' %}" class="button default">
+                {% trans "Add First Section" %}
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+<style>
+.admin-preview-container {
+    max-width: 900px;
+    margin: 20px auto;
+    padding: 20px;
+}
+
+.preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #ddd;
+}
+
+.back-link, .reorder-link {
+    color: #0073aa;
+    text-decoration: none;
+    padding: 8px 16px;
+    border: 1px solid #0073aa;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.back-link:hover, .reorder-link:hover {
+    background: #0073aa;
+    color: white;
+}
+
+.sections-preview {
+    display: grid;
+    gap: 20px;
+}
+
+.section-preview-item {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.section-preview-item:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.section-preview-item.inactive {
+    opacity: 0.6;
+    border-color: #ccc;
+}
+
+.section-preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.section-preview-header h3 {
+    margin: 0;
+    color: #333;
+    font-size: 1.3em;
+}
+
+.section-preview-meta {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.order-badge {
+    background: #0073aa;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.status-badge.active {
+    background: #dff0d8;
+    color: #3c763d;
+    border: 1px solid #d6e9c6;
+}
+
+.status-badge.inactive {
+    background: #f2dede;
+    color: #a94442;
+    border: 1px solid #ebccd1;
+}
+
+.section-preview-content {
+    margin: 15px 0;
+    line-height: 1.6;
+    color: #555;
+}
+
+.section-preview-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+}
+
+.section-preview-actions .button {
+    background: #0073aa;
+    color: white;
+    text-decoration: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    transition: background 0.3s ease;
+}
+
+.section-preview-actions .button:hover {
+    background: #005a87;
+}
+
+.section-preview-actions small {
+    color: #666;
+}
+
+.no-sections-preview {
+    text-align: center;
+    padding: 60px 20px;
+    color: #666;
+}
+
+.no-sections-preview p {
+    font-size: 1.2em;
+    margin-bottom: 20px;
+}
+
+.button.default {
+    background: #0073aa;
+    color: white;
+    text-decoration: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    display: inline-block;
+    transition: background 0.3s ease;
+}
+
+.button.default:hover {
+    background: #005a87;
+}
+</style>
+{% endblock %}

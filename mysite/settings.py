@@ -96,7 +96,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'accounts',
     'comments',
     'core',
     'sections',
@@ -107,7 +106,7 @@ INSTALLED_APPS = [
     'arvan_integration',
     'emails',
     'ckeditor',
-    'passwords',
+    # 'passwords',
     'django_pwned',
 ]
 CKEDITOR_CONFIGS = {
@@ -141,10 +140,11 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     # Add this custom middleware for additional logging
-    'passwords.middleware.SecurityLoggingMiddleware',
+    'users.middleware.SecurityLoggingMiddleware',
 ]
 
 ROOT_URLCONF = 'mysite.urls'
+LOGOUT_REDIRECT_URL = '/'
 
 TEMPLATES = [
     {
@@ -418,7 +418,7 @@ LOGGING = {
         },
     },
     'loggers': {
-        'accounts': {
+        'accounts_': {
             'handlers': ['accounts_file'],
             'level': 'DEBUG',
             'propagate': False,

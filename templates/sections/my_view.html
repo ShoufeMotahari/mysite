@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}نمایش سکشن{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-3">صفحه تست سکشن</h2>
+    <p>این صفحه برای تست عملکرد view <code>my_view</code> ایجاد شده است.</p>
+
+    <div class="alert alert-info">
+        این صفحه فقط برای بررسی ساختار و صحت بارگذاری view است.
+    </div>
+
+    <a href="{% url 'sections_list' %}" class="btn btn-primary">مشاهده لیست سکشن‌ها</a>
+</div>
+{% endblock %}

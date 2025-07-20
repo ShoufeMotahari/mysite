@@ -1,0 +1,324 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans 'Reorder Sections' %} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block extrahead %}
+<style>
+    .hierarchy-container {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+    .level-column {
+        flex: 1;
+        min-width: 300px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+    }
+
+    .level-header {
+        font-weight: bold;
+        margin-bottom: 10px;
+        padding: 10px;
+        background: #007cba;
+        color: white;
+        border-radius: 5px;
+        text-align: center;
+    }
+
+    .sortable-list {
+        min-height: 50px;
+        padding: 10px;
+        border: 2px dashed #ddd;
+        border-radius: 5px;
+        background: white;
+    }
+
+    .sortable-item {
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 12px;
+        margin-bottom: 8px;
+        cursor: move;
+        transition: all 0.3s ease;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .sortable-item:hover {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+
+    .sortable-item.dragging {
+        opacity: 0.5;
+        transform: rotate(5deg);
+    }
+
+    .section-title {
+        font-weight: 500;
+        color: #333;
+    }
+
+    .section-info {
+        font-size: 12px;
+        color: #666;
+    }
+
+    .level-badge {
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 10px;
+        font-weight: bold;
+        color: white;
+    }
+
+    .level-1 { background-color: #28a745; }
+    .level-2 { background-color: #ffc107; }
+    .level-3 { background-color: #dc3545; }
+
+    .save-button {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+        margin: 20px 0;
+        transition: background 0.3s ease;
+    }
+
+    .save-button:hover {
+        background: #218838;
+    }
+
+    .save-button:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+    }
+
+    .message {
+        padding: 10px 15px;
+        margin: 10px 0;
+        border-radius: 5px;
+        font-weight: 500;
+    }
+
+    .message.success {
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+        color: #155724;
+    }
+
+    .message.error {
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+        color: #721c24;
+    }
+
+    .drag-handle {
+        color: #999;
+        cursor: grab;
+        margin-right: 10px;
+    }
+
+    .drag-handle:active {
+        cursor: grabbing;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="module">
+    <h1>{% trans 'Reorder Sections' %}</h1>
+
+    <div id="message-container"></div>
+
+    <p>{% trans 'Drag and drop sections within their level to reorder them. Click Save Order when finished.' %}</p>
+
+    <div class="hierarchy-container">
+        {% for level, sections in grouped_sections.items %}
+        <div class="level-column">
+            <div class="level-header">
+                {% trans 'Level' %} {{ level }}
+                {% if level == 1 %}({% trans 'Root Sections' %})
+                {% elif level == 2 %}({% trans 'Sub Sections' %})
+                {% elif level == 3 %}({% trans 'Sub-Sub Sections' %}){% endif %}
+            </div>
+            <div class="sortable-list" data-level="{{ level }}">
+                {% for section in sections %}
+                <div class="sortable-item" data-id="{{ section.id }}" data-level="{{ section.level }}">
+                    <div>
+                        <span class="drag-handle">⋮⋮</span>
+                        <span class="section-title">{{ section.display_title }}</span>
+                        <div class="section-info">
+                            {% if section.parent %}
+                                {% trans 'Parent:' %} {{ section.parent.title }}
+                            {% endif %}
+                            {% if section.children.count %}
+                                | {% trans 'Children:' %} {{ section.children.count }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <span class="level-badge level-{{ section.level }}">L{{ section.level }}</span>
+                </div>
+                {% empty %}
+                <p style="text-align: center; color: #999; font-style: italic;">
+                    {% trans 'No sections at this level' %}
+                </p>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <button type="button" class="save-button" id="save-order">
+        {% trans 'Save Order' %}
+    </button>
+
+    <p>
+        <a href="{% url 'admin:sections_section_changelist' %}">
+            ← {% trans 'Back to sections list' %}
+        </a>
+    </p>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let draggedElement = null;
+    let draggedFromContainer = null;
+
+    // Make all sortable items draggable
+    function initializeDraggable() {
+        const items = document.querySelectorAll('.sortable-item');
+        items.forEach(item => {
+            item.setAttribute('draggable', 'true');
+
+            item.addEventListener('dragstart', function(e) {
+                draggedElement = this;
+                draggedFromContainer = this.closest('.sortable-list');
+                this.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/html', this.outerHTML);
+            });
+
+            item.addEventListener('dragend', function(e) {
+                this.classList.remove('dragging');
+                draggedElement = null;
+                draggedFromContainer = null;
+            });
+        });
+    }
+
+    // Initialize sortable lists
+    const sortableLists = document.querySelectorAll('.sortable-list');
+    sortableLists.forEach(list => {
+        list.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+
+            const afterElement = getDragAfterElement(list, e.clientY);
+            if (afterElement == null) {
+                list.appendChild(draggedElement);
+            } else {
+                list.insertBefore(draggedElement, afterElement);
+            }
+        });
+
+        list.addEventListener('drop', function(e) {
+            e.preventDefault();
+            // Item is already moved in dragover
+        });
+    });
+
+    function getDragAfterElement(container, y) {
+        const draggableElements = [...container.querySelectorAll('.sortable-item:not(.dragging)')];
+
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else {
+                return closest;
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+
+    // Initialize drag and drop
+    initializeDraggable();
+
+    // Save order functionality
+    document.getElementById('save-order').addEventListener('click', function() {
+        const button = this;
+        button.disabled = true;
+        button.textContent = 'Saving...';
+
+        const levelOrders = {};
+
+        sortableLists.forEach(list => {
+            const level = list.dataset.level;
+            const items = list.querySelectorAll('.sortable-item');
+            levelOrders[level] = Array.from(items).map(item => item.dataset.id);
+        });
+
+        // Get CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+                         document.querySelector('meta[name=csrf-token]')?.content;
+
+        fetch('{% url "admin:sections_section_reorder" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken || '',
+            },
+            body: JSON.stringify({
+                level_orders: levelOrders
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            const messageContainer = document.getElementById('message-container');
+
+            if (data.success) {
+                messageContainer.innerHTML = `
+                    <div class="message success">
+                        ${data.message}
+                    </div>
+                `;
+                // Refresh page after 2 seconds
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            } else {
+                messageContainer.innerHTML = `
+                    <div class="message error">
+                        Error: ${data.message}
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('message-container').innerHTML = `
+                <div class="message error">
+                    An error occurred while saving the order.
+                </div>
+            `;
+        })
+        .finally(() => {
+            button.disabled = false;
+            button.textContent = 'Save Order';
+        });
+    });
+});
+</script>
+{% endblock %}
