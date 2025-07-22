@@ -23,6 +23,7 @@ class User(AbstractUser):
     is_active = models.BooleanField(default=True, verbose_name='فعال')
     is_phone_verified = models.BooleanField(default=False, verbose_name='تلفن تایید شده')
     is_email_verified = models.BooleanField(default=False, verbose_name='ایمیل تایید شده')
+    is_staff = models.BooleanField(default=False, verbose_name='دسترسی ادمین')
 
     def _generate_unique_slug(self, base_slug):
         """Generate a unique slug by appending numbers if needed"""
