@@ -8,6 +8,8 @@ from django.utils import timezone
 from django.conf import settings
 import uuid
 import logging
+from cryptography.fernet import Fernet
+from django.core.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +20,6 @@ class User(AbstractUser):
     username = models.CharField(max_length=150, unique=True, null=True, blank=True)
     slug = models.SlugField(unique=True, blank=True, max_length=255)
     created_at = jmodels.jDateTimeField(auto_now_add=True)
-    second_password = models.CharField(max_length=6, null=True, blank=True)
     is_active = models.BooleanField(default=True, verbose_name='فعال')
     is_phone_verified = models.BooleanField(default=False, verbose_name='تلفن تایید شده')
     is_email_verified = models.BooleanField(default=False, verbose_name='ایمیل تایید شده')
@@ -27,30 +28,22 @@ class User(AbstractUser):
         """Generate a unique slug by appending numbers if needed"""
         slug = base_slug
         counter = 1
-
         while User.objects.filter(slug=slug).exclude(pk=self.pk).exists():
             slug = f"{base_slug}-{counter}"
             counter += 1
-
         return slug
 
     def save(self, *args, **kwargs):
+        """Override save to generate slug automatically"""
         if not self.slug:
-            # Try to create slug from username first, then email, then mobile
             if self.username:
                 base_slug = slugify(self.username)
             elif self.email:
-                # Use part before @ for email
                 base_slug = slugify(self.email.split('@')[0])
             elif self.mobile:
                 base_slug = f"user-{self.mobile}"
             else:
-                # Fallback to UUID
-                base_slug = str(uuid.uuid4())[:8]
-
-            # Ensure we have a valid slug
-            if not base_slug:
-                base_slug = str(uuid.uuid4())[:8]
+                base_slug = str(uuid.uuid4())[:8]  # fallback
 
             self.slug = self._generate_unique_slug(base_slug)
 
@@ -60,10 +53,8 @@ class User(AbstractUser):
         return self.username or self.mobile or self.email or f"User {self.id}"
 
     def get_absolute_url(self):
-        """Get the URL for this user's profile"""
         from django.urls import reverse
         return reverse('user_profile', kwargs={'slug': self.slug})
-
 
 class Profile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -98,11 +89,12 @@ class RegisterToken(models.Model):
 
 class VerificationToken(models.Model):
     TOKEN_TYPES = [
-        ('registration', 'Registration'),
-        ('password_reset', 'Password Reset'),
-        ('email_activation', 'Email Activation'),
-        ('phone_verification', 'Phone Verification'),
-    ]
+    ('registration', 'Registration'),
+    ('login', 'Login'),  # Add this line
+    ('password_reset', 'Password Reset'),
+    ('email_activation', 'Email Activation'),
+    ('phone_verification', 'Phone Verification'),
+]
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     token = models.CharField(max_length=6)  # For SMS codes
@@ -124,7 +116,8 @@ class VerificationToken(models.Model):
 
     @classmethod
     def generate_sms_token(cls):
-        return str(random.randint(100000, 999999))
+        """Generate a 6-digit SMS verification code"""
+        return str(random.randint(100000, 999999))  # Fixed: Generate 6-digit code
 
     def save(self, *args, **kwargs):
         is_new = self.pk is None
@@ -183,11 +176,11 @@ class Comment(models.Model):
 
 # Move PasswordEntry to a separate passwords app or keep it here if truly needed
 class PasswordEntry(models.Model):
-    """Password storage model - consider moving to passwords app"""
+    """Password storage model"""
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     service_name = models.CharField(max_length=100, verbose_name='نام سرویس')
     username = models.CharField(max_length=100, verbose_name='نام کاربری')
-    password = models.TextField(verbose_name='رمز عبور')  # Encrypted, so might be long
+    password = models.TextField(verbose_name='رمز عبور')  # Encrypted password
     notes = models.TextField(blank=True, null=True, verbose_name='یادداشت')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -204,40 +197,17 @@ class PasswordEntry(models.Model):
         ]
 
     def save(self, *args, **kwargs):
-        is_new = self.pk is None
-        action = "Creating" if is_new else "Updating"
-        logger.info(f"{action} password entry - User: {self.user.username}, Service: {self.service_name}")
-
-        try:
-            super().save(*args, **kwargs)
-            action = "created" if is_new else "updated"
-            logger.info(f"Password entry {action} successfully - ID: {self.pk}")
-        except Exception as e:
-            logger.error(f"Failed to save password entry - User: {self.user.username}, Error: {str(e)}")
-            raise
-
-    def delete(self, *args, **kwargs):
-        logger.info(
-            f"Deleting password entry - ID: {self.pk}, User: {self.user.username}, Service: {self.service_name}")
-        try:
-            super().delete(*args, **kwargs)
-            logger.info(f"Password entry deleted successfully")
-        except Exception as e:
-            logger.error(f"Failed to delete password entry - ID: {self.pk}, Error: {str(e)}")
-            raise
+        if self.password and not self.password.startswith('gAAAA'):
+            self.encrypt_password(self.password)
+        super().save(*args, **kwargs)
 
     def encrypt_password(self, password):
         """Encrypt password before storing"""
         try:
-            from cryptography.fernet import Fernet
-            from django.core.exceptions import ValidationError
-
-            logger.debug(f"Encrypting password for service: {self.service_name}")
-            f = Fernet(settings.ENCRYPTION_KEY.encode() if isinstance(settings.ENCRYPTION_KEY,
-                                                                      str) else settings.ENCRYPTION_KEY)
+            f = Fernet(settings.ENCRYPTION_KEY.encode() if isinstance(settings.ENCRYPTION_KEY, str)
+                       else settings.ENCRYPTION_KEY)
             encrypted_password = f.encrypt(password.encode())
             self.password = encrypted_password.decode()
-            logger.info(f"Password encrypted successfully for service: {self.service_name}")
         except Exception as e:
             logger.error(f"Password encryption failed - Service: {self.service_name}, Error: {str(e)}")
             raise ValidationError("Error encrypting password")
@@ -245,14 +215,9 @@ class PasswordEntry(models.Model):
     def decrypt_password(self):
         """Decrypt password for display"""
         try:
-            from cryptography.fernet import Fernet
-            from django.core.exceptions import ValidationError
-
-            logger.debug(f"Decrypting password for service: {self.service_name}")
-            f = Fernet(settings.ENCRYPTION_KEY.encode() if isinstance(settings.ENCRYPTION_KEY,
-                                                                      str) else settings.ENCRYPTION_KEY)
+            f = Fernet(settings.ENCRYPTION_KEY.encode() if isinstance(settings.ENCRYPTION_KEY, str)
+                       else settings.ENCRYPTION_KEY)
             decrypted_password = f.decrypt(self.password.encode())
-            logger.info(f"Password decrypted successfully for service: {self.service_name}")
             return decrypted_password.decode()
         except Exception as e:
             logger.error(f"Password decryption failed - Service: {self.service_name}, Error: {str(e)}")

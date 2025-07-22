@@ -3,7 +3,7 @@ from django.conf import settings
 from django.urls import reverse
 import logging
 
-logger = logging.getLogger('core')
+logger = logging.getLogger('emails')
 
 
 def send_activation_email(user, token):

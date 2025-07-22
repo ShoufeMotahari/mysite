@@ -3,10 +3,115 @@
 {% block title %}تأیید حساب{% endblock %}
 
 {% block content %}
-  <h2>کد تأیید را وارد کنید</h2>
-  <form method="post">
-    {% csrf_token %}
-    <input type="text" name="code" placeholder="کد پیامکی">
-    <button type="submit">تأیید</button>
-  </form>
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-lg">
+                <div class="card-header bg-success text-white text-center">
+                    <h3><i class="fas fa-mobile-alt"></i> تأیید شماره موبایل</h3>
+                </div>
+                <div class="card-body">
+                    <!-- Display messages -->
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <!-- Mobile Number Display -->
+                    <div class="text-center mb-4">
+                        <div class="mobile-display">
+                            <i class="fas fa-sms fa-2x text-primary mb-2"></i>
+                            <p class="mb-1 text-muted">کد تایید به شماره زیر ارسال شد:</p>
+                            <h4 class="text-primary fw-bold">{{ mobile }}</h4>
+                            <small class="text-muted">{{ masked_mobile }}</small>
+                        </div>
+                    </div>
+
+                    <!-- Verification Code Form -->
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+
+                        <div class="mb-4">
+                            <label for="{{ form.code.id_for_label }}" class="form-label text-center d-block">
+                                <i class="fas fa-key"></i> {{ form.code.label }}
+                            </label>
+                            {{ form.code }}
+                            {% if form.code.errors %}
+                                <div class="text-danger mt-2 text-center">
+                                    {% for error in form.code.errors %}
+                                        <small>{{ error }}</small><br>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Verify Button -->
+                        <div class="d-grid gap-2 mb-3">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-check-circle"></i> تأیید کد
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Back to signup link -->
+                    <div class="text-center mt-3">
+                        <a href="{% url 'signup' %}" class="btn btn-link">
+                            <i class="fas fa-arrow-left"></i> بازگشت به ثبت‌نام
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .mobile-display {
+        padding: 20px;
+        background: linear-gradient(135deg, #f8f9ff, #e6f2ff);
+        border-radius: 12px;
+        border: 2px solid #e3f2fd;
+    }
+
+    #id_code {
+        text-align: center !important;
+        font-size: 2rem !important;
+        font-weight: bold;
+        letter-spacing: 0.5rem !important;
+        border: 2px solid #28a745;
+        border-radius: 10px;
+        padding: 15px;
+    }
+
+    #id_code:focus {
+        border-color: #1e7e34;
+        box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+        transform: scale(1.02);
+        transition: all 0.3s ease;
+    }
+</style>
+
+<script>
+// Auto-focus on code input
+document.addEventListener('DOMContentLoaded', function() {
+    const codeInput = document.getElementById('id_code');
+    if (codeInput) {
+        codeInput.focus();
+
+        // Auto-submit when 6 digits are entered
+        codeInput.addEventListener('input', function(e) {
+            const value = e.target.value;
+            if (value.length === 6 && /^\d{6}$/.test(value)) {
+                setTimeout(() => {
+                    e.target.closest('form').submit();
+                }, 500);
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

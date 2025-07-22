@@ -3,68 +3,114 @@ import logging
 import random
 
 from django.contrib import messages
-from django.contrib.auth import login
+from django.contrib.auth import login, authenticate
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
+from django.contrib.auth.hashers import make_password, check_password
 
 from core.email import send_activation_email
 from core.sms import send_verification_sms
-from users.forms.forms import CustomUserCreationForm
-from users.forms.forms import SignupForm, LoginForm
+from users.forms.forms import CustomUserCreationForm, VerificationForm
+from users.forms.forms import SignupForm, LoginForm, ForgotPasswordForm
 from users.models import User, RegisterToken, VerificationToken
 from core.sms import send_verification_sms
-from core.email import  send_activation_email
+from core.email import send_activation_email
 from core.views import home_view
+
 logger = logging.getLogger('users')
 
+# Console logger for development
+console_logger = logging.getLogger('console')
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+formatter = logging.Formatter('🔑 ACTIVATION INFO: %(message)s')
+console_handler.setFormatter(formatter)
+console_logger.addHandler(console_handler)
+console_logger.setLevel(logging.INFO)
+
+
 def signup_view(request):
+    """Handle user registration with console logging for activation codes"""
     if request.method == 'POST':
         form = SignupForm(request.POST)
         if form.is_valid():
+            username = form.cleaned_data['username']
             mobile = form.cleaned_data['mobile']
             email = form.cleaned_data.get('email')
-            logger.info(mobile)
-            logger.info(email)
-            # Create user
+            password = form.cleaned_data['password']
+
+            logger.info(f"Signup attempt - Username: {username}, Mobile: {mobile}, Email: {email}")
+
+            # Create or get existing user
             user, created = User.objects.get_or_create(
                 mobile=mobile,
                 defaults={
+                    'username': username,
                     'mobile': mobile,
                     'email': email,
-                    'username': mobile,
+                    'password': make_password(password),
                     'is_active': False,
                     'is_phone_verified': False,
                     'is_email_verified': False
                 }
             )
-            logger.info(created)
 
-            if not created:
-                logger.info(f"User {user.mobile} already exists")
+            if created:
+                logger.info(f"New user created - Username: {username}, Mobile: {mobile}")
+            else:
+                logger.warning(f"Signup attempt for existing user - Mobile: {user.mobile}")
                 if user.is_active and user.is_phone_verified:
                     messages.error(request, "این کاربر قبلاً فعال شده است.")
                     return redirect('login')
+                else:
+                    # Update existing inactive user with new information
+                    user.username = username
+                    user.email = email
+                    user.password = make_password(password)
+                    user.save()
 
-            # Create SMS verification token
+            # Generate SMS verification code
             sms_code = VerificationToken.generate_sms_token()
 
-            # Create verification token
+            # Delete any existing registration tokens for this user
+            VerificationToken.objects.filter(user=user, token_type='registration').delete()
+
             verification_token = VerificationToken.objects.create(
                 user=user,
                 token=sms_code,
                 token_type='registration'
             )
 
-            logger.info(f"Generated SMS code: {sms_code} for {mobile}")
+            # 🔑 CONSOLE LOGGING FOR ACTIVATION CODE
+            console_logger.info(f"SMS Code for {mobile}: {sms_code}")
 
-            # Send SMS verification
-            send_verification_sms(mobile, sms_code)
+            logger.info(f"SMS verification code generated - Code: {sms_code} for Mobile: {mobile}")
 
-            # Send email verification if email provided
+            # Send SMS
+            try:
+                send_verification_sms(mobile, sms_code)
+                logger.info(f"SMS sent to {mobile}")
+            except Exception as e:
+                logger.error(f"Failed to send SMS to {mobile}: {e}")
+                messages.error(request, "خطا در ارسال پیامک. لطفاً دوباره تلاش کنید.")
+                return render(request, 'users/signup.html', {'form': form})
+
+            # Send activation email if email provided
             if email:
-                send_activation_email(user, str(verification_token.email_token))
-                logger.info(f"Activation email sent to {email}")
+                try:
+                    email_token = str(verification_token.email_token)
+                    activation_link = f"http://127.0.0.1:8000/activate/?token={email_token}"
 
+                    # 🔑 CONSOLE LOGGING FOR EMAIL ACTIVATION
+                    console_logger.info(f"Email activation link for {email}: {activation_link}")
+                    console_logger.info(f"Email Token: {email_token}")
+
+                    send_activation_email(user, email_token)
+                    logger.info(f"Activation email sent to {email}")
+                except Exception as e:
+                    logger.error(f"Failed to send activation email to {email}: {e}")
+
+            # Store in session
             request.session['mobile'] = mobile
             request.session['signup_user_id'] = user.id
 
@@ -73,146 +119,505 @@ def signup_view(request):
             else:
                 messages.success(request, "کد تایید به شماره موبایل شما ارسال شد.")
 
+            logger.info(f"Redirecting to verify view - User ID: {user.id}")
             return redirect('verify')
+        else:
+            logger.warning("Signup form is invalid.")
+            logger.debug(f"Form errors: {form.errors}")
     else:
         form = SignupForm()
+        logger.info("Signup page accessed via GET")
 
     return render(request, 'users/signup.html', {'form': form})
-def verify_view(request):
-    mobile = request.session.get('mobile')
-    user_id = request.session.get('login_user_id')
 
-    if not mobile or not user_id:
-        messages.error(request, "شماره‌ای یافت نشد.")
-        return redirect('signup')
 
-    if request.method == 'POST':
-        code = request.POST.get('code')
-        try:
-            user = User.objects.get(id=user_id, mobile=mobile)
-            token = VerificationToken.objects.get(
-                user=user,
-                token=code,
-                token_type='registration'
-            )
 
-            if token.is_valid():
-                user.is_active = True
-                user.is_phone_verified = True
-                user.save()
-                token.mark_as_used()
-
-                # **ورود خودکار**
-                login(request, user)
-
-                # پاک کردن سشن
-                request.session.pop('mobile', None)
-                request.session.pop('signup_user_id', None)
-
-                messages.success(request, "حساب شما فعال و وارد سیستم شدید.")
-                return redirect('dashboard')  # به جای صفحه لاگین مستقیماً به داشبورد می‌رود
-
-            else:
-                messages.error(request, "کد وارد شده اشتباه یا منقضی شده است.")
-        except (User.DoesNotExist, VerificationToken.DoesNotExist):
-            messages.error(request, "مشکلی در بررسی کد وجود دارد.")
-
-    return render(request, 'users/verify.html')
 
 def login_view(request):
+    """Simple login view with username/password authentication"""
     if request.method == 'POST':
         form = LoginForm(request.POST)
         if form.is_valid():
             identifier = form.cleaned_data['identifier']
+            password = form.cleaned_data['password']
 
+            logger.info(f"Login attempt - Identifier: {identifier}")
+
+            # Find user by username, mobile or email
+            user = None
             try:
-                # جستجوی کاربر با ایمیل یا موبایل
-                if '@' in identifier:
-                    user = User.objects.get(email=identifier)
-                else:
-                    user = User.objects.get(mobile=identifier)
-
-                if not user.is_active:
-                    messages.error(request, "حساب شما فعال نشده است. لطفاً ابتدا حساب خود را فعال کنید.")
-                    return redirect('signup')
-
-                # تولید کد تایید SMS
-                sms_code = VerificationToken.generate_sms_token()
-
-                # پاک‌سازی کدهای قبلی از نوع login
-                VerificationToken.objects.filter(user=user, token_type='login').delete()
-
-                # ذخیره کد جدید
-                verification_token = VerificationToken.objects.create(
-                    user=user,
-                    token=sms_code,
-                    token_type='login'
-                )
-
-                # Add debugging in login_view after creating token
-                logger.info(f"Created verification token: {sms_code} for user {user.id}")
-                token_count = VerificationToken.objects.filter(user=user, token_type='login').count()
-                logger.info(f"Total login tokens for user: {token_count}")
-
-                # ذخیره user_id برای مرحله بعدی
-                request.session['login_user_id'] = user.id
-
-                # ارسال SMS
-                try:
-                    sms_result = send_verification_sms(user.mobile, sms_code)
-                    if sms_result:
-                        logger.info(f"Login verification code sent successfully to {user.mobile}")
-                        messages.success(request, "کد تایید به شماره موبایل شما ارسال شد.")
-                    else:
-                        logger.error(f"Failed to send SMS to {user.mobile}")
-                        messages.error(request, "خطا در ارسال پیامک. لطفاً دوباره تلاش کنید.")
-                        return render(request, 'users/login.html', {'form': form})
-                except Exception as e:
-                    logger.error(f"SMS sending exception: {e}")
-                    messages.error(request, "خطا در ارسال پیامک. لطفاً دوباره تلاش کنید.")
-                    return render(request, 'users/login.html', {'form': form})
-
-                return redirect('verify-login')
-
+                # Try to find by username first
+                user = User.objects.get(username=identifier)
             except User.DoesNotExist:
-                logger.warning(f"Login attempted with non-existent identifier: {identifier}")
-                form.add_error('identifier', 'کاربری با این مشخصات یافت نشد.')
-            except Exception as e:
-                logger.error(f"Unexpected error in login_view: {e}")
-                messages.error(request, "خطای سیستمی رخ داده است. لطفاً دوباره تلاش کنید.")
+                # Then try email
+                if '@' in identifier:
+                    try:
+                        user = User.objects.get(email=identifier)
+                    except User.DoesNotExist:
+                        pass
+                else:
+                    # Finally try mobile
+                    clean_mobile = identifier.replace(' ', '').replace('-', '')
+                    try:
+                        user = User.objects.get(mobile=clean_mobile)
+                    except User.DoesNotExist:
+                        pass
+
+            if not user:
+                messages.error(request, "کاربر یافت نشد.")
+                logger.warning(f"User not found - Identifier: {identifier}")
+                return render(request, 'users/login.html', {'form': form})
+
+            # Check password
+            if not check_password(password, user.password):
+                messages.error(request, "رمز عبور اشتباه است.")
+                logger.warning(f"Invalid password attempt - User: {user.username}")
+                return render(request, 'users/login.html', {'form': form})
+
+            # Check if user is active
+            if not user.is_active:
+                messages.error(request, "حساب شما فعال نیست. لطفاً با پشتیبانی تماس بگیرید.")
+                logger.warning(f"Inactive user login attempt - User: {user.username}")
+                return render(request, 'users/login.html', {'form': form})
+
+            # Successful login
+            login(request, user)
+            messages.success(request, f"خوش آمدید {user.username}!")
+            logger.info(f"User logged in successfully - User: {user.username}")
+            return redirect('dashboard')
 
     else:
         form = LoginForm()
 
     return render(request, 'users/login.html', {'form': form})
 
+
+def forgot_password_view(request):
+    """Handle forgot password requests - send both SMS and Email"""
+    if request.method == 'POST':
+        form = ForgotPasswordForm(request.POST)
+        if form.is_valid():
+            identifier = form.cleaned_data['identifier']
+
+            logger.info(f"Forgot password request - Identifier: {identifier}")
+
+            # === EMAIL TEST - Add this for debugging ===
+            print("\n" + "=" * 50)
+            print("🔧 TESTING EMAIL FUNCTIONALITY")
+            print("=" * 50)
+
+            from django.core.mail import send_mail
+            from django.conf import settings
+
+            try:
+                send_mail(
+                    subject='Test Email from Django',
+                    message='This is a test email to verify console backend is working.',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=['test@example.com'],
+                    fail_silently=False,
+                )
+                print("✅ EMAIL TEST: Successfully sent test email")
+            except Exception as e:
+                print(f"❌ EMAIL TEST FAILED: {e}")
+
+            print("=" * 50 + "\n")
+            # === END EMAIL TEST ===
+
+            # Find user by mobile number (since we're using SMS for verification)
+            user = None
+            clean_mobile = identifier.replace(' ', '').replace('-', '')
+
+            try:
+                user = User.objects.get(mobile=clean_mobile)
+            except User.DoesNotExist:
+                # For security, don't reveal if user exists or not
+                messages.success(request, "اگر شماره موبایل در سیستم موجود باشد، کد بازیابی ارسال خواهد شد.")
+                return render(request, 'users/forgot_password.html', {'form': form})
+
+            # Generate reset code
+            reset_code = VerificationToken.generate_sms_token()
+
+            # Delete existing password reset tokens for this user
+            VerificationToken.objects.filter(user=user, token_type='password_reset').delete()
+
+            # Create new verification token
+            verification_token = VerificationToken.objects.create(
+                user=user,
+                token=reset_code,
+                token_type='password_reset'
+            )
+
+            # 🔑 CONSOLE LOGGING FOR PASSWORD RESET
+            console_logger.info(f"Password Reset Code for {user.mobile}: {reset_code}")
+
+            # Send SMS
+            try:
+                send_verification_sms(user.mobile, reset_code)
+                logger.info(f"Password reset SMS sent to {user.mobile}")
+            except Exception as e:
+                logger.error(f"Failed to send password reset SMS: {e}")
+
+            # === NEW: SEND EMAIL IF USER HAS EMAIL ===
+            if user.email:
+                try:
+                    print(f"\n🔧 ATTEMPTING TO SEND EMAIL TO: {user.email}")
+
+                    # Import the email function
+                    from core.email import send_password_reset_email
+
+                    # Generate email token (you can use the same reset_code or create a different one)
+                    email_token = str(verification_token.email_token) if hasattr(verification_token,
+                                                                                 'email_token') else reset_code
+
+                    # Send password reset email
+                    email_sent = send_password_reset_email(user, email_token)
+
+                    if email_sent:
+                        console_logger.info(f"Password reset email sent to {user.email}")
+                        print(f"✅ EMAIL SENT SUCCESSFULLY TO: {user.email}")
+                    else:
+                        print(f"❌ EMAIL SENDING FAILED FOR: {user.email}")
+
+                except Exception as e:
+                    logger.error(f"Failed to send password reset email: {e}")
+                    print(f"❌ EMAIL ERROR: {e}")
+
+            # Store user ID in session for verification
+            request.session['reset_user_id'] = user.id
+
+            success_message = "کد بازیابی رمز عبور به شماره موبایل شما ارسال شد."
+            if user.email:
+                success_message += " همچنین لینک بازیابی به ایمیل شما ارسال شد."
+
+            messages.success(request, success_message)
+            return redirect('verify_reset_password')
+
+    else:
+        form = ForgotPasswordForm()
+
+    return render(request, 'users/forgot_password.html', {'form': form})
+
+def verify_reset_password_view(request):
+    """Handle SMS verification for password reset"""
+    user_id = request.session.get('reset_user_id')
+
+    if not user_id:
+        messages.error(request, "جلسه منقضی شده است. لطفاً دوباره تلاش کنید.")
+        return redirect('forgot_password')
+
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        messages.error(request, "کاربر یافت نشد.")
+        return redirect('forgot_password')
+
+    if request.method == 'POST':
+        form = VerificationForm(request.POST)
+        if form.is_valid():
+            code = form.cleaned_data['code']
+
+            try:
+                token = VerificationToken.objects.get(
+                    user=user,
+                    token=code,
+                    token_type='password_reset',
+                    is_used=False
+                )
+
+                if token.is_valid():
+                    # Mark token as used and proceed to password reset
+                    token.mark_as_used()
+
+                    # Store verification success in session
+                    request.session['password_reset_verified'] = True
+
+                    console_logger.info(f"Password reset code verified for user: {user.username}")
+                    messages.success(request, "کد تایید شد. لطفاً رمز عبور جدید خود را وارد کنید.")
+                    return redirect('reset_password')
+                else:
+                    messages.error(request, "کد وارد شده منقضی شده است.")
+                    logger.warning(f"Expired reset code used - User: {user.username}")
+
+            except VerificationToken.DoesNotExist:
+                messages.error(request, "کد وارد شده صحیح نمی‌باشد.")
+                logger.warning(f"Invalid reset code entered - User: {user.username}")
+
+        else:
+            logger.warning(f"Invalid verification form - Errors: {form.errors}")
+    else:
+        form = VerificationForm()
+
+    # Display masked mobile number
+    masked_mobile = user.mobile[:3] + '*****' + user.mobile[-3:] if user.mobile else ''
+
+    return render(request, 'users/verify_reset_password.html', {
+        'form': form,
+        'mobile': user.mobile,
+        'masked_mobile': masked_mobile
+    })
+
+
+def reset_password_view(request):
+    """Handle password reset after SMS verification"""
+    user_id = request.session.get('reset_user_id')
+    password_reset_verified = request.session.get('password_reset_verified')
+
+    if not user_id or not password_reset_verified:
+        messages.error(request, "دسترسی غیرمجاز. لطفاً فرآیند بازیابی رمز عبور را دوباره انجام دهید.")
+        return redirect('forgot_password')
+
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        messages.error(request, "کاربر یافت نشد.")
+        return redirect('forgot_password')
+
+    if request.method == 'POST':
+        new_password = request.POST.get('new_password')
+        confirm_password = request.POST.get('confirm_password')
+
+        # Validation
+        if not new_password or not confirm_password:
+            messages.error(request, "لطفاً همه فیلدها را پر کنید.")
+            return render(request, 'users/reset_password.html')
+
+        if len(new_password) < 8:
+            messages.error(request, "رمز عبور باید حداقل 8 کاراکتر باشد.")
+            return render(request, 'users/reset_password.html')
+
+        if new_password != confirm_password:
+            messages.error(request, "رمزهای عبور مطابقت ندارند.")
+            return render(request, 'users/reset_password.html')
+
+        try:
+            # Update password
+            user.set_password(new_password)
+            user.save()
+
+            # Clear session data
+            request.session.pop('reset_user_id', None)
+            request.session.pop('password_reset_verified', None)
+
+            console_logger.info(f"Password reset completed for user: {user.username}")
+            logger.info(f"Password reset successful - User: {user.username}")
+
+            # Automatically log in the user
+            login(request, user)
+            messages.success(request, "رمز عبور شما با موفقیت تغییر یافت و وارد سیستم شدید.")
+            return redirect('dashboard')
+
+        except Exception as e:
+            logger.error(f"Password reset error - User: {user.username}, Error: {str(e)}")
+            messages.error(request, "خطا در تغییر رمز عبور. لطفاً دوباره تلاش کنید.")
+
+    return render(request, 'users/reset_password.html')
+
+
+def resend_reset_code_view(request):
+    """Resend SMS code for password reset"""
+    user_id = request.session.get('reset_user_id')
+
+    if not user_id:
+        return JsonResponse({'success': False, 'message': 'جلسه منقضی شده است.'})
+
+    try:
+        user = User.objects.get(id=user_id)
+
+        # Generate new code
+        reset_code = VerificationToken.generate_sms_token()
+
+        # Delete old tokens
+        VerificationToken.objects.filter(user=user, token_type='password_reset').delete()
+
+        # Create new token
+        VerificationToken.objects.create(
+            user=user,
+            token=reset_code,
+            token_type='password_reset'
+        )
+
+        # 🔑 CONSOLE LOGGING FOR RESENT CODE
+        console_logger.info(f"Resent Password Reset Code for {user.mobile}: {reset_code}")
+
+        # Send SMS
+        send_verification_sms(user.mobile, reset_code)
+        logger.info(f"Password reset code resent to {user.mobile}")
+
+        return JsonResponse({'success': True, 'message': 'کد جدید ارسال شد.'})
+
+    except User.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'کاربر یافت نشد.'})
+    except Exception as e:
+        logger.error(f"Failed to resend reset code: {e}")
+        return JsonResponse({'success': False, 'message': 'خطا در ارسال کد.'})
+
+
+def verify_view(request):
+    """Handle SMS verification for registration with console logging"""
+    mobile = request.session.get('mobile')
+    user_id = request.session.get('signup_user_id')
+
+    if not mobile or not user_id:
+        messages.error(request, "جلسه منقضی شده است. لطفاً دوباره ثبت‌نام کنید.")
+        return redirect('signup')
+
+    try:
+        user = User.objects.get(id=user_id, mobile=mobile)
+    except User.DoesNotExist:
+        messages.error(request, "کاربر یافت نشد.")
+        return redirect('signup')
+
+    if request.method == 'POST':
+        form = VerificationForm(request.POST)
+        if form.is_valid():
+            code = form.cleaned_data['code']
+            try:
+                token = VerificationToken.objects.get(
+                    user=user,
+                    token=code,
+                    token_type='registration',
+                    is_used=False
+                )
+
+                if token.is_valid():
+                    user.is_active = True
+                    user.is_phone_verified = True
+                    user.save()
+                    token.mark_as_used()
+
+                    # Automatic login
+                    login(request, user)
+
+                    # Clear session
+                    request.session.pop('mobile', None)
+                    request.session.pop('signup_user_id', None)
+
+                    console_logger.info(f"User successfully verified: {user.username} ({user.mobile})")
+                    messages.success(request, "حساب شما با موفقیت فعال شد و وارد سیستم شدید.")
+                    logger.info(f"User successfully verified and logged in - User ID: {user.id}")
+                    return redirect('dashboard')
+
+                else:
+                    messages.error(request, "کد وارد شده منقضی شده است.")
+                    logger.warning(f"Expired verification code used - User ID: {user.id}")
+
+            except VerificationToken.DoesNotExist:
+                messages.error(request, "کد وارد شده صحیح نمی‌باشد.")
+                logger.warning(f"Invalid verification code entered - User ID: {user.id}")
+
+        else:
+            logger.warning(f"Invalid verification form - Errors: {form.errors}")
+    else:
+        form = VerificationForm()
+
+    # Display mobile number on verification page
+    masked_mobile = mobile[:3] + '*****' + mobile[-3:] if mobile else ''
+
+    return render(request, 'users/verify.html', {
+        'form': form,
+        'mobile': mobile,
+        'masked_mobile': masked_mobile
+    })
+
+
+def verify_login_view(request):
+    """Handle SMS verification for login with console logging"""
+    user_id = request.session.get('login_user_id')
+    if not user_id:
+        messages.error(request, "جلسه منقضی شده است.")
+        return redirect('login')
+
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        messages.error(request, "کاربر یافت نشد.")
+        return redirect('login')
+
+    if request.method == 'POST':
+        form = VerificationForm(request.POST)
+        if form.is_valid():
+            code = form.cleaned_data['code']
+            try:
+                token = VerificationToken.objects.get(
+                    user=user,
+                    token=code,
+                    token_type='login',
+                    is_used=False
+                )
+
+                if token.is_valid():
+                    login(request, user)
+                    token.mark_as_used()
+                    request.session.pop('login_user_id', None)
+
+                    console_logger.info(f"User login verified: {user.username} ({user.mobile})")
+                    messages.success(request, "با موفقیت وارد شدید.")
+                    return redirect('dashboard')
+                else:
+                    messages.error(request, "کد وارد شده منقضی شده است.")
+
+            except VerificationToken.DoesNotExist:
+                messages.error(request, "کد وارد شده صحیح نمی‌باشد.")
+        else:
+            logger.warning(f"Invalid verification form - Errors: {form.errors}")
+    else:
+        form = VerificationForm()
+
+    # Display mobile number on verification page
+    masked_mobile = user.mobile[:3] + '*****' + user.mobile[-3:] if user.mobile else ''
+
+    return render(request, 'users/verify_login.html', {
+        'form': form,
+        'mobile': user.mobile,
+        'masked_mobile': masked_mobile
+    })
+
+
 def activate_account_view(request):
+    """Handle email activation link with console logging"""
     token = request.GET.get('token')
     if not token:
         messages.error(request, "توکن وجود ندارد.")
         return redirect('signup')
 
     try:
-        register_token = VerificationToken.objects.get(email_token=token)
-        if not register_token.is_valid():
+        verification_token = VerificationToken.objects.get(email_token=token, is_used=False)
+        if not verification_token.is_valid():
             messages.error(request, "توکن منقضی شده است.")
             return redirect('signup')
 
-        user = register_token.user
+        user = verification_token.user
         user.is_active = True
+        user.is_email_verified = True
         user.save()
-        register_token.delete()
-        messages.success(request, "حساب شما با موفقیت فعال شد.")
+        verification_token.mark_as_used()
+
+        console_logger.info(f"User activated via email: {user.username} ({user.email})")
+        messages.success(request, "حساب شما با موفقیت از طریق ایمیل فعال شد.")
         return redirect('login')
-    except RegisterToken.DoesNotExist:
+
+    except VerificationToken.DoesNotExist:
         messages.error(request, "توکن معتبر نیست یا قبلاً استفاده شده.")
         return redirect('signup')
+
+
 def send_sms_view(request):
+    """Development helper for testing SMS"""
     phone = request.GET.get("phone")
-    code = str(random.randint(1, 9)) #TODO
-    send_verification_sms(phone, code)
-    return JsonResponse({"status": "sms sent", "code": code})  # Remove code in production
+    code = str(random.randint(100000, 999999))
+
+    console_logger.info(f"Test SMS Code for {phone}: {code}")
+
+    try:
+        send_verification_sms(phone, code)
+        return JsonResponse({"status": "sms sent", "code": code})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+
 def register(request):
+    """Alternative registration view"""
     client_ip = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR'))
     user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown')
 
@@ -227,6 +632,8 @@ def register(request):
                 user = form.save()
                 logger.info(
                     f"User created successfully - Username: {user.username}, Email: {user.email}, IP: {client_ip}")
+
+                console_logger.info(f"New user registered: {user.username} ({user.email})")
 
                 login(request, user)
                 logger.info(f"User logged in after registration - Username: {user.username}, IP: {client_ip}")
@@ -243,41 +650,3 @@ def register(request):
         form = CustomUserCreationForm()
 
     return render(request, 'users/registration/register.html', {'form': form})
-
-
-def verify_login_view(request):
-    user_id = request.session.get('login_user_id')  # ✅ Fixed session key
-    if not user_id:
-        messages.error(request, "جلسه منقضی شده است.")
-        return redirect('login')
-
-    if request.method == 'POST':
-        code = request.POST.get('code')
-        if not code:
-            messages.error(request, "لطفاً کد را وارد کنید.")
-            return render(request, 'users/verify_login.html')
-
-        try:
-            user = User.objects.get(id=user_id)
-            token = VerificationToken.objects.get(  # ✅ Fixed model
-                user=user,
-                token=code,
-                token_type='login'
-            )
-
-            if token.is_valid():
-                login(request, user)
-                token.mark_as_used()  # ✅ Mark as used instead of delete
-                request.session.pop('login_user_id', None)  # ✅ Fixed session key
-                messages.success(request, "با موفقیت وارد شدید.")
-                return redirect('dashboard')
-            else:
-                messages.error(request, "کد وارد شده اشتباه یا منقضی شده است.")
-
-        except User.DoesNotExist:
-            messages.error(request, "کاربر یافت نشد.")
-            return redirect('login')
-        except VerificationToken.DoesNotExist:
-            messages.error(request, "کد وارد شده اشتباه است.")
-
-    return render(request, 'users/verify_login.html')

@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
 import os
+import sys
 from pathlib import Path
 import environ
 from cryptography.fernet import Fernet
@@ -242,13 +243,13 @@ EMAIL_HOST_PASSWORD = 'your-password'  # Your password or app password
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # Basic rate limiting settings
-RATE_LIMIT_REQUESTS = 30         # Only 1 request allowed
+RATE_LIMIT_REQUESTS = 30000         # Only 1 request allowed
 RATE_LIMIT_WINDOW = 300           # In 60 seconds (1 minute)
 RATE_LIMIT_BLOCK_RESPONSE = True
 
 # IP whitelist - These IPs will bypass rate limiting
 RATE_LIMIT_WHITELIST_IPS = [
-    # '127.0.0.1',  # Localhost
+    '127.0.0.1',  # Localhost
     '::1',  # IPv6 localhost
     # Add your trusted IPs here
     # '192.168.1.100',  # Example internal IP
@@ -257,12 +258,12 @@ RATE_LIMIT_WHITELIST_IPS = [
 
 # Paths to exclude from rate limiting
 RATE_LIMIT_SKIP_PATHS = [
-    # '/admin/',  # Django admin
-    # '/static/',  # Static files
-    # '/media/',  # Media files
-    # '/favicon.ico',  # Favicon
-    # '/robots.txt',  # Robots file
-    # '/health/',  # Health check endpoints
+    '/admin/',  # Django admin
+    '/static/',  # Static files
+    '/media/',  # Media files
+    '/favicon.ico',  # Favicon
+    '/robots.txt',  # Robots file
+    '/health/',  # Health check endpoints
     # Add more paths as needed
 ]
 
@@ -378,10 +379,11 @@ LOGGING = {
     },
     'handlers': {
         'console': {
-            'level': 'INFO',
+            'level': 'DEBUG',  # Change from INFO to DEBUG
             'filters': ['require_debug_true'],
             'class': 'logging.StreamHandler',
-            'formatter': 'simple'
+            'formatter': 'simple',
+            'stream': sys.stdout,
         },
         'accounts_file': {
             'level': 'DEBUG',
@@ -418,6 +420,7 @@ LOGGING = {
             'class': 'logging.FileHandler',
             'filename': os.path.join(LOG_DIR, 'users.log'),
             'formatter': 'verbose',
+            'encoding': 'utf-8'
         },
         'file': {
             'level': 'INFO',
@@ -544,9 +547,9 @@ LOGGING = {
             'propagate': False,
         },
         'django.core.mail': {
-            'handlers': ['emails_file'],
+            'handlers': ['emails_file', 'console'],  # Add console handler
             'level': 'INFO',
-            'propagate': False,
+            'propagate': True,  # Change to True
         },
         'django': {
             'handlers': ['console', 'file'],
