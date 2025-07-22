@@ -6,7 +6,8 @@ class Command(BaseCommand):
     help = 'ایجاد ۱۰ کاربر تستی'
 
     def handle(self, *args, **kwargs):
-        for i in range(1, 11):
+        i=random.randint(1,10000000)
+        for i in range(i, i+10):
             mobile = f"09900000{i:03}"
             email = f"user{i}@test.com"
             user, created = User.objects.get_or_create(
