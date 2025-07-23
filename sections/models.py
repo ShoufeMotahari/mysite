@@ -15,6 +15,7 @@ SECTION_TYPE_CHOICES = [
     ('custom', 'سفارشی'),
 ]
 
+
 class Section(models.Model):
     title = models.CharField(max_length=200, verbose_name=_('Title'))
     slug = models.SlugField(max_length=250, unique=True, blank=True, verbose_name=_('Slug'))
@@ -87,12 +88,84 @@ class Section(models.Model):
 
         super().save(*args, **kwargs)
 
+    def get_descendants(self):
+        """Get all descendant sections (children, grandchildren, etc.)"""
+        descendants = []
+
+        def collect_descendants(section):
+            for child in section.children.all():
+                descendants.append(child)
+                collect_descendants(child)
+
+        collect_descendants(self)
+        return descendants
+
+    def get_ancestors(self):
+        """Get all ancestor sections (parent, grandparent, etc.)"""
+        ancestors = []
+        current = self.parent
+        while current:
+            ancestors.append(current)
+            current = current.parent
+        return ancestors
+
+    @property
+    def full_path(self):
+        """Get the full hierarchical path of the section"""
+        path_parts = []
+        current = self
+        while current:
+            path_parts.insert(0, current.title)
+            current = current.parent
+        return ' > '.join(path_parts)
+
+    @property
+    def breadcrumb_path(self):
+        """Get breadcrumb path for navigation"""
+        return ' / '.join([ancestor.title for ancestor in reversed(self.get_ancestors())] + [self.title])
+
+    def can_have_children(self):
+        """Check if this section can have children based on level"""
+        return self.level < 3
+
+    def get_siblings(self):
+        """Get sections at the same level with the same parent"""
+        return Section.objects.filter(parent=self.parent, level=self.level).exclude(pk=self.pk)
+
+    def get_next_sibling(self):
+        """Get the next sibling by order"""
+        return self.get_siblings().filter(order__gt=self.order).order_by('order').first()
+
+    def get_previous_sibling(self):
+        """Get the previous sibling by order"""
+        return self.get_siblings().filter(order__lt=self.order).order_by('-order').first()
+
+    def move_to_position(self, new_order):
+        """Move section to a new position within its level"""
+        old_order = self.order
+
+        if new_order == old_order:
+            return
+
+        siblings = Section.objects.filter(parent=self.parent, level=self.level).exclude(pk=self.pk)
+
+        if new_order > old_order:
+            # Moving down - shift others up
+            siblings.filter(order__gt=old_order, order__lte=new_order).update(order=models.F('order') - 1)
+        else:
+            # Moving up - shift others down
+            siblings.filter(order__gte=new_order, order__lt=old_order).update(order=models.F('order') + 1)
+
+        self.order = new_order
+        self.save(update_fields=['order'])
+
     @classmethod
     def get_active_sections(cls):
         return cls.objects.filter(is_active=True).order_by('level', 'order')
 
     @classmethod
     def get_tree_structure(cls):
+        """Get hierarchical tree structure of all active sections"""
         root_sections = cls.objects.filter(level=1, is_active=True).order_by('order')
 
         def build_tree(sections):
@@ -107,9 +180,73 @@ class Section(models.Model):
         return build_tree(root_sections)
 
     @classmethod
+    def get_flat_tree(cls):
+        """Get flattened tree structure for easier iteration"""
+
+        def flatten_tree(tree, depth=0):
+            flat = []
+            for node in tree:
+                section = node['section']
+                section._tree_depth = depth
+                flat.append(section)
+                flat.extend(flatten_tree(node['children'], depth + 1))
+            return flat
+
+        return flatten_tree(cls.get_tree_structure())
+
+    @classmethod
     def reorder_sections(cls, section_ids):
+        """Reorder sections based on provided ID list"""
         for index, section_id in enumerate(section_ids, start=1):
             cls.objects.filter(id=section_id).update(order=index)
+
+    @classmethod
+    def reorder_level(cls, level, section_ids):
+        """Reorder sections within a specific level"""
+        for index, section_id in enumerate(section_ids, start=1):
+            cls.objects.filter(id=section_id, level=level).update(order=index)
+
+    @classmethod
+    def get_level_statistics(cls):
+        """Get statistics for each level"""
+        from django.db.models import Count
+
+        stats = {}
+        for level in range(1, 4):
+            stats[level] = {
+                'total': cls.objects.filter(level=level).count(),
+                'active': cls.objects.filter(level=level, is_active=True).count(),
+                'inactive': cls.objects.filter(level=level, is_active=False).count(),
+            }
+        return stats
+
+    @classmethod
+    def get_max_order_for_level(cls, level, parent=None):
+        """Get maximum order for a specific level"""
+        queryset = cls.objects.filter(level=level)
+        if parent:
+            queryset = queryset.filter(parent=parent)
+        else:
+            queryset = queryset.filter(parent__isnull=True)
+
+        max_order = queryset.aggregate(max_order=models.Max('order'))['max_order']
+        return max_order or 0
+
+    def duplicate(self, new_title=None):
+        """Create a duplicate of this section"""
+        new_title = new_title or f"{self.title} (Copy)"
+
+        # Create duplicate
+        duplicate = Section.objects.create(
+            title=new_title,
+            section_type=self.section_type,
+            content=self.content,
+            parent=self.parent,
+            order=self.get_max_order_for_level(self.level, self.parent) + 1,
+            is_active=False  # Start as inactive
+        )
+
+        return duplicate
 
     @property
     def display_title(self):
@@ -124,3 +261,22 @@ class Section(models.Model):
             parent_order = self.parent.order if self.parent else 1
             return f"{grandparent_order}.{parent_order}.{self.order}. {self.title}"
         return self.title
+
+    @property
+    def level_color(self):
+        """Get color associated with the level"""
+        colors = {1: '#28a745', 2: '#ffc107', 3: '#dc3545'}
+        return colors.get(self.level, '#6c757d')
+
+    @property
+    def is_root(self):
+        """Check if this is a root section"""
+        return self.level == 1
+
+    @property
+    def is_leaf(self):
+        """Check if this section has no children"""
+        return not self.children.exists()
+
+    def __unicode__(self):
+        return self.__str__()

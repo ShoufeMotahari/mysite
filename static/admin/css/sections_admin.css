@@ -1,0 +1,225 @@
+/* static/admin/css/sections_admin.css */
+
+/* Enhanced section list display */
+.sections-admin .hierarchical-title {
+    font-weight: 500;
+}
+
+.sections-admin .level-indicator {
+    display: inline-block;
+    min-width: 30px;
+    text-align: center;
+}
+
+/* Action buttons styling */
+.sections-admin .action-buttons .button {
+    display: inline-block;
+    margin-right: 5px;
+    padding: 4px 8px;
+    font-size: 11px;
+    text-decoration: none;
+    background: #417690;
+    color: white;
+    border-radius: 3px;
+    border: none;
+}
+
+.sections-admin .action-buttons .button:hover {
+    background: #205067;
+}
+
+/* Hierarchy stats in changelist */
+.hierarchy-stats {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 15px;
+    margin: 15px 0;
+}
+
+.hierarchy-stats h3 {
+    margin-top: 0;
+    color: #495057;
+}
+
+.hierarchy-stats .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.hierarchy-stats .stat-item {
+    text-align: center;
+    padding: 10px;
+    background: white;
+    border-radius: 3px;
+    border: 1px solid #e9ecef;
+}
+
+.hierarchy-stats .stat-number {
+    font-size: 24px;
+    font-weight: bold;
+    color: #007cba;
+    display: block;
+}
+
+.hierarchy-stats .stat-label {
+    font-size: 12px;
+    color: #6c757d;
+    text-transform: uppercase;
+}
+
+/* Custom action links */
+.custom-actions {
+    margin: 15px 0;
+    text-align: right;
+}
+
+.custom-actions .btn {
+    display: inline-block;
+    margin-left: 10px;
+    padding: 8px 15px;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 13px;
+    border: none;
+    cursor: pointer;
+}
+
+.custom-actions .btn-primary {
+    background: #007cba;
+    color: white;
+}
+
+.custom-actions .btn-primary:hover {
+    background: #005a87;
+}
+
+.custom-actions .btn-info {
+    background: #17a2b8;
+    color: white;
+}
+
+.custom-actions .btn-info:hover {
+    background: #117a8b;
+}
+
+/* Form enhancements */
+.section-form .field-parent select {
+    font-family: monospace;
+}
+
+.section-form .hierarchy-info {
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 4px;
+    margin: 10px 0;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+    .hierarchy-stats .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .custom-actions {
+        text-align: center;
+    }
+
+    .custom-actions .btn {
+        display: block;
+        margin: 5px auto;
+        width: 200px;
+    }
+}
+
+/* Drag and drop specific styles */
+.drag-drop-container {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.sections-reorder-notice {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    color: #856404;
+    padding: 10px 15px;
+    border-radius: 4px;
+    margin: 15px 0;
+}
+
+.sections-reorder-notice .icon {
+    margin-right: 8px;
+}
+
+/* Loading states */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.loading-spinner {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.loading-spinner .spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #007cba;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 10px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Enhanced table styling */
+.sections-admin table {
+    border-collapse: collapse;
+}
+
+.sections-admin table th,
+.sections-admin table td {
+    border: 1px solid #ddd;
+    padding: 8px 12px;
+}
+
+.sections-admin table th {
+    background: #f8f9fa;
+    font-weight: 600;
+}
+
+.sections-admin table tr:nth-child(even) {
+    background: #f9f9f9;
+}
+
+.sections-admin table tr:hover {
+    background: #e8f4f8;
+}
+
+/* Status indicators */
+.status-active {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.status-inactive {
+    color: #dc3545;
+    font-weight: bold;
+}

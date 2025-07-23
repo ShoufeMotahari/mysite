@@ -1,0 +1,361 @@
+<!-- templates/admin/sections/section/change_list.html -->
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls static admin_list %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <style>
+        /* Quick Actions Panel */
+        .sections-quick-actions {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin: 20px 0;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .sections-quick-actions h3 {
+            margin: 0 0 15px 0;
+            color: #495057;
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sections-quick-actions h3::before {
+            content: "⚡";
+            font-size: 18px;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 13px;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .action-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            text-decoration: none;
+        }
+
+        .action-btn.primary {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            color: white;
+            border-color: #117a8b;
+        }
+
+        .action-btn.primary:hover {
+            background: linear-gradient(135deg, #138496 0%, #10707f 100%);
+            color: white;
+        }
+
+        .action-btn.success {
+            background: linear-gradient(135deg, #28a745 0%, #20923a 100%);
+            color: white;
+            border-color: #1e7e34;
+        }
+
+        .action-btn.success:hover {
+            background: linear-gradient(135deg, #20923a 0%, #1c7430 100%);
+            color: white;
+        }
+
+        .action-btn.info {
+            background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%);
+            color: white;
+            border-color: #4e2a84;
+        }
+
+        .action-btn.info:hover {
+            background: linear-gradient(135deg, #5a32a3 0%, #4e2a84 100%);
+            color: white;
+        }
+
+        /* Stats Panel */
+        .sections-stats {
+            background: white;
+            border: 1px solid #e3e6ea;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+        }
+
+        .stat-number {
+            display: block;
+            font-size: 24px;
+            font-weight: bold;
+            color: #007cba;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #6c757d;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+
+        /* Enhanced toolbar button */
+        .object-tools .addlink.sections-reorder {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            border-color: #117a8b;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .object-tools .addlink.sections-reorder:hover {
+            background: linear-gradient(135deg, #138496 0%, #10707f 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(23, 162, 184, 0.3);
+        }
+
+        .object-tools .addlink.sections-reorder::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .object-tools .addlink.sections-reorder:hover::before {
+            left: 100%;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .action-buttons {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .action-btn {
+                justify-content: center;
+                width: 100%;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .sections-quick-actions {
+                padding: 15px;
+            }
+        }
+
+        /* Animation for new sections */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .sections-quick-actions {
+            animation: slideIn 0.3s ease-out;
+        }
+    </style>
+{% endblock %}
+
+{% block object-tools-items %}
+    {{ block.super }}
+    <li>
+        <a href="drag-drop/" class="addlink sections-reorder" title="{% trans 'Reorder sections using drag and drop' %}">
+            🔄 {% trans "Drag & Drop Reorder" %}
+        </a>
+    </li>
+{% endblock %}
+
+{% block content %}
+    <!-- Quick Actions Panel -->
+{#    <div class="sections-quick-actions">#}
+{#        <h3>{% trans "Quick Actions" %}</h3>#}
+{#        <div class="action-buttons">#}
+{#            <a href="drag-drop/" class="action-btn primary" title="{% trans 'Reorder sections using drag and drop interface' %}">#}
+{#                <span>🔄</span>#}
+{#                <span>{% trans "Drag & Drop Reorder" %}</span>#}
+{#            </a>#}
+{#            <a href="hierarchy/" class="action-btn success" title="{% trans 'View hierarchical structure of all sections' %}">#}
+{#                <span>🌳</span>#}
+{#                <span>{% trans "View Hierarchy" %}</span>#}
+{#            </a>#}
+{#            <a href="add/" class="action-btn info" title="{% trans 'Create a new section' %}">#}
+{#                <span>➕</span>#}
+{#                <span>{% trans "Add New Section" %}</span>#}
+{#            </a>#}
+{#        </div>#}
+{#    </div>#}
+
+    <!-- Statistics Panel -->
+    {% if hierarchy_stats %}
+    <div class="sections-stats">
+        <h4 style="margin: 0 0 10px 0; color: #495057; font-size: 14px;">
+            📊 {% trans "Section Statistics" %}
+        </h4>
+        <div class="stats-grid">
+            <div class="stat-item">
+                <span class="stat-number">{{ hierarchy_stats.total_sections|default:0 }}</span>
+                <span class="stat-label">{% trans "Total" %}</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number">{{ hierarchy_stats.active_sections|default:0 }}</span>
+                <span class="stat-label">{% trans "Active" %}</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number">{{ hierarchy_stats.root_sections|default:0 }}</span>
+                <span class="stat-label">{% trans "Level 1" %}</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number">{{ hierarchy_stats.level_2_sections|default:0 }}</span>
+                <span class="stat-label">{% trans "Level 2" %}</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number">{{ hierarchy_stats.level_3_sections|default:0 }}</span>
+                <span class="stat-label">{% trans "Level 3" %}</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Help Text -->
+    <div style="background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; padding: 12px; margin: 15px 0; border-radius: 6px; font-size: 13px;">
+        <strong>💡 {% trans "Tip:" %}</strong>
+        {% trans "Use the drag & drop interface to easily reorder sections within their hierarchy levels. Changes are saved instantly when you click the save button." %}
+    </div>
+
+    <!-- Original content -->
+    {{ block.super }}
+{% endblock %}
+
+{% block content_title %}
+    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+        <span style="font-size: 24px;">📑</span>
+        <h1>{{ block.super }}</h1>
+        <span style="background: #17a2b8; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold;">
+            {% blocktrans count counter=cl.result_count %}{{ counter }} section{% plural %}{{ counter }} sections{% endblocktrans %}
+        </span>
+    </div>
+{% endblock %}
+
+{% block extrajs %}
+    {{ block.super }}
+    <script>
+    (function($) {
+        'use strict';
+
+        $(document).ready(function() {
+            // Add tooltips to action buttons
+            $('.action-btn').each(function() {
+                $(this).attr('data-toggle', 'tooltip');
+            });
+
+            // Add confirmation for bulk delete actions
+            $('select[name="action"]').change(function() {
+                if ($(this).val() === 'delete_selected') {
+                    $(this).closest('form').off('submit.confirm').on('submit.confirm', function(e) {
+                        if (!confirm('⚠️ {% trans "Are you sure you want to delete the selected sections? This action cannot be undone and may affect child sections." %}')) {
+                            e.preventDefault();
+                            return false;
+                        }
+                    });
+                }
+            });
+
+            // Highlight newly added sections
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('created') === '1') {
+                $('.field-title:contains("' + urlParams.get('title') + '")').closest('tr')
+                    .css('background-color', '#d4edda')
+                    .animate({backgroundColor: 'transparent'}, 3000);
+            }
+
+            // Add keyboard shortcuts
+            $(document).keydown(function(e) {
+                // Ctrl/Cmd + D for drag & drop
+                if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+                    e.preventDefault();
+                    window.location.href = 'drag-drop/';
+                }
+
+                // Ctrl/Cmd + H for hierarchy
+                if ((e.ctrlKey || e.metaKey) && e.key === 'h') {
+                    e.preventDefault();
+                    window.location.href = 'hierarchy/';
+                }
+            });
+
+            // Add loading state to action buttons
+            $('.action-btn').click(function() {
+                const btn = $(this);
+                const originalText = btn.html();
+                btn.html('<span style="display: inline-block; width: 12px; height: 12px; border: 2px solid #fff; border-top: 2px solid transparent; border-radius: 50%; animation: spin 1s linear infinite;"></span> Loading...');
+
+                // Reset after a delay (in case of slow loading)
+                setTimeout(function() {
+                    btn.html(originalText);
+                }, 5000);
+            });
+
+            console.log('📑 Sections admin interface enhanced');
+        });
+
+        // Add CSS animation for spinner
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
+
+    })(django.jQuery);
+    </script>
+{% endblock %}
