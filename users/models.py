@@ -1,4 +1,4 @@
-# users/models.py
+# users/models.py - Enhanced with User Types
 from django.db import models
 import django_jalali.db.models as jmodels
 from django.contrib.auth.models import AbstractUser
@@ -14,16 +14,143 @@ from django.core.exceptions import ValidationError
 logger = logging.getLogger(__name__)
 
 
+class UserType(models.Model):
+    """Model for different user types/roles"""
+
+    # Predefined user type choices
+    ADMIN = 'admin'
+    MANAGER = 'manager'
+    EDITOR = 'editor'
+    AUTHOR = 'author'
+    SUBSCRIBER = 'subscriber'
+    CUSTOMER = 'customer'
+    GUEST = 'guest'
+
+    TYPE_CHOICES = [
+        (ADMIN, 'مدیر سیستم'),
+        (MANAGER, 'مدیر'),
+        (EDITOR, 'ویرایشگر'),
+        (AUTHOR, 'نویسنده'),
+        (SUBSCRIBER, 'مشترک'),
+        (CUSTOMER, 'مشتری'),
+        (GUEST, 'مهمان'),
+    ]
+
+    name = models.CharField(max_length=50, unique=True, verbose_name='نام نوع کاربری')
+    slug = models.SlugField(max_length=50, unique=True, verbose_name='اسلاگ')
+    description = models.TextField(blank=True, null=True, verbose_name='توضیحات')
+
+    # Permissions for this user type
+    can_create_content = models.BooleanField(default=False, verbose_name='امکان ایجاد محتوا')
+    can_edit_content = models.BooleanField(default=False, verbose_name='امکان ویرایش محتوا')
+    can_delete_content = models.BooleanField(default=False, verbose_name='امکان حذف محتوا')
+    can_manage_users = models.BooleanField(default=False, verbose_name='امکان مدیریت کاربران')
+    can_view_analytics = models.BooleanField(default=False, verbose_name='امکان مشاهده آمار')
+    can_access_admin = models.BooleanField(default=False, verbose_name='دسترسی به پنل ادمین')
+
+    # Content limits
+    max_posts_per_day = models.PositiveIntegerField(null=True, blank=True, verbose_name='حداکثر پست روزانه')
+    max_comments_per_day = models.PositiveIntegerField(null=True, blank=True, verbose_name='حداکثر نظر روزانه')
+    max_file_upload_size_mb = models.PositiveIntegerField(default=10, verbose_name='حداکثر اندازه فایل (مگابایت)')
+
+    # Status and metadata
+    is_active = models.BooleanField(default=True, verbose_name='فعال')
+    is_default = models.BooleanField(default=False, verbose_name='پیش‌فرض')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='تاریخ بروزرسانی')
+
+    class Meta:
+        verbose_name = 'نوع کاربری'
+        verbose_name_plural = 'انواع کاربری'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+
+        # Ensure only one default user type
+        if self.is_default:
+            UserType.objects.filter(is_default=True).exclude(pk=self.pk).update(is_default=False)
+
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_default_type(cls):
+        """Get the default user type"""
+        try:
+            return cls.objects.get(is_default=True)
+        except cls.DoesNotExist:
+            # If no default is set, return the first active type or create one
+            default_type = cls.objects.filter(is_active=True).first()
+            if not default_type:
+                # Create a basic subscriber type as default
+                default_type = cls.objects.create(
+                    name='مشترک',
+                    slug='subscriber',
+                    description='کاربر عادی سیستم',
+                    is_default=True,
+                    can_create_content=False,
+                    can_edit_content=False,
+                    can_delete_content=False,
+                    max_comments_per_day=10
+                )
+            return default_type
+
+    def get_permissions_display(self):
+        """Get a readable display of permissions"""
+        permissions = []
+        if self.can_create_content:
+            permissions.append('ایجاد محتوا')
+        if self.can_edit_content:
+            permissions.append('ویرایش محتوا')
+        if self.can_delete_content:
+            permissions.append('حذف محتوا')
+        if self.can_manage_users:
+            permissions.append('مدیریت کاربران')
+        if self.can_view_analytics:
+            permissions.append('مشاهده آمار')
+        if self.can_access_admin:
+            permissions.append('دسترسی ادمین')
+
+        return ', '.join(permissions) if permissions else 'بدون مجوز خاص'
+
+
 class User(AbstractUser):
+    """Enhanced User model with user types"""
+
     mobile = models.CharField(max_length=11, unique=True, null=True, blank=True)
     email = models.EmailField(max_length=254, unique=True, null=True, blank=True)
     username = models.CharField(max_length=150, unique=True, null=True, blank=True)
     slug = models.SlugField(unique=True, blank=True, max_length=255)
+
+    # User type relationship
+    user_type = models.ForeignKey(
+        UserType,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name='نوع کاربری',
+        help_text='نوع کاربری تعیین کننده سطح دسترسی کاربر است'
+    )
+
+    # Additional user information
+    bio = models.TextField(blank=True, null=True, verbose_name='بیوگرافی')
+    birth_date = models.DateField(blank=True, null=True, verbose_name='تاریخ تولد')
+
+    # Status fields
     created_at = jmodels.jDateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True, verbose_name='فعال')
     is_phone_verified = models.BooleanField(default=False, verbose_name='تلفن تایید شده')
     is_email_verified = models.BooleanField(default=False, verbose_name='ایمیل تایید شده')
     is_staff = models.BooleanField(default=False, verbose_name='دسترسی ادمین')
+
+    # Activity tracking
+    last_activity = models.DateTimeField(null=True, blank=True, verbose_name='آخرین فعالیت')
+    posts_count = models.PositiveIntegerField(default=0, verbose_name='تعداد پست‌ها')
+    comments_count = models.PositiveIntegerField(default=0, verbose_name='تعداد نظرات')
 
     def _generate_unique_slug(self, base_slug):
         """Generate a unique slug by appending numbers if needed"""
@@ -35,7 +162,13 @@ class User(AbstractUser):
         return slug
 
     def save(self, *args, **kwargs):
-        """Override save to generate slug automatically"""
+        """Override save to generate slug automatically and set default user type"""
+
+        # Set default user type if not set
+        if not self.user_type_id:
+            self.user_type = UserType.get_default_type()
+
+        # Generate slug if not set
         if not self.slug:
             if self.username:
                 base_slug = slugify(self.username)
@@ -48,6 +181,10 @@ class User(AbstractUser):
 
             self.slug = self._generate_unique_slug(base_slug)
 
+        # Auto-set staff status based on user type
+        if self.user_type and self.user_type.can_access_admin:
+            self.is_staff = True
+
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -57,6 +194,65 @@ class User(AbstractUser):
         from django.urls import reverse
         return reverse('user_profile', kwargs={'slug': self.slug})
 
+    def get_display_name(self):
+        """Get the best available display name for the user"""
+        if self.get_full_name().strip():
+            return self.get_full_name()
+        elif self.username:
+            return self.username
+        elif self.email:
+            return self.email
+        elif self.mobile:
+            return self.mobile
+        else:
+            return f"کاربر {self.id}"
+
+    def has_permission(self, permission):
+        """Check if user has specific permission based on user type"""
+        if not self.user_type:
+            return False
+
+        permission_map = {
+            'create_content': self.user_type.can_create_content,
+            'edit_content': self.user_type.can_edit_content,
+            'delete_content': self.user_type.can_delete_content,
+            'manage_users': self.user_type.can_manage_users,
+            'view_analytics': self.user_type.can_view_analytics,
+            'access_admin': self.user_type.can_access_admin,
+        }
+
+        return permission_map.get(permission, False)
+
+    def get_daily_limit(self, limit_type):
+        """Get daily limit for specific content type"""
+        if not self.user_type:
+            return 0
+
+        if limit_type == 'posts':
+            return self.user_type.max_posts_per_day
+        elif limit_type == 'comments':
+            return self.user_type.max_comments_per_day
+
+        return 0
+
+    def can_upload_file(self, file_size_mb):
+        """Check if user can upload file based on size limit"""
+        if not self.user_type:
+            return False
+
+        return file_size_mb <= self.user_type.max_file_upload_size_mb
+
+    def update_activity(self):
+        """Update last activity timestamp"""
+        self.last_activity = timezone.now()
+        self.save(update_fields=['last_activity'])
+
+    def get_user_type_display(self):
+        """Get user type display name"""
+        return self.user_type.name if self.user_type else 'نامشخص'
+
+
+# Keep existing models with minor updates
 class Profile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     created_jalali = jmodels.jDateTimeField(auto_now_add=True)
@@ -90,12 +286,12 @@ class RegisterToken(models.Model):
 
 class VerificationToken(models.Model):
     TOKEN_TYPES = [
-    ('registration', 'Registration'),
-    ('login', 'Login'),  # Add this line
-    ('password_reset', 'Password Reset'),
-    ('email_activation', 'Email Activation'),
-    ('phone_verification', 'Phone Verification'),
-]
+        ('registration', 'Registration'),
+        ('login', 'Login'),
+        ('password_reset', 'Password Reset'),
+        ('email_activation', 'Email Activation'),
+        ('phone_verification', 'Phone Verification'),
+    ]
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     token = models.CharField(max_length=6)  # For SMS codes
@@ -118,7 +314,7 @@ class VerificationToken(models.Model):
     @classmethod
     def generate_sms_token(cls):
         """Generate a 6-digit SMS verification code"""
-        return str(random.randint(100000, 999999))  # Fixed: Generate 6-digit code
+        return str(random.randint(100000, 999999))
 
     def save(self, *args, **kwargs):
         is_new = self.pk is None
@@ -175,7 +371,6 @@ class Comment(models.Model):
         return f'/comments/{self.id}/'
 
 
-# Move PasswordEntry to a separate passwords app or keep it here if truly needed
 class PasswordEntry(models.Model):
     """Password storage model"""
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)

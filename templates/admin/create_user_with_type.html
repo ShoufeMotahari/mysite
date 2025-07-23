@@ -1,0 +1,532 @@
+<!-- templates/admin/create_user_with_type.html -->
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">خانه</a>
+    &rsaquo; <a href="{% url 'admin:users_user_changelist' %}">کاربران</a>
+    &rsaquo; {{ title }}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="form-row">
+    <h1>{{ title }}</h1>
+
+    <form method="post" class="aligned">
+        {% csrf_token %}
+
+        <fieldset class="module aligned">
+            <h2>اطلاعات پایه</h2>
+
+            <div class="form-row field-username">
+                <div>
+                    <label for="id_username" class="required">نام کاربری:</label>
+                    <input type="text" name="username" id="id_username" maxlength="150">
+                    <p class="help">اختیاری - در صورت خالی بودن از ایمیل یا موبایل استفاده می‌شود</p>
+                </div>
+            </div>
+
+            <div class="form-row field-email">
+                <div>
+                    <label for="id_email">ایمیل:</label>
+                    <input type="email" name="email" id="id_email" maxlength="254">
+                </div>
+            </div>
+
+            <div class="form-row field-mobile">
+                <div>
+                    <label for="id_mobile">شماره موبایل:</label>
+                    <input type="text" name="mobile" id="id_mobile" maxlength="11" pattern="[0-9]{11}">
+                    <p class="help">11 رقم بدون صفر ابتدایی</p>
+                </div>
+            </div>
+
+            <div class="form-row field-password">
+                <div>
+                    <label for="id_password" class="required">رمز عبور:</label>
+                    <input type="password" name="password" id="id_password" required>
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset class="module aligned">
+            <h2>اطلاعات شخصی</h2>
+
+            <div class="form-row field-first_name">
+                <div>
+                    <label for="id_first_name">نام:</label>
+                    <input type="text" name="first_name" id="id_first_name" maxlength="150">
+                </div>
+            </div>
+
+            <div class="form-row field-last_name">
+                <div>
+                    <label for="id_last_name">نام خانوادگی:</label>
+                    <input type="text" name="last_name" id="id_last_name" maxlength="150">
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset class="module aligned">
+            <h2>نوع کاربری و دسترسی</h2>
+
+            <div class="form-row field-user_type">
+                <div>
+                    <label for="id_user_type">نوع کاربری:</label>
+                    <select name="user_type" id="id_user_type">
+                        <option value="">پیش‌فرض</option>
+                        {% for user_type in user_types %}
+                        <option value="{{ user_type.id }}" title="{{ user_type.description }}">
+                            {{ user_type.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <p class="help">نوع کاربری تعیین کننده سطح دسترسی کاربر است</p>
+
+                    <div id="user-type-info" style="margin-top: 10px; padding: 10px; background: #f9f9f9; border-radius: 4px; display: none;">
+                        <h4>مجوزهای این نوع کاربری:</h4>
+                        <ul id="permissions-list"></ul>
+                        <h4>محدودیت‌ها:</h4>
+                        <ul id="limits-list"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-row field-is_active">
+                <div>
+                    <label for="id_is_active">
+                        <input type="checkbox" name="is_active" id="id_is_active" checked>
+                        فعال
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-row field-is_staff">
+                <div>
+                    <label for="id_is_staff">
+                        <input type="checkbox" name="is_staff" id="id_is_staff">
+                        عضو کادر (دسترسی به پنل ادمین)
+                    </label>
+                    <p class="help">به طور خودکار بر اساس نوع کاربری تنظیم می‌شود</p>
+                </div>
+            </div>
+        </fieldset>
+
+        <div class="submit-row">
+            <input type="submit" value="ایجاد کاربر" class="default">
+            <a href="{% url 'admin:users_user_changelist' %}" class="button">انصراف</a>
+        </div>
+    </form>
+</div>
+
+<script>
+// User type information display
+const userTypeSelect = document.getElementById('id_user_type');
+const userTypeInfo = document.getElementById('user-type-info');
+const permissionsList = document.getElementById('permissions-list');
+const limitsList = document.getElementById('limits-list');
+const isStaffCheckbox = document.getElementById('id_is_staff');
+
+// User type data (this would normally come from the backend)
+const userTypeData = {
+    {% for user_type in user_types %}
+    '{{ user_type.id }}': {
+        name: '{{ user_type.name }}',
+        description: '{{ user_type.description }}',
+        permissions: {
+            can_create_content: {{ user_type.can_create_content|yesno:"true,false" }},
+            can_edit_content: {{ user_type.can_edit_content|yesno:"true,false" }},
+            can_delete_content: {{ user_type.can_delete_content|yesno:"true,false" }},
+            can_manage_users: {{ user_type.can_manage_users|yesno:"true,false" }},
+            can_view_analytics: {{ user_type.can_view_analytics|yesno:"true,false" }},
+            can_access_admin: {{ user_type.can_access_admin|yesno:"true,false" }}
+        },
+        limits: {
+            max_posts_per_day: {{ user_type.max_posts_per_day|default:"null" }},
+            max_comments_per_day: {{ user_type.max_comments_per_day|default:"null" }},
+            max_file_upload_size_mb: {{ user_type.max_file_upload_size_mb|default:"null" }}
+        }
+    },
+    {% endfor %}
+};
+
+userTypeSelect.addEventListener('change', function() {
+    const selectedTypeId = this.value;
+
+    if (selectedTypeId && userTypeData[selectedTypeId]) {
+        const typeData = userTypeData[selectedTypeId];
+
+        // Update permissions list
+        permissionsList.innerHTML = '';
+        const permissions = typeData.permissions;
+
+        if (permissions.can_create_content) permissionsList.innerHTML += '<li style="color: green;">✓ ایجاد محتوا</li>';
+        if (permissions.can_edit_content) permissionsList.innerHTML += '<li style="color: blue;">✓ ویرایش محتوا</li>';
+        if (permissions.can_delete_content) permissionsList.innerHTML += '<li style="color: red;">✓ حذف محتوا</li>';
+        if (permissions.can_manage_users) permissionsList.innerHTML += '<li style="color: purple;">✓ مدیریت کاربران</li>';
+        if (permissions.can_view_analytics) permissionsList.innerHTML += '<li style="color: orange;">✓ مشاهده آمار</li>';
+        if (permissions.can_access_admin) permissionsList.innerHTML += '<li style="color: darkred;">✓ دسترسی به پنل ادمین</li>';
+
+        if (permissionsList.innerHTML === '') {
+            permissionsList.innerHTML = '<li style="color: #888;">بدون مجوز خاص</li>';
+        }
+
+        // Update limits list
+        limitsList.innerHTML = '';
+        const limits = typeData.limits;
+
+        if (limits.max_posts_per_day) limitsList.innerHTML += `<li>حداکثر ${limits.max_posts_per_day} پست در روز</li>`;
+        if (limits.max_comments_per_day) limitsList.innerHTML += `<li>حداکثر ${limits.max_comments_per_day} نظر در روز</li>`;
+        if (limits.max_file_upload_size_mb) limitsList.innerHTML += `<li>حداکثر ${limits.max_file_upload_size_mb} مگابایت آپلود فایل</li>`;
+
+        if (limitsList.innerHTML === '') {
+            limitsList.innerHTML = '<li style="color: #888;">بدون محدودیت خاص</li>';
+        }
+
+        // Auto-set staff status
+        isStaffCheckbox.checked = permissions.can_access_admin;
+
+        userTypeInfo.style.display = 'block';
+    } else {
+        userTypeInfo.style.display = 'none';
+        isStaffCheckbox.checked = false;
+    }
+});
+
+// Form validation
+document.querySelector('form').addEventListener('submit', function(e) {
+    const username = document.getElementById('id_username').value;
+    const email = document.getElementById('id_email').value;
+    const mobile = document.getElementById('id_mobile').value;
+    const password = document.getElementById('id_password').value;
+
+    if (!username && !email && !mobile) {
+        e.preventDefault();
+        alert('حداقل یکی از فیلدهای نام کاربری، ایمیل یا موبایل باید پر شود.');
+        return false;
+    }
+
+    if (!password) {
+        e.preventDefault();
+        alert('رمز عبور الزامی است.');
+        return false;
+    }
+
+    if (mobile && (mobile.length !== 11 || !/^[0-9]+$/.test(mobile))) {
+        e.preventDefault();
+        alert('شماره موبایل باید دقیقاً 11 رقم باشد.');
+        return false;
+    }
+});
+</script>
+
+<style>
+.form-row {
+    margin-bottom: 15px;
+}
+
+.form-row label.required:after {
+    content: ' *';
+    color: red;
+}
+
+.help {
+    color: #666;
+    font-size: 12px;
+    margin: 5px 0 0 0;
+}
+
+#user-type-info h4 {
+    margin: 10px 0 5px 0;
+    color: #333;
+}
+
+#user-type-info ul {
+    margin: 5px 0 10px 20px;
+}
+
+#user-type-info ul li {
+    margin: 3px 0;
+}
+
+.submit-row {
+    padding: 15px 0;
+    border-top: 1px solid #ddd;
+    margin-top: 20px;
+}
+
+.submit-row input[type="submit"] {
+    margin-left: 10px;
+}
+
+.button {
+    display: inline-block;
+    padding: 8px 15px;
+    background: #6c757d;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+}
+
+.button:hover {
+    background: #5a6268;
+    color: white;
+}
+</style>
+{% endblock %}
+
+<!-- templates/admin/change_user_type.html -->
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">خانه</a>
+    &rsaquo; <a href="{% url 'admin:users_user_changelist' %}">کاربران</a>
+    &rsaquo; {{ title }}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="form-row">
+    <h1>{{ title }}</h1>
+
+    <div class="info-box" style="background: #e7f3ff; border: 1px solid #b3d7ff; padding: 15px; margin: 20px 0; border-radius: 4px;">
+        <h3>کاربران انتخاب شده: {{ total_users }} نفر</h3>
+        <div style="max-height: 200px; overflow-y: auto; margin-top: 10px;">
+            {% for user in users %}
+            <div style="margin: 5px 0; padding: 5px; background: white; border-radius: 3px;">
+                <strong>{{ user.get_display_name }}</strong>
+                {% if user.user_type %}
+                <span style="color: #666;">(نوع فعلی: {{ user.user_type.name }})</span>
+                {% else %}
+                <span style="color: #999;">(بدون نوع کاربری)</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <form method="post" class="aligned">
+        {% csrf_token %}
+
+        <fieldset class="module aligned">
+            <h2>انتخاب نوع کاربری جدید</h2>
+
+            <div class="form-row field-user_type">
+                <div>
+                    <label for="id_user_type" class="required">نوع کاربری جدید:</label>
+                    <select name="user_type" id="id_user_type" required>
+                        <option value="">انتخاب کنید...</option>
+                        {% for user_type in user_types %}
+                        <option value="{{ user_type.id }}" title="{{ user_type.description }}">
+                            {{ user_type.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <p class="help">نوع کاربری جدید برای تمام کاربران انتخاب شده اعمال خواهد شد</p>
+
+                    <div id="user-type-preview" style="margin-top: 15px; padding: 15px; background: #f9f9f9; border-radius: 4px; display: none;">
+                        <h4>مشخصات نوع کاربری انتخاب شده:</h4>
+                        <div id="type-description" style="margin: 10px 0; font-style: italic; color: #666;"></div>
+
+                        <div style="display: flex; gap: 30px; margin-top: 15px;">
+                            <div>
+                                <h5>مجوزها:</h5>
+                                <ul id="permissions-preview" style="margin: 5px 0 0 20px;"></ul>
+                            </div>
+                            <div>
+                                <h5>محدودیت‌ها:</h5>
+                                <ul id="limits-preview" style="margin: 5px 0 0 20px;"></ul>
+                            </div>
+                        </div>
+
+                        <div id="staff-status-warning" style="margin-top: 15px; padding: 10px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; display: none;">
+                            <strong>توجه:</strong> <span id="staff-warning-text"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </fieldset>
+
+        <div class="submit-row">
+            <input type="submit" value="تغییر نوع کاربری" class="default" id="submit-btn" disabled>
+            <a href="{% url 'admin:users_user_changelist' %}" class="button">انصراف</a>
+        </div>
+    </form>
+</div>
+
+<script>
+// User type data
+const userTypeData = {
+    {% for user_type in user_types %}
+    '{{ user_type.id }}': {
+        name: '{{ user_type.name }}',
+        description: '{{ user_type.description }}',
+        permissions: {
+            can_create_content: {{ user_type.can_create_content|yesno:"true,false" }},
+            can_edit_content: {{ user_type.can_edit_content|yesno:"true,false" }},
+            can_delete_content: {{ user_type.can_delete_content|yesno:"true,false" }},
+            can_manage_users: {{ user_type.can_manage_users|yesno:"true,false" }},
+            can_view_analytics: {{ user_type.can_view_analytics|yesno:"true,false" }},
+            can_access_admin: {{ user_type.can_access_admin|yesno:"true,false" }}
+        },
+        limits: {
+            max_posts_per_day: {{ user_type.max_posts_per_day|default:"null" }},
+            max_comments_per_day: {{ user_type.max_comments_per_day|default:"null" }},
+            max_file_upload_size_mb: {{ user_type.max_file_upload_size_mb|default:"null" }}
+        }
+    },
+    {% endfor %}
+};
+
+const userTypeSelect = document.getElementById('id_user_type');
+const userTypePreview = document.getElementById('user-type-preview');
+const typeDescription = document.getElementById('type-description');
+const permissionsPreview = document.getElementById('permissions-preview');
+const limitsPreview = document.getElementById('limits-preview');
+const staffWarning = document.getElementById('staff-status-warning');
+const staffWarningText = document.getElementById('staff-warning-text');
+const submitBtn = document.getElementById('submit-btn');
+
+userTypeSelect.addEventListener('change', function() {
+    const selectedTypeId = this.value;
+
+    if (selectedTypeId && userTypeData[selectedTypeId]) {
+        const typeData = userTypeData[selectedTypeId];
+
+        // Show description
+        typeDescription.textContent = typeData.description || 'توضیحی موجود نیست';
+
+        // Show permissions
+        permissionsPreview.innerHTML = '';
+        const permissions = typeData.permissions;
+
+        if (permissions.can_create_content) permissionsPreview.innerHTML += '<li style="color: green;">✓ ایجاد محتوا</li>';
+        if (permissions.can_edit_content) permissionsPreview.innerHTML += '<li style="color: blue;">✓ ویرایش محتوا</li>';
+        if (permissions.can_delete_content) permissionsPreview.innerHTML += '<li style="color: red;">✓ حذف محتوا</li>';
+        if (permissions.can_manage_users) permissionsPreview.innerHTML += '<li style="color: purple;">✓ مدیریت کاربران</li>';
+        if (permissions.can_view_analytics) permissionsPreview.innerHTML += '<li style="color: orange;">✓ مشاهده آمار</li>';
+        if (permissions.can_access_admin) permissionsPreview.innerHTML += '<li style="color: darkred;">✓ دسترسی به پنل ادمین</li>';
+
+        if (permissionsPreview.innerHTML === '') {
+            permissionsPreview.innerHTML = '<li style="color: #888;">بدون مجوز خاص</li>';
+        }
+
+        // Show limits
+        limitsPreview.innerHTML = '';
+        const limits = typeData.limits;
+
+        if (limits.max_posts_per_day) limitsPreview.innerHTML += `<li>حداکثر ${limits.max_posts_per_day} پست در روز</li>`;
+        if (limits.max_comments_per_day) limitsPreview.innerHTML += `<li>حداکثر ${limits.max_comments_per_day} نظر در روز</li>`;
+        if (limits.max_file_upload_size_mb) limitsPreview.innerHTML += `<li>حداکثر ${limits.max_file_upload_size_mb} مگابایت آپلود فایل</li>`;
+
+        if (limitsPreview.innerHTML === '') {
+            limitsPreview.innerHTML = '<li style="color: #888;">بدون محدودیت خاص</li>';
+        }
+
+        // Show staff status warning
+        if (permissions.can_access_admin) {
+            staffWarningText.textContent = 'کاربران انتخاب شده به طور خودکار عضو کادر (is_staff=True) خواهند شد.';
+            staffWarning.style.display = 'block';
+            staffWarning.style.background = '#d1ecf1';
+            staffWarning.style.borderColor = '#bee5eb';
+        } else {
+            // Check if any current users have admin access
+            const hasAdminUsers = {{ users|length }} > 0; // You'd need to pass this info from backend
+            if (hasAdminUsers) {
+                staffWarningText.textContent = 'کاربرانی که در حال حاضر عضو کادر هستند ممکن است از عضویت کادر خارج شوند.';
+                staffWarning.style.display = 'block';
+                staffWarning.style.background = '#f8d7da';
+                staffWarning.style.borderColor = '#f5c6cb';
+            } else {
+                staffWarning.style.display = 'none';
+            }
+        }
+
+        userTypePreview.style.display = 'block';
+        submitBtn.disabled = false;
+    } else {
+        userTypePreview.style.display = 'none';
+        submitBtn.disabled = true;
+    }
+});
+
+// Confirmation on submit
+document.querySelector('form').addEventListener('submit', function(e) {
+    const selectedType = userTypeSelect.options[userTypeSelect.selectedIndex].text;
+    const totalUsers = {{ total_users }};
+
+    if (!confirm(`آیا مطمئن هستید که می‌خواهید نوع کاربری ${totalUsers} کاربر را به "${selectedType}" تغییر دهید؟\n\nاین عمل قابل بازگشت نیست.`)) {
+        e.preventDefault();
+        return false;
+    }
+});
+</script>
+
+<style>
+.info-box h3 {
+    margin: 0 0 10px 0;
+    color: #0c5460;
+}
+
+.form-row label.required:after {
+    content: ' *';
+    color: red;
+}
+
+.help {
+    color: #666;
+    font-size: 12px;
+    margin: 5px 0 0 0;
+}
+
+#user-type-preview h4, #user-type-preview h5 {
+    margin: 10px 0 5px 0;
+    color: #333;
+}
+
+#user-type-preview ul {
+    margin: 5px 0 10px 20px;
+}
+
+#user-type-preview ul li {
+    margin: 3px 0;
+}
+
+.submit-row {
+    padding: 15px 0;
+    border-top: 1px solid #ddd;
+    margin-top: 20px;
+}
+
+.submit-row input[type="submit"] {
+    margin-left: 10px;
+}
+
+.submit-row input[type="submit"]:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.button {
+    display: inline-block;
+    padding: 8px 15px;
+    background: #6c757d;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+}
+
+.button:hover {
+    background: #5a6268;
+    color: white;
+}
+</style>
+{% endblock %}

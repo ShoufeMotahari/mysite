@@ -1,4 +1,4 @@
-# users/admin.py - Enhanced User Admin Panel
+# users/admin.py - Enhanced User Admin Panel with User Types
 from django.contrib import admin
 from django.shortcuts import render, redirect
 from django.contrib import messages
@@ -9,10 +9,11 @@ from django.urls import reverse
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Count, Q, Exists, OuterRef
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 import logging
 
 # Import models
-from users.models import User, Profile, PasswordEntry, Comment
+from users.models import User, Profile, PasswordEntry, Comment, UserType
 from emails.models import EmailTemplate
 
 # Import forms and services
@@ -27,6 +28,23 @@ from django_jalali.admin.filters import JDateFieldListFilter
 # Setup logging
 logger = logging.getLogger('core')
 password_logger = logging.getLogger(__name__)
+
+
+class UserTypeFilter(admin.SimpleListFilter):
+    """Filter users by user type"""
+    title = 'نوع کاربری'
+    parameter_name = 'user_type'
+
+    def lookups(self, request, model_admin):
+        user_types = UserType.objects.filter(is_active=True)
+        return [(ut.id, ut.name) for ut in user_types] + [('none', 'بدون نوع')]
+
+    def queryset(self, request, queryset):
+        if self.value() == 'none':
+            return queryset.filter(user_type__isnull=True)
+        elif self.value():
+            return queryset.filter(user_type_id=self.value())
+        return queryset
 
 
 class HasCommentsFilter(admin.SimpleListFilter):
@@ -102,11 +120,207 @@ class ProfileInline(admin.StackedInline):
     fields = ['image', 'created_jalali', 'updated_jalali']
 
 
-@admin.register(User)
-class UserAdmin(admin.ModelAdmin):
-    # List display with editable fields
+@admin.register(UserType)
+class UserTypeAdmin(admin.ModelAdmin):
+    """Admin for User Types"""
     list_display = [
-        'username', 'email', 'mobile', 'full_name_display',
+        'name', 'slug', 'permissions_summary', 'limits_summary',
+        'users_count', 'is_active', 'is_default', 'created_at'
+    ]
+    list_editable = ['is_active']
+    list_filter = ['is_active', 'is_default', 'can_access_admin', 'created_at']
+    search_fields = ['name', 'slug', 'description']
+    readonly_fields = ['created_at', 'updated_at']
+    prepopulated_fields = {'slug': ('name',)}
+
+    fieldsets = (
+        ('اطلاعات پایه', {
+            'fields': ('name', 'slug', 'description', 'is_active', 'is_default')
+        }),
+        ('مجوزهای محتوا', {
+            'fields': ('can_create_content', 'can_edit_content', 'can_delete_content')
+        }),
+        ('مجوزهای مدیریتی', {
+            'fields': ('can_manage_users', 'can_view_analytics', 'can_access_admin')
+        }),
+        ('محدودیت‌های محتوا', {
+            'fields': ('max_posts_per_day', 'max_comments_per_day', 'max_file_upload_size_mb')
+        }),
+        ('تاریخ‌ها', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        })
+    )
+
+    actions = ['activate_user_types', 'deactivate_user_types', 'create_predefined_types']
+
+    def get_queryset(self, request):
+        """Annotate with user count"""
+        return super().get_queryset(request).annotate(
+            users_count_num=Count('user')
+        )
+
+    def permissions_summary(self, obj):
+        """Show a summary of permissions"""
+        perms = []
+        if obj.can_create_content:
+            perms.append('<span style="color: green;">ایجاد</span>')
+        if obj.can_edit_content:
+            perms.append('<span style="color: blue;">ویرایش</span>')
+        if obj.can_delete_content:
+            perms.append('<span style="color: red;">حذف</span>')
+        if obj.can_manage_users:
+            perms.append('<span style="color: purple;">مدیریت کاربران</span>')
+        if obj.can_view_analytics:
+            perms.append('<span style="color: orange;">آمار</span>')
+        if obj.can_access_admin:
+            perms.append('<span style="color: darkred; font-weight: bold;">ادمین</span>')
+
+        return format_html(' | '.join(perms)) if perms else format_html('<em style="color: #888;">بدون مجوز</em>')
+
+    permissions_summary.short_description = 'مجوزها'
+
+    def limits_summary(self, obj):
+        """Show content limits summary"""
+        limits = []
+        if obj.max_posts_per_day:
+            limits.append(f'{obj.max_posts_per_day} پست/روز')
+        if obj.max_comments_per_day:
+            limits.append(f'{obj.max_comments_per_day} نظر/روز')
+        if obj.max_file_upload_size_mb:
+            limits.append(f'{obj.max_file_upload_size_mb}MB فایل')
+
+        return ', '.join(limits) if limits else 'بدون محدودیت'
+
+    limits_summary.short_description = 'محدودیت‌ها'
+
+    def users_count(self, obj):
+        """Show number of users with this type"""
+        count = getattr(obj, 'users_count_num', obj.user_set.count())
+        if count == 0:
+            return format_html('<span style="color: #888;">0</span>')
+        return format_html(f'<strong>{count}</strong>')
+
+    users_count.short_description = 'تعداد کاربران'
+
+    def activate_user_types(self, request, queryset):
+        """Activate selected user types"""
+        updated = queryset.update(is_active=True)
+        self.message_user(request, f'{updated} نوع کاربری فعال شد.', level=messages.SUCCESS)
+
+    activate_user_types.short_description = 'فعال کردن انواع کاربری انتخاب شده'
+
+    def deactivate_user_types(self, request, queryset):
+        """Deactivate selected user types"""
+        updated = queryset.update(is_active=False)
+        self.message_user(request, f'{updated} نوع کاربری غیرفعال شد.', level=messages.WARNING)
+
+    deactivate_user_types.short_description = 'غیرفعال کردن انواع کاربری انتخاب شده'
+
+    def create_predefined_types(self, request, queryset):
+        """Create predefined user types"""
+        predefined_types = [
+            {
+                'name': 'مدیر سیستم',
+                'slug': 'admin',
+                'description': 'دسترسی کامل به سیستم',
+                'can_create_content': True,
+                'can_edit_content': True,
+                'can_delete_content': True,
+                'can_manage_users': True,
+                'can_view_analytics': True,
+                'can_access_admin': True,
+                'max_file_upload_size_mb': 100,
+            },
+            {
+                'name': 'مدیر محتوا',
+                'slug': 'manager',
+                'description': 'مدیریت محتوا و کاربران',
+                'can_create_content': True,
+                'can_edit_content': True,
+                'can_delete_content': True,
+                'can_manage_users': True,
+                'can_view_analytics': True,
+                'can_access_admin': True,
+                'max_posts_per_day': 50,
+                'max_comments_per_day': 100,
+                'max_file_upload_size_mb': 50,
+            },
+            {
+                'name': 'ویرایشگر',
+                'slug': 'editor',
+                'description': 'ویرایش و مدیریت محتوا',
+                'can_create_content': True,
+                'can_edit_content': True,
+                'can_delete_content': False,
+                'can_manage_users': False,
+                'can_view_analytics': True,
+                'can_access_admin': True,
+                'max_posts_per_day': 30,
+                'max_comments_per_day': 50,
+                'max_file_upload_size_mb': 25,
+            },
+            {
+                'name': 'نویسنده',
+                'slug': 'author',
+                'description': 'ایجاد و ویرایش محتوای شخصی',
+                'can_create_content': True,
+                'can_edit_content': True,
+                'can_delete_content': False,
+                'can_manage_users': False,
+                'can_view_analytics': False,
+                'can_access_admin': False,
+                'max_posts_per_day': 10,
+                'max_comments_per_day': 30,
+                'max_file_upload_size_mb': 15,
+            },
+            {
+                'name': 'مشترک',
+                'slug': 'subscriber',
+                'description': 'کاربر عادی سیستم',
+                'can_create_content': False,
+                'can_edit_content': False,
+                'can_delete_content': False,
+                'can_manage_users': False,
+                'can_view_analytics': False,
+                'can_access_admin': False,
+                'max_posts_per_day': 0,
+                'max_comments_per_day': 10,
+                'max_file_upload_size_mb': 5,
+                'is_default': True,
+            }
+        ]
+
+        created_count = 0
+        for type_data in predefined_types:
+            user_type, created = UserType.objects.get_or_create(
+                slug=type_data['slug'],
+                defaults=type_data
+            )
+            if created:
+                created_count += 1
+
+        if created_count > 0:
+            self.message_user(
+                request,
+                f'{created_count} نوع کاربری پیش‌فرض ایجاد شد.',
+                level=messages.SUCCESS
+            )
+        else:
+            self.message_user(
+                request,
+                'تمام انواع کاربری پیش‌فرض از قبل وجود دارند.',
+                level=messages.INFO
+            )
+
+    create_predefined_types.short_description = 'ایجاد انواع کاربری پیش‌فرض'
+
+
+@admin.register(User)
+class UserAdmin(BaseUserAdmin):
+    # List display with user types
+    list_display = [
+        'username', 'email', 'mobile', 'full_name_display', 'user_type_display',
         'is_active', 'is_staff', 'email_status', 'phone_status',
         'comments_count', 'last_login', 'created_at'
     ]
@@ -114,11 +328,12 @@ class UserAdmin(admin.ModelAdmin):
     # Enable editing in the list view
     list_editable = ['is_active', 'is_staff']
 
-    # Comprehensive filters
+    # Comprehensive filters including user type
     list_filter = [
         'is_active',
         'is_staff',
         'is_superuser',
+        UserTypeFilter,
         'is_phone_verified',
         'is_email_verified',
         HasCommentsFilter,
@@ -130,11 +345,15 @@ class UserAdmin(admin.ModelAdmin):
     # Comprehensive search fields
     search_fields = [
         'username', 'email', 'mobile', 'first_name', 'last_name',
-        'slug', 'comments__content'
+        'slug', 'comments__content', 'user_type__name'
     ]
 
-    # Actions
-    actions = ['send_email_action', 'activate_users', 'deactivate_users', 'verify_emails', 'verify_phones']
+    # Enhanced actions
+    actions = [
+        'send_email_action', 'activate_users', 'deactivate_users',
+        'verify_emails', 'verify_phones', 'change_user_type_action',
+        'promote_to_staff', 'demote_from_staff'
+    ]
 
     # Pagination
     list_per_page = 50
@@ -146,23 +365,28 @@ class UserAdmin(admin.ModelAdmin):
     # Add inlines
     inlines = [ProfileInline, CommentInline]
 
-    # Fieldsets for better organization in detail view
+    # Enhanced fieldsets for better organization
     fieldsets = (
         ('اطلاعات کاربری', {
             'fields': ('username', 'email', 'mobile', 'slug')
         }),
         ('اطلاعات شخصی', {
-            'fields': ('first_name', 'last_name')
+            'fields': ('first_name', 'last_name', 'bio', 'birth_date')
         }),
-        ('رمز عبور', {
-            'fields': ('password', 'second_password'),
-            'classes': ('collapse',)
-        }),
-        ('مجوزها و وضعیت', {
-            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')
+        ('نوع کاربری و دسترسی', {
+            'fields': ('user_type', 'is_active', 'is_staff', 'is_superuser'),
+            'description': 'نوع کاربری تعیین کننده سطح دسترسی کاربر است'
         }),
         ('وضعیت تایید', {
             'fields': ('is_phone_verified', 'is_email_verified')
+        }),
+        ('مجوزها', {
+            'fields': ('groups', 'user_permissions'),
+            'classes': ('collapse',)
+        }),
+        ('آمار فعالیت', {
+            'fields': ('posts_count', 'comments_count', 'last_activity'),
+            'classes': ('collapse',)
         }),
         ('تاریخ‌ها', {
             'fields': ('last_login', 'date_joined', 'created_at'),
@@ -170,7 +394,7 @@ class UserAdmin(admin.ModelAdmin):
         }),
     )
 
-    readonly_fields = ['created_at', 'date_joined', 'last_login']
+    readonly_fields = ['created_at', 'date_joined', 'last_login', 'last_activity', 'posts_count', 'comments_count']
 
     # Optimize queries
     def get_queryset(self, request):
@@ -181,7 +405,7 @@ class UserAdmin(admin.ModelAdmin):
             approved_comments_count=Count('comments', filter=Q(comments__is_approved=True))
         )
         # Select related for efficiency
-        queryset = queryset.select_related('profile')
+        queryset = queryset.select_related('profile', 'user_type')
         return queryset
 
     # Custom display methods
@@ -193,6 +417,32 @@ class UserAdmin(admin.ModelAdmin):
         return format_html('<em style="color: #888;">بدون نام</em>')
 
     full_name_display.short_description = 'نام کامل'
+
+    def user_type_display(self, obj):
+        """Display user type with color coding"""
+        if not obj.user_type:
+            return format_html('<em style="color: #888;">نامشخص</em>')
+
+        # Color code based on permissions
+        if obj.user_type.can_access_admin:
+            color = 'darkred'
+            weight = 'bold'
+        elif obj.user_type.can_manage_users:
+            color = 'purple'
+            weight = 'bold'
+        elif obj.user_type.can_create_content:
+            color = 'green'
+            weight = 'normal'
+        else:
+            color = 'blue'
+            weight = 'normal'
+
+        return format_html(
+            '<span style="color: {}; font-weight: {};">{}</span>',
+            color, weight, obj.user_type.name
+        )
+
+    user_type_display.short_description = 'نوع کاربری'
 
     def email_status(self, obj):
         """Display email validation status with colors"""
@@ -276,7 +526,7 @@ class UserAdmin(admin.ModelAdmin):
         """Deactivate selected users"""
         updated = queryset.update(is_active=False)
         logger.info(f"👨‍💼 Admin {request.user.username} deactivated {updated} users")
-        self.message_user(request, f'{updated} کاربر غیرفعال شد.', level=messages.SUCCESS)
+        self.message_user(request, f'{updated} کاربر غیرفعال شد.', level=messages.WARNING)
 
     deactivate_users.short_description = 'غیرفعال کردن کاربران انتخاب شده'
 
@@ -296,20 +546,213 @@ class UserAdmin(admin.ModelAdmin):
 
     verify_phones.short_description = 'تایید شماره تلفن کاربران انتخاب شده'
 
+    def change_user_type_action(self, request, queryset):
+        """Change user type for selected users"""
+        selected = queryset.values_list('id', flat=True)
+        request.session['selected_users_for_type_change'] = list(selected)
+        return HttpResponseRedirect(reverse('admin:change_user_type'))
+
+    change_user_type_action.short_description = 'تغییر نوع کاربری کاربران انتخاب شده'
+
+    def promote_to_staff(self, request, queryset):
+        """Promote users to staff status"""
+        updated = queryset.update(is_staff=True)
+        logger.info(f"👨‍💼 Admin {request.user.username} promoted {updated} users to staff")
+        self.message_user(request, f'{updated} کاربر به عضو کادر ارتقا یافت.', level=messages.SUCCESS)
+
+    promote_to_staff.short_description = 'ارتقا به عضو کادر'
+
+    def demote_from_staff(self, request, queryset):
+        """Demote users from staff status"""
+        updated = queryset.update(is_staff=False)
+        logger.info(f"👨‍💼 Admin {request.user.username} demoted {updated} users from staff")
+        self.message_user(request, f'{updated} کاربر از عضویت کادر خارج شد.', level=messages.WARNING)
+
+    demote_from_staff.short_description = 'خروج از عضویت کادر'
+
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
             path('send-email/', self.send_email_view, name='send_email'),
             path('send-email-all/', self.send_email_all_view, name='send_email_all'),
+            path('change-user-type/', self.change_user_type_view, name='change_user_type'),
+            path('create-user-with-type/', self.create_user_with_type_view, name='create_user_with_type'),
         ]
         return custom_urls + urls
 
     def changelist_view(self, request, extra_context=None):
-        """Override changelist view to add 'Send Email to All Users' button"""
+        """Override changelist view to add custom buttons"""
         extra_context = extra_context or {}
         extra_context['show_send_all_email_button'] = True
+        extra_context['show_create_user_with_type_button'] = True
+        extra_context['user_types'] = UserType.objects.filter(is_active=True)
         return super().changelist_view(request, extra_context=extra_context)
 
+    def create_user_with_type_view(self, request):
+        """Create user with specific type"""
+        if request.method == 'POST':
+            return self._handle_create_user_post(request)
+        else:
+            return self._handle_create_user_get(request)
+
+    def _handle_create_user_get(self, request):
+        """Handle GET request for create user form"""
+        user_types = UserType.objects.filter(is_active=True)
+        context = {
+            'title': 'ایجاد کاربر با نوع مشخص',
+            'user_types': user_types,
+        }
+        return render(request, 'admin/create_user_with_type.html', context)
+
+    def _handle_create_user_post(self, request):
+        """Handle POST request for create user"""
+        try:
+            # Get form data
+            username = request.POST.get('username')
+            email = request.POST.get('email')
+            mobile = request.POST.get('mobile')
+            first_name = request.POST.get('first_name', '')
+            last_name = request.POST.get('last_name', '')
+            user_type_id = request.POST.get('user_type')
+            password = request.POST.get('password')
+            is_active = request.POST.get('is_active') == 'on'
+            is_staff = request.POST.get('is_staff') == 'on'
+
+            # Validation
+            if not any([username, email, mobile]):
+                messages.error(request, 'حداقل یکی از فیلدهای نام کاربری، ایمیل یا موبایل باید پر شود.')
+                return self._handle_create_user_get(request)
+
+            if not password:
+                messages.error(request, 'رمز عبور الزامی است.')
+                return self._handle_create_user_get(request)
+
+            # Get user type
+            user_type = None
+            if user_type_id:
+                try:
+                    user_type = UserType.objects.get(id=user_type_id, is_active=True)
+                except UserType.DoesNotExist:
+                    messages.error(request, 'نوع کاربری انتخاب شده معتبر نیست.')
+                    return self._handle_create_user_get(request)
+
+            # Create user
+            user = User.objects.create_user(
+                username=username or None,
+                email=email or None,
+                password=password,
+                first_name=first_name,
+                last_name=last_name,
+                is_active=is_active,
+                is_staff=is_staff,
+            )
+
+            # Set additional fields
+            if mobile:
+                user.mobile = mobile
+            if user_type:
+                user.user_type = user_type
+
+            user.save()
+
+            # Create profile
+            Profile.objects.get_or_create(user=user)
+
+            logger.info(
+                f"👨‍💼 Admin {request.user.username} created user: {user.get_display_name()} with type: {user_type.name if user_type else 'None'}")
+
+            messages.success(
+                request,
+                f'کاربر {user.get_display_name()} با نوع کاربری "{user_type.name if user_type else "پیش‌فرض"}" ایجاد شد.'
+            )
+            return redirect('admin:users_user_changelist')
+
+        except Exception as e:
+            logger.error(f"❌ Error creating user by admin {request.user.username}: {str(e)}")
+            messages.error(request, f'خطا در ایجاد کاربر: {str(e)}')
+            return self._handle_create_user_get(request)
+
+    def change_user_type_view(self, request):
+        """Change user type for selected users"""
+        if request.method == 'POST':
+            return self._handle_change_type_post(request)
+        else:
+            return self._handle_change_type_get(request)
+
+    def _handle_change_type_get(self, request):
+        """Handle GET request for change type form"""
+        selected_users = request.session.get('selected_users_for_type_change', [])
+        if not selected_users:
+            messages.error(request, 'هیچ کاربری انتخاب نشده است.')
+            return redirect('admin:users_user_changelist')
+
+        users = User.objects.filter(id__in=selected_users)
+        user_types = UserType.objects.filter(is_active=True)
+
+        context = {
+            'title': 'تغییر نوع کاربری',
+            'users': users,
+            'user_types': user_types,
+            'total_users': len(users),
+        }
+        return render(request, 'admin/change_user_type.html', context)
+
+    def _handle_change_type_post(self, request):
+        """Handle POST request for change type"""
+        try:
+            selected_users = request.session.get('selected_users_for_type_change', [])
+            new_type_id = request.POST.get('user_type')
+
+            if not selected_users:
+                messages.error(request, 'هیچ کاربری انتخاب نشده است.')
+                return redirect('admin:users_user_changelist')
+
+            # Get new user type
+            new_type = None
+            if new_type_id:
+                try:
+                    new_type = UserType.objects.get(id=new_type_id, is_active=True)
+                except UserType.DoesNotExist:
+                    messages.error(request, 'نوع کاربری انتخاب شده معتبر نیست.')
+                    return self._handle_change_type_get(request)
+
+            # Update users
+            users = User.objects.filter(id__in=selected_users)
+            updated_count = 0
+
+            for user in users:
+                old_type = user.user_type
+                user.user_type = new_type
+
+                # Auto-update staff status based on new type
+                if new_type and new_type.can_access_admin:
+                    user.is_staff = True
+                elif old_type and old_type.can_access_admin and new_type and not new_type.can_access_admin:
+                    user.is_staff = False
+
+                user.save()
+                updated_count += 1
+
+                logger.info(
+                    f"👨‍💼 Admin {request.user.username} changed user type for {user.get_display_name()} from {old_type.name if old_type else 'None'} to {new_type.name if new_type else 'None'}")
+
+            # Clear session
+            if 'selected_users_for_type_change' in request.session:
+                del request.session['selected_users_for_type_change']
+
+            type_name = new_type.name if new_type else 'پیش‌فرض'
+            messages.success(
+                request,
+                f'نوع کاربری {updated_count} کاربر به "{type_name}" تغییر کرد.'
+            )
+            return redirect('admin:users_user_changelist')
+
+        except Exception as e:
+            logger.error(f"❌ Error changing user types by admin {request.user.username}: {str(e)}")
+            messages.error(request, f'خطا در تغییر نوع کاربری: {str(e)}')
+            return self._handle_change_type_get(request)
+
+    # Keep existing email methods from original admin
     def send_email_all_view(self, request):
         """Send email to all users view"""
         logger.info(f"👨‍💼 Admin {request.user.username} accessing send email to all users")
