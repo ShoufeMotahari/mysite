@@ -13,6 +13,11 @@ from django.core.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
 
+from django.db import models
+from django.conf import settings
+from django.utils import timezone
+import django_jalali.db.models as jmodels
+
 
 class UserType(models.Model):
     """Model for different user types/roles"""
@@ -122,7 +127,7 @@ class User(AbstractUser):
     """Enhanced User model with user types"""
 
     mobile = models.CharField(max_length=11, unique=True, null=True, blank=True)
-    email = models.EmailField(max_length=254, unique=True, null=True, blank=True)
+    email = models.EmailField(max_length=254, unique=False, null=True, blank=True)
     username = models.CharField(max_length=150, unique=True, null=True, blank=True)
     slug = models.SlugField(unique=True, blank=True, max_length=255)
 
@@ -418,3 +423,187 @@ class PasswordEntry(models.Model):
         except Exception as e:
             logger.error(f"Password decryption failed - Service: {self.service_name}, Error: {str(e)}")
             raise ValidationError("Error decrypting password")
+
+
+class AdminMessage(models.Model):
+    """Model for messages sent by message admins to superuser admins"""
+
+    STATUS_CHOICES = [
+        ('unread', 'خوانده نشده'),
+        ('read', 'خوانده شده'),
+        ('archived', 'آرشیو شده'),
+    ]
+
+    PRIORITY_CHOICES = [
+        ('low', 'کم'),
+        ('normal', 'عادی'),
+        ('high', 'بالا'),
+        ('urgent', 'فوری'),
+    ]
+
+    sender = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='sent_admin_messages',
+        verbose_name='فرستنده'
+    )
+
+    subject = models.CharField(
+        max_length=200,
+        verbose_name='موضوع',
+        help_text='موضوع پیام'
+    )
+
+    message = models.TextField(
+        verbose_name='متن پیام',
+        help_text='متن کامل پیام'
+    )
+
+    priority = models.CharField(
+        max_length=10,
+        choices=PRIORITY_CHOICES,
+        default='normal',
+        verbose_name='اولویت'
+    )
+
+    status = models.CharField(
+        max_length=10,
+        choices=STATUS_CHOICES,
+        default='unread',
+        verbose_name='وضعیت'
+    )
+
+    # Timestamps
+    created_at = jmodels.jDateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
+    read_at = models.DateTimeField(null=True, blank=True, verbose_name='تاریخ خواندن')
+    updated_at = jmodels.jDateTimeField(auto_now=True, verbose_name='تاریخ بروزرسانی')
+
+    # Tracking fields
+    read_by = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        through='AdminMessageReadStatus',
+        related_name='read_admin_messages',
+        blank=True,
+        verbose_name='خوانده شده توسط'
+    )
+
+    class Meta:
+        verbose_name = 'پیام ادمین'
+        verbose_name_plural = 'پیام‌های ادمین'
+        ordering = ['-created_at', '-priority']
+        indexes = [
+            models.Index(fields=['status', 'created_at']),
+            models.Index(fields=['sender', 'created_at']),
+            models.Index(fields=['priority', 'status']),
+        ]
+
+    def __str__(self):
+        return f'{self.sender.get_display_name()} - {self.subject}'
+
+    def mark_as_read(self, user):
+        """Mark message as read by a specific user"""
+        read_status, created = AdminMessageReadStatus.objects.get_or_create(
+            message=self,
+            user=user,
+            defaults={'read_at': timezone.now()}
+        )
+        if not created and not read_status.read_at:
+            read_status.read_at = timezone.now()
+            read_status.save()
+
+        # Update overall status if this is the first read
+        if self.status == 'unread':
+            self.status = 'read'
+            self.read_at = timezone.now()
+            self.save(update_fields=['status', 'read_at'])
+
+    def get_priority_color(self):
+        """Get CSS color class for priority"""
+        colors = {
+            'low': 'text-muted',
+            'normal': 'text-info',
+            'high': 'text-warning',
+            'urgent': 'text-danger'
+        }
+        return colors.get(self.priority, 'text-info')
+
+    def get_priority_icon(self):
+        """Get icon for priority"""
+        icons = {
+            'low': '⬇️',
+            'normal': '➡️',
+            'high': '⬆️',
+            'urgent': '🚨'
+        }
+        return icons.get(self.priority, '➡️')
+
+    @classmethod
+    def get_unread_count(cls):
+        """Get count of unread messages"""
+        return cls.objects.filter(status='unread').count()
+
+    @classmethod
+    def get_recent_messages(cls, limit=5):
+        """Get recent messages for notification"""
+        return cls.objects.filter(status='unread').order_by('-created_at')[:limit]
+
+
+class AdminMessageReadStatus(models.Model):
+    """Track which superuser admins have read which messages"""
+
+    message = models.ForeignKey(
+        AdminMessage,
+        on_delete=models.CASCADE,
+        verbose_name='پیام'
+    )
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        verbose_name='کاربر'
+    )
+
+    read_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='تاریخ خواندن'
+    )
+
+    class Meta:
+        unique_together = ['message', 'user']
+        verbose_name = 'وضعیت خواندن پیام'
+        verbose_name_plural = 'وضعیت‌های خواندن پیام'
+
+    def __str__(self):
+        return f'{self.user.get_display_name()} - {self.message.subject}'
+
+
+class AdminMessageReply(models.Model):
+    """Model for replies to admin messages"""
+
+    original_message = models.ForeignKey(
+        AdminMessage,
+        on_delete=models.CASCADE,
+        related_name='replies',
+        verbose_name='پیام اصلی'
+    )
+
+    sender = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='admin_message_replies',
+        verbose_name='فرستنده پاسخ'
+    )
+
+    reply_text = models.TextField(
+        verbose_name='متن پاسخ'
+    )
+
+    created_at = jmodels.jDateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
+
+    class Meta:
+        verbose_name = 'پاسخ پیام ادمین'
+        verbose_name_plural = 'پاسخ‌های پیام ادمین'
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f'پاسخ به: {self.original_message.subject}'

@@ -71,7 +71,7 @@ def forgot_password_view(request):
 
                 request.session['reset_user_id'] = user.id
                 messages.success(request, "کد بازیابی به شماره موبایل و ایمیل شما ارسال شد.")
-                return redirect('reset-password')
+                return redirect('users:reset-password')
 
             except User.DoesNotExist:
                 form.add_error('identifier', 'کاربری با این مشخصات یافت نشد.')
@@ -85,7 +85,7 @@ def reset_password_view(request):
     """New view for resetting password with SMS code"""
     user_id = request.session.get('reset_user_id')
     if not user_id:
-        return redirect('forgot-password')
+        return redirect('users:forgot-password')
 
     if request.method == 'POST':
         code = request.POST.get('code')
@@ -119,7 +119,7 @@ def reset_password_view(request):
                 request.session.pop('reset_user_id', None)
 
                 messages.success(request, "رمز عبور شما با موفقیت تغییر یافت.")
-                return redirect('login')
+                return redirect('users:login')
             else:
                 messages.error(request, "کد وارد شده اشتباه یا منقضی شده است.")
         except (User.DoesNotExist, RegisterToken.DoesNotExist):
@@ -133,7 +133,7 @@ def reset_password_email_view(request):
     token = request.GET.get('token')
     if not token:
         messages.error(request, "توکن وجود ندارد.")
-        return redirect('login')
+        return redirect('users:login')
 
     try:
         # Updated to use VerificationToken instead of RegisterToken
@@ -145,7 +145,7 @@ def reset_password_email_view(request):
 
         if not verification_token.is_valid():
             messages.error(request, "توکن منقضی شده است.")
-            return redirect('forgot-password')
+            return redirect('users:forgot-password')
 
         user = verification_token.user
 
@@ -162,13 +162,13 @@ def reset_password_email_view(request):
             verification_token.mark_as_used()
 
             messages.success(request, "رمز عبور شما با موفقیت تغییر یافت.")
-            return redirect('login')
+            return redirect('users:login')
 
         return render(request, 'users/reset_password_email.html', {'token': token})
 
     except VerificationToken.DoesNotExist:
         messages.error(request, "توکن معتبر نیست.")
-        return redirect('forgot-password')
+        return redirect('users:forgot-password')
 
 
 @login_required
@@ -195,7 +195,7 @@ def add_password(request):
                 messages.success(request, 'Password added successfully!')
                 logger.info(
                     f"Password entry added successfully - User: {request.user.username}, Service: {password_entry.service_name}, ID: {password_entry.pk}")
-                return redirect('dashboard')
+                return redirect('users:dashboard')
 
             except IntegrityError:
                 logger.warning(
@@ -235,12 +235,12 @@ def view_password(request, password_id):
         logger.warning(
             f"Password not found or access denied - User: {request.user.username}, Password ID: {password_id}")
         messages.error(request, 'Password not found or access denied.')
-        return redirect('dashboard')
+        return redirect('users:dashboard')
     except Exception as e:
         logger.error(
             f"View password error - User: {request.user.username}, Password ID: {password_id}, Error: {str(e)}")
         messages.error(request, 'An error occurred while retrieving the password.')
-        return redirect('dashboard')
+        return redirect('users:dashboard')
 
 
 @login_required
@@ -273,7 +273,7 @@ def edit_password(request, password_id):
                 messages.success(request, 'Password updated successfully!')
                 logger.info(
                     f"Password entry updated successfully - User: {request.user.username}, Service: {password_entry.service_name}, ID: {password_id}")
-                return redirect('dashboard')
+                return redirect('users:dashboard')
 
             except Exception as e:
                 logger.error(
@@ -304,7 +304,7 @@ def delete_password(request, password_id):
     except Http404:
         logger.warning(f"Password not found for deletion - User: {request.user.username}, Password ID: {password_id}")
         messages.error(request, 'Password not found or access denied.')
-        return redirect('dashboard')
+        return redirect('users:dashboard')
 
     if request.method == 'POST':
         try:
@@ -317,7 +317,7 @@ def delete_password(request, password_id):
             messages.success(request, 'Password deleted successfully!')
             logger.info(
                 f"Password entry deleted successfully - User: {request.user.username}, Service: {service_name}, ID: {password_id}")
-            return redirect('dashboard')
+            return redirect('users:dashboard')
 
         except Exception as e:
             logger.error(

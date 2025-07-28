@@ -1,0 +1,480 @@
+<!-- messaging/templates/messaging/message_detail.html -->
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <a href="{% url 'messaging:message_admin_dashboard' %}">پنل پیام‌رسانی ادمین</a>
+</h1>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}
+
+{% block nav-sidebar %}
+<!-- Sidebar Navigation -->
+<nav class="main-sidebar" style="background: #417690; padding: 20px; width: 250px; height: 100vh; position: fixed; right: 0; top: 0; direction: rtl;">
+    <div class="sidebar-header" style="text-align: center; margin-bottom: 30px;">
+        <h3 style="color: white; margin: 0;">پنل پیام‌رسانی</h3>
+        <small style="color: #b8d4e3;">{{ user.get_display_name }}</small>
+    </div>
+
+    <ul class="sidebar-menu" style="list-style: none; padding: 0; margin: 0;">
+        <li style="margin-bottom: 10px;">
+            <a href="{% url 'messaging:message_admin_dashboard' %}"
+               style="display: block; color: white; text-decoration: none; padding: 12px 15px; border-radius: 5px; background: transparent;">
+                <i class="fas fa-dashboard" style="margin-left: 10px;"></i>
+                داشبورد
+            </a>
+        </li>
+        <li style="margin-bottom: 10px;">
+            <a href="{% url 'messaging:send_message' %}"
+               style="display: block; color: white; text-decoration: none; padding: 12px 15px; border-radius: 5px; background: transparent;">
+                <i class="fas fa-paper-plane" style="margin-left: 10px;"></i>
+                ارسال پیام جدید
+            </a>
+        </li>
+        <li style="margin-bottom: 10px;">
+            <a href="{% url 'messaging:my_messages' %}"
+               style="display: block; color: white; text-decoration: none; padding: 12px 15px; border-radius: 5px; background: transparent;">
+                <i class="fas fa-envelope" style="margin-left: 10px;"></i>
+                پیام‌های ارسالی
+            </a>
+        </li>
+        <li style="margin-top: 30px; border-top: 1px solid #5a82a8; padding-top: 20px;">
+            <a href="{% url 'logout' %}"
+               style="display: block; color: #ff6b6b; text-decoration: none; padding: 12px 15px; border-radius: 5px;">
+                <i class="fas fa-sign-out-alt" style="margin-left: 10px;"></i>
+                خروج
+            </a>
+        </li>
+    </ul>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="main-content" style="margin-right: 250px; padding: 20px; direction: rtl;">
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb" style="margin-bottom: 20px;">
+        <a href="{% url 'messaging:message_admin_dashboard' %}" style="color: #007bff; text-decoration: none;">داشبورد</a>
+        <span style="margin: 0 10px; color: #6c757d;">></span>
+        <a href="{% url 'messaging:my_messages' %}" style="color: #007bff; text-decoration: none;">پیام‌های ارسالی</a>
+        <span style="margin: 0 10px; color: #6c757d;">></span>
+        <span style="color: #6c757d;">جزئیات پیام</span>
+    </nav>
+
+    <div class="content-header" style="margin-bottom: 30px;">
+        <h1 style="color: #333; margin: 0 0 10px 0; display: flex; align-items: center;">
+            <i class="fas fa-eye" style="margin-left: 15px; color: #007bff;"></i>
+            جزئیات پیام
+        </h1>
+        <p style="color: #666; margin: 0;">مشاهده جزئیات کامل پیام و پاسخ‌های دریافتی</p>
+    </div>
+
+    <!-- Message Details -->
+    <div class="message-container" style="background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden; margin-bottom: 30px;">
+        <!-- Message Header -->
+        <div class="message-header" style="padding: 25px 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+            <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 15px;">
+                <div style="flex: 1; min-width: 300px;">
+                    <h2 style="margin: 0 0 15px 0; font-size: 1.8rem; font-weight: bold;">
+                        {{ message.subject }}
+                    </h2>
+
+                    <div class="message-meta" style="display: flex; flex-wrap: wrap; gap: 20px; align-items: center; opacity: 0.9;">
+                        <span style="display: flex; align-items: center;">
+                            <i class="fas fa-user" style="margin-left: 8px;"></i>
+                            فرستنده: {{ message.sender.get_display_name }}
+                        </span>
+                        <span style="display: flex; align-items: center;">
+                            <i class="fas fa-calendar" style="margin-left: 8px;"></i>
+                            {{ message.created_at|date:"Y/m/d H:i" }}
+                        </span>
+                        <span style="display: flex; align-items: center;">
+                            <i class="fas fa-clock" style="margin-left: 8px;"></i>
+                            {{ message.created_at|timesince }} پیش
+                        </span>
+                    </div>
+                </div>
+
+                <div class="message-badges" style="display: flex; flex-direction: column; gap: 10px; align-items: flex-end;">
+                    <!-- Priority Badge -->
+                    <span class="priority-badge" style="padding: 8px 15px; border-radius: 20px; font-size: 14px; font-weight: bold; background: rgba(255,255,255,0.2); backdrop-filter: blur(10px);">
+                        {{ message.get_priority_icon }} {{ message.get_priority_display }}
+                    </span>
+
+                    <!-- Status Badge -->
+                    <span class="status-badge" style="padding: 8px 15px; border-radius: 20px; font-size: 14px; font-weight: bold;
+                          {% if message.status == 'unread' %}background: rgba(220, 53, 69, 0.9);
+                          {% elif message.status == 'read' %}background: rgba(40, 167, 69, 0.9);
+                          {% else %}background: rgba(108, 117, 125, 0.9);{% endif %}">
+                        {% if message.status == 'unread' %}
+                            <i class="fas fa-envelope" style="margin-left: 5px;"></i>
+                        {% elif message.status == 'read' %}
+                            <i class="fas fa-envelope-open" style="margin-left: 5px;"></i>
+                        {% else %}
+                            <i class="fas fa-archive" style="margin-left: 5px;"></i>
+                        {% endif %}
+                        {{ message.get_status_display }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Message Body -->
+        <div class="message-body" style="padding: 30px;">
+            <div class="message-content" style="background: #f8f9fa; border-radius: 8px; padding: 25px; border-right: 4px solid #007bff; margin-bottom: 25px;">
+                <h4 style="color: #333; margin: 0 0 15px 0; display: flex; align-items: center;">
+                    <i class="fas fa-comment-alt" style="margin-left: 10px; color: #007bff;"></i>
+                    متن پیام
+                </h4>
+                <div style="line-height: 1.8; color: #555; white-space: pre-wrap; font-size: 15px;">{{ message.message }}</div>
+            </div>
+
+            <!-- Message Statistics -->
+            <div class="message-stats" style="display: flex; gap: 20px; margin-bottom: 25px; flex-wrap: wrap;">
+                <div class="stat-item" style="flex: 1; min-width: 150px; background: #e3f2fd; padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: #1976d2; margin-bottom: 5px;">
+                        {{ message.read_by.count }}
+                    </div>
+                    <div style="color: #666; font-size: 14px;">خوانده شده توسط</div>
+                </div>
+
+                <div class="stat-item" style="flex: 1; min-width: 150px; background: #e8f5e8; padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: #388e3c; margin-bottom: 5px;">
+                        {{ replies.count }}
+                    </div>
+                    <div style="color: #666; font-size: 14px;">پاسخ دریافتی</div>
+                </div>
+
+                {% if message.read_at %}
+                <div class="stat-item" style="flex: 1; min-width: 150px; background: #fff3e0; padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 16px; font-weight: bold; color: #f57c00; margin-bottom: 5px;">
+                        {{ message.read_at|timesince }}
+                    </div>
+                    <div style="color: #666; font-size: 14px;">زمان اولین خواندن</div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Read Status Details -->
+            {% if message.read_by.exists %}
+            <div class="read-status" style="background: #f1f8ff; border: 1px solid #b3d9ff; border-radius: 8px; padding: 20px; margin-bottom: 25px;">
+                <h5 style="color: #333; margin: 0 0 15px 0; display: flex; align-items: center;">
+                    <i class="fas fa-users" style="margin-left: 10px; color: #007bff;"></i>
+                    خوانده شده توسط مدیران
+                </h5>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                    {% for read_status in message.adminmessagereadstatus_set.all %}
+                    <div class="reader-badge" style="background: white; border: 1px solid #007bff; border-radius: 20px; padding: 8px 15px; font-size: 13px; color: #007bff;">
+                        <i class="fas fa-user-check" style="margin-left: 5px;"></i>
+                        {{ read_status.user.get_display_name }}
+                        <small style="color: #666; margin-right: 8px;">
+                            ({{ read_status.read_at|timesince }} پیش)
+                        </small>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Replies Section -->
+    {% if replies %}
+    <div class="replies-container" style="background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden;">
+        <div class="replies-header" style="padding: 20px 30px; background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+            <h3 style="margin: 0; color: #333; display: flex; align-items: center;">
+                <i class="fas fa-comments" style="margin-left: 12px; color: #28a745;"></i>
+                پاسخ‌های دریافتی ({{ replies.count }})
+            </h3>
+        </div>
+
+        <div class="replies-list">
+            {% for reply in replies %}
+            <div class="reply-item" style="padding: 25px 30px; border-bottom: 1px solid #eee; {% if forloop.last %}border-bottom: none;{% endif %}">
+                <div class="reply-header" style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                    <div class="reply-author" style="display: flex; align-items: center; gap: 10px;">
+                        <div class="author-avatar" style="width: 40px; height: 40px; background: linear-gradient(45deg, #007bff, #28a745); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                            {{ reply.sender.get_display_name|first }}
+                        </div>
+                        <div>
+                            <div style="font-weight: bold; color: #333; margin-bottom: 3px;">
+                                {{ reply.sender.get_display_name }}
+                            </div>
+                            <div style="font-size: 12px; color: #888;">
+                                {% if reply.sender.is_superuser %}
+                                    <i class="fas fa-crown" style="color: #ffd700; margin-left: 5px;"></i>
+                                    مدیر ارشد
+                                {% else %}
+                                    <i class="fas fa-user-tie" style="color: #007bff; margin-left: 5px;"></i>
+                                    مدیر
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="reply-time" style="text-align: left; color: #666; font-size: 13px;">
+                        <div>{{ reply.created_at|date:"Y/m/d H:i" }}</div>
+                        <div style="font-size: 11px; color: #999;">{{ reply.created_at|timesince }} پیش</div>
+                    </div>
+                </div>
+
+                <div class="reply-content" style="background: #f8f9fa; border-radius: 8px; padding: 20px; border-right: 4px solid #28a745;">
+                    <div style="line-height: 1.7; color: #555; white-space: pre-wrap; font-size: 14px;">{{ reply.reply_text }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="no-replies" style="background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 40px; text-align: center;">
+        <i class="fas fa-comment-slash" style="font-size: 3rem; color: #dee2e6; margin-bottom: 20px;"></i>
+        <h3 style="color: #6c757d; margin-bottom: 10px;">هنوز پاسخی دریافت نشده</h3>
+        <p style="color: #adb5bd; margin: 0;">مدیران سیستم هنوز به این پیام پاسخ نداده‌اند. لطفاً صبر کنید.</p>
+    </div>
+    {% endif %}
+
+    <!-- Action Buttons -->
+    <div class="action-buttons" style="margin-top: 30px; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+        <a href="{% url 'messaging:my_messages' %}"
+           class="btn btn-secondary"
+           style="display: inline-flex; align-items: center; padding: 12px 25px; background: #6c757d; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; transition: all 0.3s ease;">
+            <i class="fas fa-arrow-right" style="margin-left: 8px;"></i>
+            بازگشت به لیست پیام‌ها
+        </a>
+
+        <a href="{% url 'messaging:send_message' %}"
+           class="btn btn-primary"
+           style="display: inline-flex; align-items: center; padding: 12px 25px; background: #007bff; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; transition: all 0.3s ease;">
+            <i class="fas fa-plus" style="margin-left: 8px;"></i>
+            ارسال پیام جدید
+        </a>
+    </div>
+</div>
+
+<!-- Add Font Awesome for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<style>
+/* Animation for elements */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.message-container,
+.replies-container,
+.no-replies {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* Hover effects */
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.btn-secondary:hover {
+    background-color: #545b62 !important;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3 !important;
+}
+
+.reply-item:hover {
+    background-color: #f8f9fa;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .main-content {
+        margin-right: 0;
+        padding: 15px;
+    }
+
+    .main-sidebar {
+        display: none;
+    }
+
+    .message-header > div {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .message-badges {
+        align-items: stretch;
+        flex-direction: row;
+        justify-content: space-between;
+    }
+
+    .message-meta {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .message-stats {
+        flex-direction: column;
+    }
+
+    .stat-item {
+        min-width: auto;
+    }
+
+    .reply-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .reply-time {
+        text-align: right;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+    }
+
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Print styles */
+@media print {
+    .main-sidebar,
+    .action-buttons,
+    .breadcrumb {
+        display: none;
+    }
+
+    .main-content {
+        margin-right: 0;
+    }
+
+    .message-container,
+    .replies-container {
+        box-shadow: none;
+        border: 1px solid #ddd;
+    }
+}
+
+/* Accessibility improvements */
+.btn:focus,
+.reader-badge:focus {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
+}
+
+/* Custom scrollbar for long content */
+.message-content::-webkit-scrollbar,
+.reply-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.message-content::-webkit-scrollbar-track,
+.reply-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.message-content::-webkit-scrollbar-thumb,
+.reply-content::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.message-content::-webkit-scrollbar-thumb:hover,
+.reply-content::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-refresh replies every 30 seconds
+    setInterval(function() {
+        // You can implement auto-refresh here if needed
+        // This would require AJAX to fetch new replies
+    }, 30000);
+
+    // Add smooth scrolling to reply section
+    const repliesSection = document.querySelector('.replies-container');
+    if (repliesSection && window.location.hash === '#replies') {
+        repliesSection.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
+    }
+
+    // Copy message content functionality
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(function() {
+            // Show success message
+            const toast = document.createElement('div');
+            toast.textContent = 'متن کپی شد';
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #28a745;
+                color: white;
+                padding: 10px 20px;
+                border-radius: 5px;
+                z-index: 10000;
+                animation: fadeIn 0.3s ease-out;
+            `;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        });
+    }
+
+    // Add copy buttons (optional enhancement)
+    const messageContent = document.querySelector('.message-content div');
+    if (messageContent) {
+        messageContent.style.position = 'relative';
+
+        const copyBtn = document.createElement('button');
+        copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+        copyBtn.title = 'کپی متن';
+        copyBtn.style.cssText = `
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 5px 8px;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        `;
+
+        copyBtn.addEventListener('mouseover', () => copyBtn.style.opacity = '1');
+        copyBtn.addEventListener('mouseout', () => copyBtn.style.opacity = '0.7');
+        copyBtn.addEventListener('click', () => copyToClipboard(messageContent.textContent));
+
+        messageContent.appendChild(copyBtn);
+    }
+});
+</script>
+{% endblock %}
+
+{% block footer %}
+<div style="margin-right: 250px; padding: 20px; border-top: 1px solid #dee2e6; text-align: center; color: #6c757d; direction: rtl;">
+    <p style="margin: 0;">سیستم پیام‌رسانی ادمین | نسخه 1.0</p>
+</div>
+{% endblock %}

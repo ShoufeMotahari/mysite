@@ -8,10 +8,16 @@ from .views.password_views import (
     reset_password_view, reset_password_email_view,
     add_password, view_password, edit_password, delete_password
 )
+from .views.messaging_views import (
+    message_admin_dashboard, send_message_view, my_messages_view,
+    message_detail_view, admin_notifications_api, mark_message_read_api
+)
 from .views.dashboard_views import dashboard_view
 from .views.views import profile_edit, user_profile
-from .views.logout_view import logout_view
+from .views.logout_view import message_admin_logout_view, smart_logout_view
+from .views.messaging_views import *
 
+app_name = 'users'
 urlpatterns = [
     # پروفایل
     path('profile/edit/', profile_edit, name='profile_edit'),
@@ -22,7 +28,8 @@ urlpatterns = [
     path('login/', login_view, name='login'),  # Updated to use new login_view
     path('verify/', verify_view, name='verify'),
     path('verify-login/', verify_login_view, name='verify-login'),
-    path('logout/', logout_view, name='logout'),
+    path('logout/', smart_logout_view, name='logout'),
+    path('message_admin/logout/', message_admin_logout_view, name='message_admin_logout'),
 
     # فراموشی رمز عبور
     path('forgot-password/', forgot_password_view, name='forgot-password'),
@@ -55,4 +62,13 @@ urlpatterns = [
     # ورود و خروج پیش‌فرض Django
     path('auth/login/', auth_views.LoginView.as_view(template_name='users/registration/login.html'), name='auth_login'),
     path('auth/logout/', auth_views.LogoutView.as_view(), name='auth_logout'),
+    # Message admin URLs (restricted access)
+    path('message_admin/', message_admin_dashboard, name='message_admin_dashboard'),
+    path('message_admin/send/', send_message_view, name='send_message'),
+    path('message_admin/my-messages/', my_messages_view, name='my_messages'),
+    path('message_admin/message/<int:message_id>/', message_detail_view, name='message_detail'),
+
+    # API endpoints for superuser admins
+    path('api/notifications/', admin_notifications_api, name='admin_notifications_api'),
+    path('api/mark-read/<int:message_id>/', mark_message_read_api, name='mark_message_read_api'),
 ]

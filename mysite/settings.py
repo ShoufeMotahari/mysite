@@ -17,6 +17,8 @@ import environ
 from cryptography.fernet import Fernet
 import logging
 from decouple import config
+
+
 # مسیر پروژه
 BASE_DIR = Path(__file__).resolve().parent.parent
 LOGS_DIR = BASE_DIR / 'logs'
@@ -144,7 +146,7 @@ MIDDLEWARE = [
     'core.middleware.rate_limit.RateLimitMiddleware',
 
     # Add this custom middleware for additional logging
-    'users.middleware.SecurityLoggingMiddleware',
+    'users.middleware.MessageAdminAccessMiddleware',
 
 ]
 
@@ -178,6 +180,7 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators

@@ -61,7 +61,7 @@ def signup_view(request):
                 logger.warning(f"Signup attempt for existing user - Mobile: {user.mobile}")
                 if user.is_active and user.is_phone_verified:
                     messages.error(request, "این کاربر قبلاً فعال شده است.")
-                    return redirect('login')
+                    return redirect('users:login')
                 else:
                     # Update existing inactive user with new information
                     user.username = username
@@ -120,7 +120,7 @@ def signup_view(request):
                 messages.success(request, "کد تایید به شماره موبایل شما ارسال شد.")
 
             logger.info(f"Redirecting to verify view - User ID: {user.id}")
-            return redirect('verify')
+            return redirect('users:verify')
         else:
             logger.warning("Signup form is invalid.")
             logger.debug(f"Form errors: {form.errors}")
@@ -184,7 +184,7 @@ def login_view(request):
             login(request, user)
             messages.success(request, f"خوش آمدید {user.username}!")
             logger.info(f"User logged in successfully - User: {user.username}")
-            return redirect('dashboard')
+            return redirect('users:dashboard')
 
     else:
         form = LoginForm()
@@ -291,7 +291,7 @@ def forgot_password_view(request):
                 success_message += " همچنین لینک بازیابی به ایمیل شما ارسال شد."
 
             messages.success(request, success_message)
-            return redirect('verify_reset_password')
+            return redirect('usesr:verify_reset_password')
 
     else:
         form = ForgotPasswordForm()
@@ -304,13 +304,13 @@ def verify_reset_password_view(request):
 
     if not user_id:
         messages.error(request, "جلسه منقضی شده است. لطفاً دوباره تلاش کنید.")
-        return redirect('forgot_password')
+        return redirect('users:forgot_password')
 
     try:
         user = User.objects.get(id=user_id)
     except User.DoesNotExist:
         messages.error(request, "کاربر یافت نشد.")
-        return redirect('forgot_password')
+        return redirect('users:forgot_password')
 
     if request.method == 'POST':
         form = VerificationForm(request.POST)
@@ -365,13 +365,13 @@ def reset_password_view(request):
 
     if not user_id or not password_reset_verified:
         messages.error(request, "دسترسی غیرمجاز. لطفاً فرآیند بازیابی رمز عبور را دوباره انجام دهید.")
-        return redirect('forgot_password')
+        return redirect('users:forgot_password')
 
     try:
         user = User.objects.get(id=user_id)
     except User.DoesNotExist:
         messages.error(request, "کاربر یافت نشد.")
-        return redirect('forgot_password')
+        return redirect('users:forgot_password')
 
     if request.method == 'POST':
         new_password = request.POST.get('new_password')
@@ -460,13 +460,13 @@ def verify_view(request):
 
     if not mobile or not user_id:
         messages.error(request, "جلسه منقضی شده است. لطفاً دوباره ثبت‌نام کنید.")
-        return redirect('signup')
+        return redirect('users:signup')
 
     try:
         user = User.objects.get(id=user_id, mobile=mobile)
     except User.DoesNotExist:
         messages.error(request, "کاربر یافت نشد.")
-        return redirect('signup')
+        return redirect('users:signup')
 
     if request.method == 'POST':
         form = VerificationForm(request.POST)
@@ -496,7 +496,7 @@ def verify_view(request):
                     console_logger.info(f"User successfully verified: {user.username} ({user.mobile})")
                     messages.success(request, "حساب شما با موفقیت فعال شد و وارد سیستم شدید.")
                     logger.info(f"User successfully verified and logged in - User ID: {user.id}")
-                    return redirect('dashboard')
+                    return redirect('users:dashboard')
 
                 else:
                     messages.error(request, "کد وارد شده منقضی شده است.")
@@ -526,13 +526,13 @@ def verify_login_view(request):
     user_id = request.session.get('login_user_id')
     if not user_id:
         messages.error(request, "جلسه منقضی شده است.")
-        return redirect('login')
+        return redirect('users:login')
 
     try:
         user = User.objects.get(id=user_id)
     except User.DoesNotExist:
         messages.error(request, "کاربر یافت نشد.")
-        return redirect('login')
+        return redirect('users:login')
 
     if request.method == 'POST':
         form = VerificationForm(request.POST)
@@ -579,13 +579,13 @@ def activate_account_view(request):
     token = request.GET.get('token')
     if not token:
         messages.error(request, "توکن وجود ندارد.")
-        return redirect('signup')
+        return redirect('users:signup')
 
     try:
         verification_token = VerificationToken.objects.get(email_token=token, is_used=False)
         if not verification_token.is_valid():
             messages.error(request, "توکن منقضی شده است.")
-            return redirect('signup')
+            return redirect('users:signup')
 
         user = verification_token.user
         user.is_active = True
@@ -595,11 +595,11 @@ def activate_account_view(request):
 
         console_logger.info(f"User activated via email: {user.username} ({user.email})")
         messages.success(request, "حساب شما با موفقیت از طریق ایمیل فعال شد.")
-        return redirect('login')
+        return redirect('users:login')
 
     except VerificationToken.DoesNotExist:
         messages.error(request, "توکن معتبر نیست یا قبلاً استفاده شده.")
-        return redirect('signup')
+        return redirect('users:signup')
 
 
 def send_sms_view(request):

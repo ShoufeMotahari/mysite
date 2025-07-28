@@ -1,0 +1,360 @@
+<!-- messaging/templates/messaging/my_messages.html -->
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <a href="{% url 'messaging:message_admin_dashboard' %}">پنل پیام‌رسانی ادمین</a>
+</h1>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}
+
+{% block nav-sidebar %}
+<!-- Sidebar Navigation -->
+<nav class="main-sidebar" style="background: #417690; padding: 20px; width: 250px; height: 100vh; position: fixed; right: 0; top: 0; direction: rtl;">
+    <div class="sidebar-header" style="text-align: center; margin-bottom: 30px;">
+        <h3 style="color: white; margin: 0;">پنل پیام‌رسانی</h3>
+        <small style="color: #b8d4e3;">{{ user.get_display_name }}</small>
+    </div>
+
+    <ul class="sidebar-menu" style="list-style: none; padding: 0; margin: 0;">
+        <li style="margin-bottom: 10px;">
+            <a href="{% url 'messaging:message_admin_dashboard' %}"
+               style="display: block; color: white; text-decoration: none; padding: 12px 15px; border-radius: 5px; background: transparent;">
+                <i class="fas fa-dashboard" style="margin-left: 10px;"></i>
+                داشبورد
+            </a>
+        </li>
+        <li style="margin-bottom: 10px;">
+            <a href="{% url 'messaging:send_message' %}"
+               style="display: block; color: white; text-decoration: none; padding: 12px 15px; border-radius: 5px; background: transparent;">
+                <i class="fas fa-paper-plane" style="margin-left: 10px;"></i>
+                ارسال پیام جدید
+            </a>
+        </li>
+        <li style="margin-bottom: 10px;">
+            <a href="{% url 'messaging:my_messages' %}"
+               style="display: block; color: white; text-decoration: none; padding: 12px 15px; border-radius: 5px; background: #2c5aa0;">
+                <i class="fas fa-envelope" style="margin-left: 10px;"></i>
+                پیام‌های ارسالی
+            </a>
+        </li>
+        <li style="margin-top: 30px; border-top: 1px solid #5a82a8; padding-top: 20px;">
+            <a href="{% url 'logout' %}"
+               style="display: block; color: #ff6b6b; text-decoration: none; padding: 12px 15px; border-radius: 5px;">
+                <i class="fas fa-sign-out-alt" style="margin-left: 10px;"></i>
+                خروج
+            </a>
+        </li>
+    </ul>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="main-content" style="margin-right: 250px; padding: 20px; direction: rtl;">
+    <div class="content-header" style="margin-bottom: 30px;">
+        <h1 style="color: #333; margin: 0 0 10px 0; display: flex; align-items: center;">
+            <i class="fas fa-envelope" style="margin-left: 15px; color: #007bff;"></i>
+            {{ title }}
+        </h1>
+        <p style="color: #666; margin: 0;">مشاهده و مدیریت پیام‌های ارسالی شما</p>
+    </div>
+
+    <!-- Search and Filter Section -->
+    <div class="search-filter-section" style="background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 30px;">
+        <form method="get" class="search-form" style="display: flex; gap: 15px; align-items: end; flex-wrap: wrap;">
+            <div class="form-group" style="flex: 2; min-width: 250px;">
+                <label style="display: block; font-weight: bold; color: #333; margin-bottom: 5px;">جستجو</label>
+                <input type="text" name="search" value="{{ search_query }}"
+                       placeholder="جستجو در موضوع و متن پیام..."
+                       style="width: 100%; padding: 10px 15px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; direction: rtl;">
+            </div>
+
+            <div class="form-group" style="flex: 1; min-width: 150px;">
+                <label style="display: block; font-weight: bold; color: #333; margin-bottom: 5px;">وضعیت</label>
+                <select name="status" style="width: 100%; padding: 10px 15px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; direction: rtl;">
+                    <option value="">همه وضعیت‌ها</option>
+                    {% for value, label in status_choices %}
+                        <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-actions" style="display: flex; gap: 10px;">
+                <button type="submit" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                    <i class="fas fa-search" style="margin-left: 5px;"></i>
+                    جستجو
+                </button>
+                <a href="{% url 'messaging:my_messages' %}" style="padding: 10px 20px; background: #6c757d; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">
+                    <i class="fas fa-times" style="margin-left: 5px;"></i>
+                    پاک کردن
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Quick Action -->
+    <div class="quick-action" style="margin-bottom: 20px;">
+        <a href="{% url 'messaging:send_message' %}"
+           class="btn-primary"
+           style="display: inline-flex; align-items: center; padding: 12px 25px; background: #28a745; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; transition: all 0.3s ease;">
+            <i class="fas fa-plus" style="margin-left: 8px;"></i>
+            ارسال پیام جدید
+        </a>
+    </div>
+
+    <!-- Messages List -->
+    <div class="messages-container" style="background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden;">
+        {% if page_obj %}
+            <!-- Messages Header -->
+            <div class="messages-header" style="padding: 20px; border-bottom: 2px solid #eee; background: #f8f9fa;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0; color: #333;">پیام‌های شما</h3>
+                    <span style="color: #666; font-size: 14px;">
+                        نمایش {{ page_obj.start_index }} تا {{ page_obj.end_index }} از {{ page_obj.paginator.count }} پیام
+                    </span>
+                </div>
+            </div>
+
+            <!-- Messages List -->
+            {% for message in page_obj %}
+            <div class="message-item" style="padding: 20px; border-bottom: 1px solid #eee; transition: background 0.3s ease; {% if forloop.last %}border-bottom: none;{% endif %}">
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <div style="flex: 1;">
+                        <div class="message-header" style="display: flex; align-items: center; margin-bottom: 10px; gap: 15px;">
+                            <h4 style="margin: 0; color: #333;">
+                                <a href="{% url 'messaging:message_detail' message.id %}"
+                                   style="color: #007bff; text-decoration: none; font-weight: bold;">
+                                    {{ message.subject }}
+                                </a>
+                            </h4>
+
+                            <!-- Priority Badge -->
+                            <span class="priority-badge" style="padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold;
+                                  {% if message.priority == 'urgent' %}background: #dc3545; color: white;
+                                  {% elif message.priority == 'high' %}background: #fd7e14; color: white;
+                                  {% elif message.priority == 'normal' %}background: #17a2b8; color: white;
+                                  {% else %}background: #6c757d; color: white;{% endif %}">
+                                {{ message.get_priority_icon }} {{ message.get_priority_display }}
+                            </span>
+
+                            <!-- Status Badge -->
+                            <span class="status-badge" style="padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold;
+                                  {% if message.status == 'unread' %}background: #dc3545; color: white;
+                                  {% elif message.status == 'read' %}background: #28a745; color: white;
+                                  {% else %}background: #6c757d; color: white;{% endif %}">
+                                {{ message.get_status_display }}
+                            </span>
+                        </div>
+
+                        <p style="margin: 0 0 12px 0; color: #666; line-height: 1.5;">
+                            {{ message.message|truncatewords:25 }}
+                        </p>
+
+                        <div class="message-meta" style="display: flex; gap: 20px; align-items: center; font-size: 13px; color: #888;">
+                            <span>
+                                <i class="fas fa-calendar" style="margin-left: 5px;"></i>
+                                {{ message.created_at|date:"Y/m/d H:i" }}
+                            </span>
+                            {% if message.read_at %}
+                            <span style="color: #28a745;">
+                                <i class="fas fa-eye" style="margin-left: 5px;"></i>
+                                خوانده شده: {{ message.read_at|timesince }} پیش
+                            </span>
+                            {% endif %}
+                            <span>
+                                <i class="fas fa-reply" style="margin-left: 5px;"></i>
+                                {{ message.replies.count }} پاسخ
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="message-actions" style="margin-right: 15px; display: flex; flex-direction: column; gap: 8px;">
+                        <a href="{% url 'messaging:message_detail' message.id %}"
+                           class="action-btn"
+                           style="display: inline-flex; align-items: center; padding: 8px 12px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; font-size: 12px; font-weight: bold; transition: background 0.3s ease;">
+                            <i class="fas fa-eye" style="margin-left: 5px;"></i>
+                            مشاهده
+                        </a>
+
+                        {% if message.replies.count > 0 %}
+                        <span style="display: inline-flex; align-items: center; padding: 8px 12px; background: #28a745; color: white; border-radius: 5px; font-size: 12px; font-weight: bold;">
+                            <i class="fas fa-comments" style="margin-left: 5px;"></i>
+                            {{ message.replies.count }} پاسخ
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <div class="pagination-container" style="padding: 20px; background: #f8f9fa; border-top: 1px solid #eee;">
+                <nav style="display: flex; justify-content: center;">
+                    <ul class="pagination" style="display: flex; list-style: none; padding: 0; margin: 0; gap: 5px;">
+                        {% if page_obj.has_previous %}
+                            <li>
+                                <a href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+                                   style="padding: 8px 12px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; font-size: 14px;">
+                                    اول
+                                </a>
+                            </li>
+                            <li>
+                                <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+                                   style="padding: 8px 12px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; font-size: 14px;">
+                                    قبلی
+                                </a>
+                            </li>
+                        {% endif %}
+
+                        <li>
+                            <span style="padding: 8px 12px; background: #6c757d; color: white; border-radius: 5px; font-size: 14px;">
+                                صفحه {{ page_obj.number }} از {{ page_obj.paginator.num_pages }}
+                            </span>
+                        </li>
+
+                        {% if page_obj.has_next %}
+                            <li>
+                                <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+                                   style="padding: 8px 12px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; font-size: 14px;">
+                                    بعدی
+                                </a>
+                            </li>
+                            <li>
+                                <a href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+                                   style="padding: 8px 12px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; font-size: 14px;">
+                                    آخر
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+
+        {% else %}
+            <!-- No Messages -->
+            <div class="no-messages" style="text-align: center; padding: 60px 20px;">
+                <i class="fas fa-inbox" style="font-size: 4rem; color: #dee2e6; margin-bottom: 20px;"></i>
+                {% if search_query or status_filter %}
+                    <h3 style="color: #6c757d; margin-bottom: 10px;">نتیجه‌ای یافت نشد</h3>
+                    <p style="color: #adb5bd; margin-bottom: 25px;">
+                        با کلیدواژه‌های انتخابی هیچ پیامی پیدا نشد. فیلترها را تغییر دهید یا دوباره جستجو کنید.
+                    </p>
+                    <a href="{% url 'messaging:my_messages' %}"
+                       style="display: inline-block; padding: 12px 30px; background: #6c757d; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin-left: 10px;">
+                        نمایش همه پیام‌ها
+                    </a>
+                {% else %}
+                    <h3 style="color: #6c757d; margin-bottom: 10px;">هنوز پیامی ارسال نکرده‌اید</h3>
+                    <p style="color: #adb5bd; margin-bottom: 25px;">
+                        اولین پیام خود را به مدیران سیستم ارسال کنید
+                    </p>
+                {% endif %}
+                <a href="{% url 'messaging:send_message' %}"
+                   style="display: inline-block; padding: 12px 30px; background: #007bff; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">
+                    ارسال پیام جدید
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Add Font Awesome for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<style>
+/* Hover effects */
+.message-item:hover {
+    background-color: #f8f9fa;
+}
+
+.action-btn:hover {
+    background-color: #0056b3 !important;
+    transform: translateY(-1px);
+}
+
+.btn-primary:hover {
+    background-color: #218838 !important;
+    transform: translateY(-2px);
+}
+
+/* Search form styling */
+.search-form input:focus,
+.search-form select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .main-content {
+        margin-right: 0;
+        padding: 15px;
+    }
+
+    .main-sidebar {
+        display: none;
+    }
+
+    .search-form {
+        flex-direction: column;
+    }
+
+    .search-form .form-group {
+        flex: none;
+        min-width: auto;
+        width: 100%;
+    }
+
+    .form-actions {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .message-item > div {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .message-actions {
+        margin-right: 0;
+        flex-direction: row;
+        justify-content: center;
+    }
+
+    .pagination {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+}
+
+/* Animation for new messages */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.message-item {
+    animation: slideIn 0.3s ease-out;
+}
+</style>
+{% endblock %}
+
+{% block footer %}
+<div style="margin-right: 250px; padding: 20px; border-top: 1px solid #dee2e6; text-align: center; color: #6c757d; direction: rtl;">
+    <p style="margin: 0;">سیستم پیام‌رسانی ادمین | نسخه 1.0</p>
+</div>
+{% endblock %}

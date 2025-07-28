@@ -1,0 +1,557 @@
+<!-- messaging/templates/messaging/reply_message.html -->
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <a href="{% url 'admin:index' %}">{{ site_header|default:_('Django administration') }}</a>
+</h1>
+{% endblock %}
+
+{% block nav-global %}
+<div style="background: #417690; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center;">
+    <div style="color: white;">
+        <i class="fas fa-reply" style="margin-left: 8px;"></i>
+        پاسخ به پیام ادمین
+    </div>
+    <a href="{% url 'admin:messaging_adminmessage_changelist' %}"
+       style="color: white; text-decoration: none; padding: 8px 15px; background: rgba(255,255,255,0.2); border-radius: 5px; transition: background 0.3s ease;">
+        <i class="fas fa-arrow-right" style="margin-left: 5px;"></i>
+        بازگشت به لیست پیام‌ها
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="main-content" style="padding: 20px; direction: rtl; max-width: 900px; margin: 0 auto;">
+
+    <!-- Content Header -->
+    <div class="content-header" style="margin-bottom: 30px; text-align: center;">
+        <h1 style="color: #333; margin: 0 0 10px 0; display: flex; align-items: center; justify-content: center;">
+            <i class="fas fa-reply" style="margin-left: 15px; color: #28a745;"></i>
+            {{ title }}
+        </h1>
+        <p style="color: #666; margin: 0;">پاسخ خود را به پیام دریافتی ارسال کنید</p>
+    </div>
+
+    <!-- Original Message Display -->
+    <div class="original-message" style="background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 30px; overflow: hidden;">
+        <div class="message-header" style="padding: 20px 25px; background: linear-gradient(135deg, #6c757d 0%, #495057 100%); color: white;">
+            <h3 style="margin: 0 0 10px 0; display: flex; align-items: center;">
+                <i class="fas fa-envelope" style="margin-left: 10px;"></i>
+                پیام اصلی
+            </h3>
+            <div style="opacity: 0.9; font-size: 14px;">
+                از: {{ message.sender.get_display_name }} |
+                {{ message.created_at|date:"Y/m/d H:i" }}
+            </div>
+        </div>
+
+        <div class="message-body" style="padding: 25px;">
+            <h4 style="color: #333; margin: 0 0 15px 0; font-size: 1.3rem;">
+                {{ message.subject }}
+
+                <!-- Priority Badge -->
+                <span class="priority-badge" style="margin-right: 10px; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold;
+                      {% if message.priority == 'urgent' %}background: #dc3545; color: white;
+                      {% elif message.priority == 'high' %}background: #fd7e14; color: white;
+                      {% elif message.priority == 'normal' %}background: #17a2b8; color: white;
+                      {% else %}background: #6c757d; color: white;{% endif %}">
+                    {{ message.get_priority_icon }} {{ message.get_priority_display }}
+                </span>
+            </h4>
+
+            <div class="message-content" style="background: #f8f9fa; border-radius: 8px; padding: 20px; border-right: 4px solid #6c757d;">
+                <div style="line-height: 1.7; color: #555; white-space: pre-wrap; font-size: 15px;">{{ message.message }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Messages Display -->
+    {% if messages %}
+        {% for msg in messages %}
+            <div class="alert alert-{{ msg.tags }}" style="padding: 15px; margin-bottom: 20px; border-radius: 8px;
+                 {% if msg.tags == 'success' %}background: #d4edda; color: #155724; border: 1px solid #c3e6cb;
+                 {% elif msg.tags == 'error' %}background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;
+                 {% else %}background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb;{% endif %}">
+                <i class="fas fa-{% if msg.tags == 'success' %}check-circle{% elif msg.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}" style="margin-left: 8px;"></i>
+                {{ msg }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Reply Form -->
+    <div class="reply-form-container" style="background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden;">
+        <div class="form-header" style="padding: 20px 25px; background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white;">
+            <h3 style="margin: 0; display: flex; align-items: center;">
+                <i class="fas fa-edit" style="margin-left: 10px;"></i>
+                نوشتن پاسخ
+            </h3>
+        </div>
+
+        <div class="form-body" style="padding: 30px;">
+            <form method="post" class="reply-form">
+                {% csrf_token %}
+
+                <!-- Reply Text Field -->
+                <div class="form-group" style="margin-bottom: 25px;">
+                    <label for="{{ form.reply_text.id_for_label }}" style="display: block; font-weight: bold; color: #333; margin-bottom: 10px; font-size: 16px;">
+                        {{ form.reply_text.label }}
+                        <span style="color: #dc3545;">*</span>
+                    </label>
+                    {{ form.reply_text }}
+                    {% if form.reply_text.help_text %}
+                        <small style="display: block; color: #6c757d; margin-top: 8px; font-size: 14px;">
+                            {{ form.reply_text.help_text }}
+                        </small>
+                    {% endif %}
+                    {% if form.reply_text.errors %}
+                        <div style="color: #dc3545; font-size: 14px; margin-top: 8px;">
+                            {% for error in form.reply_text.errors %}
+                                <div style="display: flex; align-items: center;">
+                                    <i class="fas fa-exclamation-triangle" style="margin-left: 5px;"></i>
+                                    {{ error }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <!-- Character counter -->
+                    <div style="display: flex; justify-content: space-between; margin-top: 8px;">
+                        <small style="color: #6c757d;">حداکثر 2000 کاراکتر</small>
+                        <small id="char-counter" style="color: #6c757d;">0 / 2000</small>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="form-actions" style="display: flex; gap: 15px; justify-content: center; padding-top: 20px; border-top: 1px solid #dee2e6;">
+                    <button type="submit"
+                            class="btn btn-success"
+                            style="padding: 15px 35px; background: #28a745; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: all 0.3s ease; font-size: 16px;">
+                        <i class="fas fa-paper-plane" style="margin-left: 10px;"></i>
+                        ارسال پاسخ
+                    </button>
+
+                    <a href="{% url 'admin:messaging_adminmessage_change' message.id %}"
+                       class="btn btn-secondary"
+                       style="display: inline-block; padding: 15px 35px; background: #6c757d; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; transition: all 0.3s ease; font-size: 16px;">
+                        <i class="fas fa-times" style="margin-left: 10px;"></i>
+                        انصراف
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Existing Replies (if any) -->
+    {% if message.replies.exists %}
+    <div class="existing-replies" style="margin-top: 30px; background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden;">
+        <div class="replies-header" style="padding: 20px 25px; background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+            <h3 style="margin: 0; color: #333; display: flex; align-items: center;">
+                <i class="fas fa-comments" style="margin-left: 12px; color: #17a2b8;"></i>
+                پاسخ‌های قبلی ({{ message.replies.count }})
+            </h3>
+        </div>
+
+        <div class="replies-list">
+            {% for reply in message.replies.all %}
+            <div class="reply-item" style="padding: 20px 25px; border-bottom: 1px solid #eee; {% if forloop.last %}border-bottom: none;{% endif %}">
+                <div class="reply-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <div class="reply-author" style="display: flex; align-items: center; gap: 10px;">
+                        <div class="author-avatar" style="width: 35px; height: 35px; background: linear-gradient(45deg, #007bff, #28a745); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px;">
+                            {{ reply.sender.get_display_name|first }}
+                        </div>
+                        <div>
+                            <div style="font-weight: bold; color: #333; font-size: 15px;">
+                                {{ reply.sender.get_display_name }}
+                            </div>
+                            <div style="font-size: 12px; color: #888;">
+                                {% if reply.sender.is_superuser %}
+                                    <i class="fas fa-crown" style="color: #ffd700; margin-left: 5px;"></i>
+                                    مدیر ارشد
+                                {% else %}
+                                    <i class="fas fa-user-tie" style="color: #007bff; margin-left: 5px;"></i>
+                                    مدیر
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="reply-time" style="text-align: left; color: #666; font-size: 13px;">
+                        {{ reply.created_at|date:"Y/m/d H:i" }}
+                    </div>
+                </div>
+
+                <div class="reply-content" style="background: #f8f9fa; border-radius: 8px; padding: 15px; border-right: 4px solid #17a2b8;">
+                    <div style="line-height: 1.6; color: #555; white-space: pre-wrap; font-size: 14px;">{{ reply.reply_text }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Guidelines -->
+    <div class="guidelines" style="margin-top: 30px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 10px; padding: 20px;">
+        <h4 style="color: #856404; margin: 0 0 15px 0; display: flex; align-items: center;">
+            <i class="fas fa-info-circle" style="margin-left: 10px;"></i>
+            راهنمای پاسخ‌دهی
+        </h4>
+        <ul style="margin: 0; padding-right: 20px; color: #856404; line-height: 1.6;">
+            <li>پاسخ خود را واضح و مفصل بنویسید</li>
+            <li>از زبان مودبانه و حرفه‌ای استفاده کنید</li>
+            <li>در صورت نیاز، راه‌حل‌های عملی ارائه دهید</li>
+            <li>اگر موضوع نیاز به بررسی بیشتر دارد، زمان‌بندی مشخص کنید</li>
+            <li>پس از ارسال پاسخ، فرستنده پیام اطلاع‌رسانی خواهد شد</li>
+        </ul>
+    </div>
+</div>
+
+<!-- Add Font Awesome for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<style>
+/* Form styling */
+.form-control {
+    width: 100%;
+    padding: 15px;
+    border: 2px solid #ced4da;
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: inherit;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    resize: vertical;
+    min-height: 150px;
+    direction: rtl;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #28a745;
+    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+}
+
+/* Button hover effects */
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+}
+
+.btn-success:hover {
+    background: #218838 !important;
+}
+
+.btn-secondary:hover {
+    background: #545b62 !important;
+}
+
+/* Animation for elements */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.original-message,
+.reply-form-container,
+.existing-replies,
+.guidelines {
+    animation: slideIn 0.6s ease-out;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .main-content {
+        padding: 15px;
+    }
+
+    .message-header,
+    .form-header,
+    .replies-header {
+        padding: 15px 20px;
+    }
+
+    .message-body,
+    .form-body {
+        padding: 20px;
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+
+    .btn {
+        width: 100%;
+        text-align: center;
+    }
+
+    .reply-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .reply-time {
+        text-align: right;
+    }
+}
+
+/* Print styles */
+@media print {
+    .form-actions,
+    .guidelines {
+        display: none;
+    }
+
+    .main-content {
+        padding: 0;
+    }
+
+    .original-message,
+    .reply-form-container,
+    .existing-replies {
+        box-shadow: none;
+        border: 1px solid #ddd;
+        margin-bottom: 20px;
+    }
+}
+
+/* Focus styles for accessibility */
+.btn:focus {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
+}
+
+/* Enhanced visual feedback */
+.reply-item:hover {
+    background-color: #f8f9fa;
+    transition: background-color 0.3s ease;
+}
+
+.alert {
+    animation: slideIn 0.4s ease-out;
+}
+
+/* Custom scrollbar */
+.form-control::-webkit-scrollbar {
+    width: 8px;
+}
+
+.form-control::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.form-control::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.form-control::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const replyField = document.getElementById('{{ form.reply_text.id_for_label }}');
+    const charCounter = document.getElementById('char-counter');
+    const form = document.querySelector('.reply-form');
+
+    // Character counter
+    if (replyField && charCounter) {
+        function updateCounter() {
+            const length = replyField.value.length;
+            charCounter.textContent = length + ' / 2000';
+
+            if (length > 1800) {
+                charCounter.style.color = '#dc3545';
+                charCounter.style.fontWeight = 'bold';
+            } else if (length > 1500) {
+                charCounter.style.color = '#fd7e14';
+                charCounter.style.fontWeight = 'bold';
+            } else {
+                charCounter.style.color = '#6c757d';
+                charCounter.style.fontWeight = 'normal';
+            }
+        }
+
+        replyField.addEventListener('input', updateCounter);
+        updateCounter(); // Initial count
+    }
+
+    // Form validation
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const replyText = replyField.value.trim();
+
+            if (!replyText || replyText.length < 5) {
+                e.preventDefault();
+                alert('لطفاً پاسخ خود را وارد کنید (حداقل 5 کاراکتر)');
+                replyField.focus();
+                return;
+            }
+
+            if (replyText.length > 2000) {
+                e.preventDefault();
+                alert('پاسخ نمی‌تواند بیش از 2000 کاراکتر باشد');
+                replyField.focus();
+                return;
+            }
+
+            // Confirm submission
+            if (!confirm('آیا مطمئن هستید که می‌خواهید این پاسخ را ارسال کنید؟')) {
+                e.preventDefault();
+                return;
+            }
+
+            // Show loading state
+            const submitBtn = form.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-left: 10px;"></i>در حال ارسال...';
+
+            // Disable form elements
+            replyField.disabled = true;
+        });
+    }
+
+    // Auto-save draft (optional enhancement)
+    let draftTimer;
+    if (replyField) {
+        replyField.addEventListener('input', function() {
+            clearTimeout(draftTimer);
+            draftTimer = setTimeout(function() {
+                const draft = replyField.value;
+                if (draft.length > 10) {
+                    // Save to localStorage
+                    localStorage.setItem('reply_draft_{{ message.id }}', draft);
+
+                    // Show saved indicator
+                    showSavedIndicator();
+                }
+            }, 2000);
+        });
+
+        // Load draft on page load
+        const savedDraft = localStorage.getItem('reply_draft_{{ message.id }}');
+        if (savedDraft && !replyField.value) {
+            replyField.value = savedDraft;
+            if (charCounter) {
+                charCounter.dispatchEvent(new Event('input'));
+            }
+
+            // Show restore notification
+            showDraftRestored();
+        }
+    }
+
+    function showSavedIndicator() {
+        const indicator = document.createElement('div');
+        indicator.textContent = 'پیش‌نویس ذخیره شد';
+        indicator.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            z-index: 10000;
+            animation: slideIn 0.3s ease-out;
+        `;
+        document.body.appendChild(indicator);
+
+        setTimeout(() => {
+            indicator.remove();
+        }, 2000);
+    }
+
+    function showDraftRestored() {
+        const notification = document.createElement('div');
+        notification.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>پیش‌نویس بازیابی شد</span>
+                <button onclick="clearDraft()" style="background: none; border: none; color: white; cursor: pointer; text-decoration: underline;">حذف</button>
+            </div>
+        `;
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #17a2b8;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 10000;
+            animation: slideIn 0.3s ease-out;
+            max-width: 300px;
+        `;
+        document.body.appendChild(notification);
+
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 5000);
+
+        // Global clear function
+        window.clearDraft = function() {
+            localStorage.removeItem('reply_draft_{{ message.id }}');
+            replyField.value = '';
+            if (charCounter) {
+                const event = new Event('input');
+                replyField.dispatchEvent(event);
+            }
+            notification.remove();
+        };
+    }
+
+    // Clear draft after successful submission
+    form.addEventListener('submit', function() {
+        localStorage.removeItem('reply_draft_{{ message.id }}');
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Ctrl+Enter to submit
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            if (document.activeElement === replyField) {
+                e.preventDefault();
+                form.querySelector('button[type="submit"]').click();
+            }
+        }
+
+        // Escape to cancel
+        if (e.key === 'Escape') {
+            if (document.activeElement === replyField) {
+                if (confirm('آیا مطمئن هستید که می‌خواهید انصراف دهید؟ تغییرات ذخیره نشده از دست خواهد رفت.')) {
+                    window.location.href = '{% url "admin:messaging_adminmessage_change" message.id %}';
+                }
+            }
+        }
+    });
+
+    // Add tooltip for keyboard shortcuts
+    if (replyField) {
+        replyField.title = 'Ctrl+Enter برای ارسال سریع، Escape برای انصراف';
+    }
+});
+</script>
+{% endblock %}
+
+{% block footer %}
+<div style="padding: 20px; border-top: 1px solid #dee2e6; text-align: center; color: #6c757d; direction: rtl; margin-top: 30px;">
+    <p style="margin: 0;">سیستم پیام‌رسانی ادمین | پاسخ‌دهی به پیام‌های دریافتی</p>
+</div>
+{% endblock %}
+.

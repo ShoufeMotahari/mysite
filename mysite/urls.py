@@ -26,7 +26,7 @@ urlpatterns = [
     path('ckeditor/', include('ckeditor_uploader.urls')),  # If using file uploads
     path('admin/', admin.site.urls),
     path('', include('core.urls')),
-    path('users/', include('users.urls')),
+    path('users/', include(('users.urls', 'users'), namespace='users')),
     path('filemanager/', include('filemanager.urls')),
     path('ckeditor/', include('ckeditor_uploader.urls')),  # Add this for CKEditor
     # path('comments/', include('comments.urls')),
