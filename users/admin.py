@@ -29,7 +29,7 @@ from django_jalali.admin.filters import JDateFieldListFilter
 logger = logging.getLogger('users')
 password_logger = logging.getLogger(__name__)
 
-# users/admin.py - ساختار درست
+# users/admin.py -
 
 from django.contrib import admin
 from django.utils.html import format_html
@@ -49,9 +49,7 @@ class ImageUploadAdmin(admin.ModelAdmin):
     """Enhanced admin for image uploads with minification options"""
 
     list_display = [
-        'image_thumbnail', 'title', 'minification_display', 'resize_display',
-        'size_comparison', 'compression_display', 'format_display',
-        'uploaded_by', 'is_active', 'created_at'
+        'title','is_active'
     ]
 
     list_filter = [
@@ -154,17 +152,27 @@ class ImageUploadAdmin(admin.ModelAdmin):
 
     resize_display.short_description = 'اندازه'
 
+    @admin.display(description="Size Comparison", ordering="compression_ratio")
     def size_comparison(self, obj):
         """Display size comparison"""
-        original_size = obj.get_original_size_display()
+        original_size = str(obj.get_original_size_display())
 
         if obj.processed_image and obj.processed_size > 0:
-            processed_size = obj.get_processed_size_display()
-            if obj.compression_ratio > 0:
+            processed_size = str(obj.get_processed_size_display())
+
+            # اطمینان از اینکه compression_ratio عددی است
+            try:
+                ratio = float(obj.compression_ratio)
+            except (ValueError, TypeError):
+                ratio = None
+
+            if ratio is not None and ratio > 0:
                 return format_html(
                     '{} → <strong style="color: #28a745;">{}</strong><br>'
                     '<small style="color: #dc3545;">-{:.1f}%</small>',
-                    original_size, processed_size, obj.compression_ratio
+                    original_size,
+                    processed_size,
+                    ratio
                 )
             else:
                 return format_html(

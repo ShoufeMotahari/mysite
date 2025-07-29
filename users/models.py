@@ -1,6 +1,6 @@
 # users/models.py - Enhanced with User Types
 from django.db import models
-import django_jalali.db.models as jmodels
+from django_jalali.db.models import jDateTimeField
 from django.contrib.auth.models import AbstractUser
 from django.utils.text import slugify
 import random
@@ -617,8 +617,10 @@ from django.core.files.base import ContentFile
 from io import BytesIO
 from django.conf import settings
 import logging
-
-logger = logging.getLogger('users.models.image')
+# Add these imports at the top of your models.py
+from django.db import models
+from django.utils import timezone
+from django.conf import settings
 
 
 class ImageUpload(models.Model):
@@ -794,16 +796,22 @@ class ImageUpload(models.Model):
         if is_new or self.processing_status == 'pending':
             self.process_image_async()
 
+    # Fix for the process_image_async method in your model
+
     def process_image_async(self):
         """پردازش غیرهمزمان تصویر"""
         try:
             self.processing_status = 'processing'
             self.save(update_fields=['processing_status'])
 
-            if (self.minification_level != 'none' or
+            # Check if any processing is needed
+            needs_processing = (
+                    self.minification_level != 'none' or
                     self.resize_option != 'original' or
-                    self.convert_to_webp):
+                    self.convert_to_webp
+            )
 
+            if needs_processing:
                 success = self.process_image()
 
                 if success:
@@ -814,15 +822,30 @@ class ImageUpload(models.Model):
                     self.processing_status = 'failed'
                     logger.error(f"خطا در پردازش تصویر {self.title}")
             else:
+                # Even if no processing is needed, mark as completed
                 self.processing_status = 'completed'
                 self.processed_at = timezone.now()
+                # Copy original to processed for consistency
+                if not self.processed_image:
+                    self.processed_image = self.original_image
+                    self.processed_size = self.original_size
+                    self.processed_url = self.original_url
 
-            self.save(update_fields=['processing_status', 'processed_at'])
+            self.save(update_fields=['processing_status', 'processed_at', 'processed_image', 'processed_size',
+                                     'processed_url'])
 
         except Exception as e:
             self.processing_status = 'failed'
             self.save(update_fields=['processing_status'])
-            logger.error(f"خطا در پردازش تصویر {self.title}: {str(e)}")
+            logger.error(f"خطا در پردازش تصویر {self.title}: {str(e)}", exc_info=True)
+
+    # Also add this method to manually trigger processing
+    def reprocess_image(self):
+        """Force reprocess the image"""
+        self.processing_status = 'pending'
+        self.save(update_fields=['processing_status'])
+        self.process_image_async()
+        return self.processing_status == 'completed'
 
     def process_image(self):
         """پردازش تصویر با تنظیمات انتخاب شده"""

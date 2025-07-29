@@ -217,6 +217,7 @@ INSTALLED_APPS = [
     'ckeditor',
     # 'passwords',
     'django_pwned',
+    'django_jalali',
 ]
 CKEDITOR_CONFIGS = {
     'default': {
