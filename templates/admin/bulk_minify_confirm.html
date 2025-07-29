@@ -1,0 +1,27 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_modify %}
+
+{% block title %}تأیید کوچک‌سازی گروهی{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">خانه</a>
+    &rsaquo; <a href="{% url 'admin:yourapp_imageupload_changelist' %}">آپلود تصاویر</a>
+    &rsaquo; کوچک‌سازی گروهی
+</div>
+{% endblock %}
+
+{% block content %}
+<form method="post">
+    {% csrf_token %}
+    <div>
+        <h1>کوچک‌سازی گروهی تصاویر</h1>
+        <p>آیا می‌خواهید تمام تصاویری که گزینه کوچک‌سازی برای آن‌ها فعال است را مجدداً پردازش کنید؟</p>
+        <p><strong>توجه:</strong> این عملیات ممکن است زمان‌بر باشد.</p>
+    </div>
+    <div class="submit-row">
+        <input type="submit" value="تأیید و اجرا" class="default" />
+        <a href="{% url 'admin:yourapp_imageupload_changelist' %}" class="button cancel-link">انصراف</a>
+    </div>
+</form>
+{% endblock %}

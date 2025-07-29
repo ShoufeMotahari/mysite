@@ -52,30 +52,136 @@ AWS_S3_USE_SSL = True
 AWS_S3_SIGNATURE_VERSION = 's3v4'  # Required for Arvan
 AWS_S3_VERIFY = True
 
-# Object parameters
+# بهینه‌سازی برای آپلود تصاویر
 AWS_S3_OBJECT_PARAMETERS = {
-    'CacheControl': 'max-age=86400',
+    'CacheControl': 'max-age=86400',  # cache برای 24 ساعت
+    'Metadata': {
+        'processed-by': 'django-image-processor'
+    }
+}
+# فرمت‌های مجاز برای آپلود
+ALLOWED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+
+# حداکثر ابعاد تصویر
+MAX_IMAGE_DIMENSIONS = (8000, 8000)
+MIN_IMAGE_DIMENSIONS = (50, 50)
+
+# ========================================
+# Performance Settings for Image Processing
+# ========================================
+
+# استفاده از کش برای metadata تصاویر
+# Enhanced cache configuration for production
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "rate-limit-cache",
+        "TIMEOUT": 3600,  # ✅ 1 ساعت
+        "OPTIONS": {
+            "MAX_ENTRIES": 10000,
+        }
+    }
 }
 
-# Storage configuration for newer Django versions
+# ========================================
+# Security Settings for Image Upload
+# ========================================
+
+# فیلتر فرمت‌های خطرناک
+FORBIDDEN_IMAGE_TYPES = ['.svg', '.bmp', '.tiff']
+
+# اسکن ویروس (اختیاری - برای production)
+ENABLE_VIRUS_SCAN = False
+
+# ========================================
+# Backup Strategy (اختیاری)
+# ========================================
+
+# نگهداری تصاویر اصلی برای backup
+KEEP_ORIGINAL_IMAGES = True
+
+# پاک‌سازی خودکار تصاویر قدیمی (روز)
+AUTO_CLEANUP_DAYS = 365
+
+# ========================================
+# API Settings (اختیاری)
+# ========================================
+
+# فعال‌سازی API برای mobile apps
+ENABLE_IMAGE_API = True
+
+# محدودیت rate limit برای آپلود تصویر
+IMAGE_UPLOAD_RATE_LIMIT = {
+    'requests': 20,
+    'window': 3600,  # 20 تصویر در ساعت
+}
+
+# ========================================
+# Monitoring and Analytics
+# ========================================
+
+# فعال‌سازی آمارگیری
+ENABLE_IMAGE_ANALYTICS = True
+
+# ذخیره آمار فشرده‌سازی
+TRACK_COMPRESSION_STATS = True
+
+# گزارش weekly برای مدیران
+WEEKLY_IMAGE_REPORT = True
+
+
+# FIXED: Media configuration
+# Image upload settings
+IMAGE_UPLOAD_SETTINGS = {
+    'DEFAULT_QUALITY': 85,
+    'DEFAULT_MAX_WIDTH': 1920,
+    'DEFAULT_MAX_HEIGHT': 1080,
+    'ALLOWED_FORMATS': ['JPEG', 'PNG', 'WebP'],
+    'MAX_FILE_SIZE': 10 * 1024 * 1024,  # 10MB
+
+    # تنظیمات جدید برای سیستم minification
+    'MINIFICATION_LEVELS': {
+        'none': 95,
+        'low': 90,
+        'medium': 75,
+        'high': 60,
+        'maximum': 45,
+    },
+    'RESIZE_DIMENSIONS': {
+        'large': (1920, 1080),
+        'medium': (1280, 720),
+        'small': (800, 600),
+        'thumbnail': (300, 200),
+    },
+    'WEBP_QUALITY': 85,
+    'ENABLE_PROGRESSIVE_JPEG': True,
+    'PRESERVE_EXIF': False,  # حذف اطلاعات اضافی برای کاهش حجم
+}
+# تنظیمات storage برای تصاویر پردازش شده
+# همه چیز در Arvan Cloud ذخیره می‌شود (هم اصلی هم پردازش شده)
+IMAGE_STORAGES = {
+    'original': 'default',  # Arvan Cloud
+    'processed': 'default',  # Arvan Cloud
+}
+
+# حداکثر زمان پردازش تصویر (ثانیه)
+IMAGE_PROCESSING_TIMEOUT = 30
+STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/static/'
+MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/media/"
+
+# Also update your STORAGES configuration to handle the different paths
 STORAGES = {
     'default': {
         'BACKEND': 'storages.backends.s3boto3.S3Boto3Storage',
+        'OPTIONS': {
+            'location': 'media',
+        },
     },
     'staticfiles': {
-        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',  # Local files
     },
 }
-
-# FIXED: Media configuration
-MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/"
-
-# REMOVE this line - it's for older Django versions:
-# DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-
-# Static files configuration
-STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / 'static']
+# STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # CKEditor configuration
@@ -215,7 +321,6 @@ USE_TZ = True
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-BASE_DIR = Path(__file__).resolve().parent.parent
 
 # MEDIA_ROOT = BASE_DIR / 'media'
 
@@ -270,16 +375,7 @@ RATE_LIMIT_SKIP_PATHS = [
     # Add more paths as needed
 ]
 
-# Enhanced cache configuration for production
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-        "LOCATION": "rate-limit-cache",
-        "OPTIONS": {
-            "MAX_ENTRIES": 10000,
-        }
-    }
-}
+
     # For production, consider using Redis:
     # "default": {
     #     "BACKEND": "django_redis.cache.RedisCache",
@@ -497,6 +593,14 @@ LOGGING = {
             'backupCount': 5,
             'formatter': 'detailed',
         },
+        'image_processing_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(LOG_DIR, 'rate_limit.log'),
+            'maxBytes': 1024 * 1024 * 10,  # 10 MB
+            'backupCount': 5,
+            'formatter': 'detailed',
+        },
     },
     'loggers': {
         'accounts_': {
@@ -601,6 +705,11 @@ LOGGING = {
         },
         'passwords.admin': {
             'handlers': ['admin_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'users.models.image': {
+            'handlers': ['image_processing_file', 'console'],
             'level': 'INFO',
             'propagate': False,
         },

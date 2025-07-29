@@ -1,0 +1,524 @@
+<!-- templates/admin/image_stats.html -->
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}آمار تصاویر | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <a href="{% url 'admin:index' %}">{{ site_header|default:_('Django administration') }}</a>
+</h1>
+{% endblock %}
+
+{% block nav-global %}
+<div style="background: #417690; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center;">
+    <div style="color: white;">
+        <i class="fas fa-chart-bar" style="margin-left: 8px;"></i>
+        آمار و گزارشات تصاویر
+    </div>
+    <a href="{% url 'admin:users_imageupload_changelist' %}"
+       style="color: white; text-decoration: none; padding: 8px 15px; background: rgba(255,255,255,0.2); border-radius: 5px;">
+        <i class="fas fa-arrow-right" style="margin-left: 5px;"></i>
+        بازگشت به لیست تصاویر
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="main-content" style="padding: 20px; direction: rtl;">
+
+    <!-- Stats Cards -->
+    <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px;">
+
+        <!-- Total Images -->
+        <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 15px; box-shadow: 0 8px 25px rgba(0,0,0,0.1);">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <h3 style="margin: 0 0 8px 0; font-size: 2.5rem; font-weight: bold;">{{ stats.total_images }}</h3>
+                    <p style="margin: 0; font-size: 1.1rem; opacity: 0.9;">کل تصاویر</p>
+                </div>
+                <i class="fas fa-images" style="font-size: 3rem; opacity: 0.7;"></i>
+            </div>
+        </div>
+
+        <!-- Active Images -->
+        <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 25px; border-radius: 15px; box-shadow: 0 8px 25px rgba(0,0,0,0.1);">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <h3 style="margin: 0 0 8px 0; font-size: 2.5rem; font-weight: bold;">{{ stats.active_images }}</h3>
+                    <p style="margin: 0; font-size: 1.1rem; opacity: 0.9;">تصاویر فعال</p>
+                </div>
+                <i class="fas fa-check-circle" style="font-size: 3rem; opacity: 0.7;"></i>
+            </div>
+        </div>
+
+        <!-- Total Size -->
+        <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 25px; border-radius: 15px; box-shadow: 0 8px 25px rgba(0,0,0,0.1);">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <h3 style="margin: 0 0 8px 0; font-size: 1.8rem; font-weight: bold;">{{ stats.total_size_display }}</h3>
+                    <p style="margin: 0; font-size: 1.1rem; opacity: 0.9;">حجم کل اصلی</p>
+                </div>
+                <i class="fas fa-hdd" style="font-size: 3rem; opacity: 0.7;"></i>
+            </div>
+        </div>
+
+        <!-- Processed Size -->
+        <div class="stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 25px; border-radius: 15px; box-shadow: 0 8px 25px rgba(0,0,0,0.1);">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <h3 style="margin: 0 0 8px 0; font-size: 1.8rem; font-weight: bold;">{{ stats.processed_size_display }}</h3>
+                    <p style="margin: 0; font-size: 1.1rem; opacity: 0.9;">حجم پردازش شده</p>
+                </div>
+                <i class="fas fa-compress-alt" style="font-size: 3rem; opacity: 0.7;"></i>
+            </div>
+        </div>
+
+        <!-- Savings -->
+        <div class="stat-card" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; padding: 25px; border-radius: 15px; box-shadow: 0 8px 25px rgba(0,0,0,0.1);">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <h3 style="margin: 0 0 8px 0; font-size: 1.8rem; font-weight: bold;">{{ stats.total_savings_display }}</h3>
+                    <p style="margin: 0; font-size: 1.1rem; opacity: 0.9;">صرفه‌جویی حجم</p>
+                    <small style="opacity: 0.8;">{{ stats.savings_percentage|floatformat:1 }}% کاهش</small>
+                </div>
+                <i class="fas fa-save" style="font-size: 3rem; opacity: 0.7;"></i>
+            </div>
+        </div>
+
+        <!-- WebP Count -->
+        <div class="stat-card" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); color: #333; padding: 25px; border-radius: 15px; box-shadow: 0 8px 25px rgba(0,0,0,0.1);">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <h3 style="margin: 0 0 8px 0; font-size: 2.5rem; font-weight: bold;">{{ stats.webp_count }}</h3>
+                    <p style="margin: 0; font-size: 1.1rem;">تصاویر WebP</p>
+                </div>
+                <i class="fas fa-file-image" style="font-size: 3rem; opacity: 0.7;"></i>
+            </div>
+        </div>
+
+        <!-- Galleries Count -->
+        <div class="stat-card" style="background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); color: #333; padding: 25px; border-radius: 15px; box-shadow: 0 8px 25px rgba(0,0,0,0.1);">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <h3 style="margin: 0 0 8px 0; font-size: 2.5rem; font-weight: bold;">{{ stats.galleries_count }}</h3>
+                    <p style="margin: 0; font-size: 1.1rem;">گالری‌ها</p>
+                </div>
+                <i class="fas fa-folder-open" style="font-size: 3rem; opacity: 0.7;"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Compression Analysis -->
+    <div class="analysis-section" style="background: white; border-radius: 15px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 30px;">
+        <h2 style="color: #333; margin: 0 0 20px 0; display: flex; align-items: center;">
+            <i class="fas fa-chart-pie" style="margin-left: 15px; color: #007bff;"></i>
+            تحلیل فشرده‌سازی
+        </h2>
+
+        <div class="compression-info" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+            <div class="info-box" style="background: #f8f9fa; padding: 20px; border-radius: 10px; border-right: 4px solid #28a745;">
+                <h4 style="color: #333; margin: 0 0 10px 0;">میانگین فشرده‌سازی</h4>
+                <p style="font-size: 1.5rem; font-weight: bold; color: #28a745; margin: 0;">
+                    {{ stats.avg_compression|floatformat:1 }}%
+                </p>
+            </div>
+
+            <div class="info-box" style="background: #f8f9fa; padding: 20px; border-radius: 10px; border-right: 4px solid #17a2b8;">
+                <h4 style="color: #333; margin: 0 0 10px 0;">تصاویر بهینه شده</h4>
+                <p style="font-size: 1.5rem; font-weight: bold; color: #17a2b8; margin: 0;">
+                    {{ stats.webp_count }} از {{ stats.total_images }}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="actions-section" style="background: white; border-radius: 15px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+        <h2 style="color: #333; margin: 0 0 20px 0; display: flex; align-items: center;">
+            <i class="fas fa-tools" style="margin-left: 15px; color: #ffc107;"></i>
+            عملیات سریع
+        </h2>
+
+        <div class="quick-actions" style="display: flex; gap: 15px; flex-wrap: wrap;">
+            <a href="{% url 'admin:users_imageupload_changelist' %}"
+               class="action-btn"
+               style="display: inline-flex; align-items: center; padding: 12px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; transition: all 0.3s ease;">
+                <i class="fas fa-list" style="margin-left: 8px;"></i>
+                مدیریت تصاویر
+            </a>
+
+            <a href="{% url 'admin:users_imagegallery_changelist' %}"
+               class="action-btn"
+               style="display: inline-flex; align-items: center; padding: 12px 20px; background: #28a745; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; transition: all 0.3s ease;">
+                <i class="fas fa-folder" style="margin-left: 8px;"></i>
+                مدیریت گالری‌ها
+            </a>
+
+            <a href="{% url 'admin:bulk_process' %}"
+               class="action-btn"
+               style="display: inline-flex; align-items: center; padding: 12px 20px; background: #ffc107; color: #333; text-decoration: none; border-radius: 8px; font-weight: bold; transition: all 0.3s ease;">
+                <i class="fas fa-cogs" style="margin-left: 8px;"></i>
+                پردازش انبوه
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Add Font Awesome for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<style>
+/* Hover effects */
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .compression-info {
+        grid-template-columns: 1fr;
+    }
+
+    .quick-actions {
+        flex-direction: column;
+    }
+
+    .action-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.stat-card, .analysis-section, .actions-section {
+    animation: fadeIn 0.5s ease-out;
+}
+</style>
+{% endblock %}
+
+{% block footer %}
+<div style="padding: 20px; border-top: 1px solid #dee2e6; text-align: center; color: #6c757d; direction: rtl;">
+    <p style="margin: 0;">سیستم مدیریت تصاویر | آمار و گزارشات</p>
+</div>
+{% endblock %}
+
+
+<!-- templates/admin/bulk_process.html -->
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}پردازش انبوه تصاویر | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <a href="{% url 'admin:index' %}">{{ site_header|default:_('Django administration') }}</a>
+</h1>
+{% endblock %}
+
+{% block nav-global %}
+<div style="background: #417690; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center;">
+    <div style="color: white;">
+        <i class="fas fa-cogs" style="margin-left: 8px;"></i>
+        پردازش انبوه تصاویر
+    </div>
+    <a href="{% url 'admin:users_imageupload_changelist' %}"
+       style="color: white; text-decoration: none; padding: 8px 15px; background: rgba(255,255,255,0.2); border-radius: 5px;">
+        <i class="fas fa-arrow-right" style="margin-left: 5px;"></i>
+        بازگشت به لیست تصاویر
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="main-content" style="padding: 20px; direction: rtl;">
+
+    <!-- Messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}" style="padding: 15px; margin-bottom: 20px; border-radius: 8px;
+                 {% if message.tags == 'success' %}background: #d4edda; color: #155724; border: 1px solid #c3e6cb;
+                 {% elif message.tags == 'error' %}background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;
+                 {% else %}background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb;{% endif %}">
+                <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}" style="margin-left: 8px;"></i>
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Processing Form -->
+    <div class="form-container" style="background: white; border-radius: 15px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 30px;">
+        <h2 style="color: #333; margin: 0 0 25px 0; display: flex; align-items: center;">
+            <i class="fas fa-sliders-h" style="margin-left: 15px; color: #007bff;"></i>
+            تنظیمات پردازش
+        </h2>
+
+        <form method="post" id="bulkProcessForm">
+            {% csrf_token %}
+
+            <div class="form-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; margin-bottom: 30px;">
+
+                <!-- Minification Level -->
+                <div class="form-group">
+                    <label style="display: block; font-weight: bold; margin-bottom: 8px; color: #333;">
+                        <i class="fas fa-compress" style="margin-left: 8px; color: #28a745;"></i>
+                        سطح فشرده‌سازی
+                    </label>
+                    <select name="minification_level" class="form-control" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; direction: rtl;">
+                        <option value="">بدون تغییر</option>
+                        {% for value, label in minification_choices %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    <small style="color: #6c757d; display: block; margin-top: 5px;">
+                        انتخاب سطح فشرده‌سازی برای تمام تصاویر
+                    </small>
+                </div>
+
+                <!-- Resize Option -->
+                <div class="form-group">
+                    <label style="display: block; font-weight: bold; margin-bottom: 8px; color: #333;">
+                        <i class="fas fa-expand-arrows-alt" style="margin-left: 8px; color: #007bff;"></i>
+                        تغییر اندازه
+                    </label>
+                    <select name="resize_option" class="form-control" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; direction: rtl;">
+                        <option value="">بدون تغییر</option>
+                        {% for value, label in size_choices %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    <small style="color: #6c757d; display: block; margin-top: 5px;">
+                        تغییر اندازه تصاویر به ابعاد مشخص
+                    </small>
+                </div>
+
+                <!-- Convert to WebP -->
+                <div class="form-group">
+                    <label style="display: block; font-weight: bold; margin-bottom: 8px; color: #333;">
+                        <i class="fas fa-file-image" style="margin-left: 8px; color: #ffc107;"></i>
+                        تبدیل فرمت
+                    </label>
+                    <div class="form-check" style="padding: 12px; background: #f8f9fa; border-radius: 6px;">
+                        <input type="checkbox" name="convert_to_webp" id="convert_to_webp" class="form-check-input">
+                        <label for="convert_to_webp" class="form-check-label" style="margin-right: 8px;">
+                            تبدیل به فرمت WebP
+                        </label>
+                    </div>
+                    <small style="color: #6c757d; display: block; margin-top: 5px;">
+                        تبدیل تصاویر به فرمت WebP برای کاهش حجم
+                    </small>
+                </div>
+            </div>
+
+            <!-- Image Selection -->
+            <div class="selection-section" style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 25px;">
+                <h3 style="color: #333; margin: 0 0 15px 0; display: flex; align-items: center;">
+                    <i class="fas fa-check-square" style="margin-left: 10px; color: #17a2b8;"></i>
+                    انتخاب تصاویر
+                </h3>
+
+                <div class="selection-options" style="margin-bottom: 20px;">
+                    <div class="form-check" style="margin-bottom: 10px;">
+                        <input type="checkbox" name="apply_to_all" id="apply_to_all" class="form-check-input" onchange="toggleImageSelection()">
+                        <label for="apply_to_all" class="form-check-label" style="margin-right: 8px; font-weight: bold;">
+                            اعمال به همه تصاویر ({{ images.count }} تصویر)
+                        </label>
+                    </div>
+
+                    <div id="imageSelectionContainer">
+                        <p style="margin: 0 0 15px 0; color: #666;">یا تصاویر مورد نظر را انتخاب کنید:</p>
+
+                        <div class="images-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; max-height: 400px; overflow-y: auto; padding: 10px; border: 1px solid #ddd; border-radius: 6px; background: white;">
+                            {% for image in images %}
+                            <div class="image-item" style="text-align: center; padding: 10px; border: 2px solid transparent; border-radius: 8px; cursor: pointer; transition: all 0.3s ease;" onclick="toggleImageCheck({{ image.id }})">
+                                <input type="checkbox" name="image_ids" value="{{ image.id }}" id="image_{{ image.id }}" style="display: none;">
+                                {% if image.get_active_image %}
+                                <img src="{{ image.get_active_image.url }}" style="width: 100%; height: 80px; object-fit: cover; border-radius: 5px; margin-bottom: 8px;">
+                                {% endif %}
+                                <div style="font-size: 12px; color: #333; font-weight: bold;">{{ image.title|truncatechars:20 }}</div>
+                                <div style="font-size: 10px; color: #666;">{{ image.get_original_size_display }}</div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <div style="margin-top: 15px; text-align: center;">
+                            <button type="button" onclick="selectAllImages()" class="btn-select" style="margin-left: 10px; padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                انتخاب همه
+                            </button>
+                            <button type="button" onclick="deselectAllImages()" class="btn-select" style="padding: 8px 15px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                لغو انتخاب همه
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div style="text-align: center;">
+                <button type="submit" class="btn-submit" style="padding: 15px 40px; background: #28a745; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: all 0.3s ease;">
+                    <i class="fas fa-play" style="margin-left: 10px;"></i>
+                    شروع پردازش
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Info Section -->
+    <div class="info-section" style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 10px; padding: 20px;">
+        <h4 style="color: #856404; margin: 0 0 15px 0; display: flex; align-items: center;">
+            <i class="fas fa-info-circle" style="margin-left: 10px;"></i>
+            نکات مهم
+        </h4>
+        <ul style="margin: 0; padding-right: 20px; color: #856404; line-height: 1.6;">
+            <li>پردازش تصاویر ممکن است زمان‌بر باشد، لطفاً صبر کنید</li>
+            <li>تصاویر اصلی حفظ می‌شوند و تصاویر جدید در کنار آنها ذخیره می‌شوند</li>
+            <li>فشرده‌سازی بالا ممکن است کیفیت تصویر را کاهش دهد</li>
+            <li>فرمت WebP در مرورگرهای قدیمی پشتیبانی نمی‌شود</li>
+            <li>قبل از پردازش انبوه، روی چند تصویر تست کنید</li>
+        </ul>
+    </div>
+</div>
+
+<!-- Add Font Awesome for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<style>
+/* Form styling */
+.form-control {
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+/* Image selection styling */
+.image-item:hover {
+    border-color: #007bff;
+    background: #f8f9fa;
+}
+
+.image-item.selected {
+    border-color: #28a745;
+    background: #d4edda;
+}
+
+/* Button styling */
+.btn-submit:hover, .btn-select:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.btn-submit:hover {
+    background: #218838;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .images-grid {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    }
+}
+</style>
+
+<script>
+// JavaScript functions for form interaction
+function toggleImageSelection() {
+    const applyToAll = document.getElementById('apply_to_all');
+    const container = document.getElementById('imageSelectionContainer');
+
+    if (applyToAll.checked) {
+        container.style.display = 'none';
+        // Uncheck all individual images
+        document.querySelectorAll('input[name="image_ids"]').forEach(cb => cb.checked = false);
+    } else {
+        container.style.display = 'block';
+    }
+}
+
+function toggleImageCheck(imageId) {
+    const checkbox = document.getElementById('image_' + imageId);
+    const imageItem = checkbox.parentElement;
+
+    checkbox.checked = !checkbox.checked;
+
+    if (checkbox.checked) {
+        imageItem.classList.add('selected');
+    } else {
+        imageItem.classList.remove('selected');
+    }
+}
+
+function selectAllImages() {
+    document.querySelectorAll('input[name="image_ids"]').forEach(cb => {
+        cb.checked = true;
+        cb.parentElement.classList.add('selected');
+    });
+}
+
+function deselectAllImages() {
+    document.querySelectorAll('input[name="image_ids"]').forEach(cb => {
+        cb.checked = false;
+        cb.parentElement.classList.remove('selected');
+    });
+}
+
+// Form validation
+document.getElementById('bulkProcessForm').addEventListener('submit', function(e) {
+    const applyToAll = document.getElementById('apply_to_all').checked;
+    const selectedImages = document.querySelectorAll('input[name="image_ids"]:checked').length;
+
+    if (!applyToAll && selectedImages === 0) {
+        e.preventDefault();
+        alert('لطفاً تصاویری را انتخاب کنید یا گزینه "اعمال به همه تصاویر" را فعال کنید.');
+        return;
+    }
+
+    // Check if at least one processing option is selected
+    const minification = document.querySelector('select[name="minification_level"]').value;
+    const resize = document.querySelector('select[name="resize_option"]').value;
+    const webp = document.querySelector('input[name="convert_to_webp"]').checked;
+
+    if (!minification && !resize && !webp) {
+        e.preventDefault();
+        alert('لطفاً حداقل یک گزینه پردازش را انتخاب کنید.');
+        return;
+    }
+
+    // Show loading state
+    const submitBtn = document.querySelector('.btn-submit');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-left: 10px;"></i>در حال پردازش...';
+});
+</script>
+{% endblock %}
+
+{% block footer %}
+<div style="padding: 20px; border-top: 1px solid #dee2e6; text-align: center; color: #6c757d; direction: rtl;">
+    <p style="margin: 0;">سیستم مدیریت تصاویر | پردازش انبوه</p>
+</div>
+{% endblock %}
