@@ -10,7 +10,7 @@ def send_activation_email(user, token):
     """Send account activation email"""
     try:
         subject = 'فعال‌سازی حساب کاربری'
-        activation_url = f"{settings.SITE_URL}{reverse('users.activate')}?token={token}"
+        activation_url = f"{settings.SITE_URL}{reverse('users:activate')}?token={token}"
 
         message = f"""
 سلام {user.mobile},
