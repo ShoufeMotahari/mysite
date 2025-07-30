@@ -14,7 +14,8 @@ from django.core.mail import EmailMultiAlternatives
 
 def send_activation_email(user, token):
     try:
-        subject = 'فعال‌سازی حساب کاربری'  # ✅ use plain Unicode string
+        subject = str(Header('فعال‌سازی حساب کاربری', 'utf-8'))  # encode explicitly
+        from_email = str(Header(settings.DEFAULT_FROM_EMAIL, 'utf-8'))
 
         activation_url = f"{settings.SITE_URL}{reverse('users:activate')}?token={token}"
         mobile = str(user.mobile)
@@ -49,7 +50,7 @@ def send_activation_email(user, token):
         msg = EmailMultiAlternatives(
             subject=subject,
             body=text_content,
-            from_email=settings.DEFAULT_FROM_EMAIL,
+            from_email=from_email,
             to=[user.email],
         )
         msg.encoding = 'utf-8'  # ✅ critical!
