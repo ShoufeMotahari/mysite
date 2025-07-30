@@ -1,4 +1,4 @@
-from django.core.mail import EmailMessage
+from django.core.mail import send_mail
 from django.conf import settings
 from django.urls import reverse
 import logging
@@ -12,7 +12,7 @@ def send_activation_email(user, token):
         subject = 'فعال‌سازی حساب کاربری'
         activation_url = f"{settings.SITE_URL}{reverse('users:activate')}?token={token}"
 
-        text_message = f"""
+        message = f"""
 سلام {user.mobile},
 
 برای فعال‌سازی حساب کاربری خود روی لینک زیر کلیک کنید:
@@ -39,22 +39,14 @@ def send_activation_email(user, token):
         </html>
         """
 
-        # Create EmailMessage with explicit encoding
-        email = EmailMessage(
+        send_mail(
             subject=subject,
-            body=text_message,
+            message=message,
             from_email=settings.DEFAULT_FROM_EMAIL,
-            to=[user.email],
+            recipient_list=[user.email],
+            html_message=html_message,
+            fail_silently=False,
         )
-
-        # Set content type and charset explicitly
-        email.content_subtype = 'plain'
-        email.encoding = 'utf-8'
-
-        # Attach HTML version
-
-        # Send the email
-        email.send(fail_silently=False)
 
         logger.info(f"Activation email sent to {user.email}")
         return True
@@ -70,7 +62,7 @@ def send_password_reset_email(user, token):
         subject = 'بازیابی رمز عبور'
         reset_url = f"{settings.SITE_URL}{reverse('reset-password-email')}?token={token}"
 
-        text_message = f"""
+        message = f"""
 سلام {user.mobile},
 
 برای بازیابی رمز عبور خود روی لینک زیر کلیک کنید:
@@ -100,21 +92,14 @@ def send_password_reset_email(user, token):
         </html>
         """
 
-        # Create EmailMessage with explicit encoding
-        email = EmailMessage(
+        send_mail(
             subject=subject,
-            body=text_message,
+            message=message,
             from_email=settings.DEFAULT_FROM_EMAIL,
-            to=[user.email],
+            recipient_list=[user.email],
+            html_message=html_message,
+            fail_silently=False,
         )
-
-        # Set content type and charset explicitly
-        email.content_subtype = 'plain'
-        email.encoding = 'utf-8'
-
-
-        # Send the email
-        email.send(fail_silently=False)
 
         logger.info(f"Password reset email sent to {user.email}")
         return True
