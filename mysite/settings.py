@@ -174,12 +174,27 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+ENV_TYPE = env('ENV_TYPE', default='production')
+
+
+if ENV_TYPE == 'local':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': env('DB_NAME'),
+            'USER': env('DB_USER'),
+            'PASSWORD': env('DB_PASSWORD'),
+            'HOST': env('DB_HOST', default='localhost'),
+            'PORT': env('DB_PORT', default='3306'),
+        }
+    }
 
 
 # Password validation
@@ -224,7 +239,7 @@ SMS_API_KEY = env("SMS_API_KEY")
 SMS_LINE_NUMBER = env("SMS_LINE_NUMBER")
 SMS_TEMPLATE_ID = env("SMS_TEMPLATE_ID")
 
-SITE_URL = 'http://127.0.0.1:8000'  # برای لینک فعال‌سازی
+SITE_URL = env('SITE_URL')
 
 LOG_DIR = os.path.join(BASE_DIR, 'logs')  # مسیر ذخیره‌ی فایل‌های لاگ
 
@@ -237,13 +252,27 @@ if not os.path.exists(LOG_DIR):
 
 # Email Configuration
 # EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'# smpt باید فعال بشه فعلا برای تست ما کد پیین را میذاریم
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-# EMAIL_HOST = 'smtp.gmail.com'  # Or your SMTP server
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'your-email@gmail.com'  # Your email
-EMAIL_HOST_PASSWORD = 'your-password'  # Your password or app password
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+
+if ENV_TYPE == 'local':
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+    EMAIL_HOST = ''
+    EMAIL_PORT = ''
+    EMAIL_USE_TLS = False
+    EMAIL_USE_SSL = False
+    EMAIL_HOST_USER = ''
+    EMAIL_HOST_PASSWORD = ''
+    DEFAULT_FROM_EMAIL = ''
+else:
+    EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
+    EMAIL_HOST = env('EMAIL_HOST')
+    EMAIL_PORT = env('EMAIL_PORT', cast=int)
+    EMAIL_USE_TLS = env('EMAIL_USE_TLS', cast=bool)
+    EMAIL_USE_SSL = env('EMAIL_USE_SSL', cast=bool)
+    EMAIL_HOST_USER = env('EMAIL_HOST_USER')
+    EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
+    DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
+
 
 # Basic rate limiting settings
 RATE_LIMIT_REQUESTS = 30000         # Only 1 request allowed
