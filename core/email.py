@@ -1,3 +1,5 @@
+from email.header import Header
+
 from django.core.mail import send_mail
 from django.conf import settings
 from django.urls import reverse
@@ -10,7 +12,7 @@ from django.core.mail import EmailMultiAlternatives
 
 def send_activation_email(user, token):
     try:
-        subject = 'فعال‌سازی حساب کاربری'
+        subject = str(Header('فعال‌سازی حساب کاربری', 'utf-8'))
         activation_url = f"{settings.SITE_URL}{reverse('users:activate')}?token={token}"
 
         text_content = f"""
