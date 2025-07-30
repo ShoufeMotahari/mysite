@@ -52,7 +52,6 @@ def send_activation_email(user, token):
         email.encoding = 'utf-8'
 
         # Attach HTML version
-        email.attach_alternative(html_message, "text/html")
 
         # Send the email
         email.send(fail_silently=False)
