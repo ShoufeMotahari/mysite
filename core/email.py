@@ -14,7 +14,8 @@ from django.core.mail import EmailMultiAlternatives
 
 def send_activation_email(user, token):
     try:
-        subject = Header('فعال‌سازی حساب کاربری', 'utf-8').encode()
+        subject = 'فعال‌سازی حساب کاربری'  # ✅ use plain Unicode string
+
         activation_url = f"{settings.SITE_URL}{reverse('users:activate')}?token={token}"
         mobile = str(user.mobile)
 
@@ -51,8 +52,7 @@ def send_activation_email(user, token):
             from_email=settings.DEFAULT_FROM_EMAIL,
             to=[user.email],
         )
-        msg.encoding = 'utf-8'
-
+        msg.encoding = 'utf-8'  # ✅ critical!
         msg.attach_alternative(html_content, "text/html")
         msg.send()
 
@@ -62,7 +62,6 @@ def send_activation_email(user, token):
     except Exception as e:
         logger.error(f"Failed to send activation email to {user.email}: {str(e)}")
         return False
-
 
 def send_password_reset_email(user, token):
     """Send password reset email"""
