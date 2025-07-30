@@ -6,13 +6,14 @@ import logging
 logger = logging.getLogger('emails')
 
 
+from django.core.mail import EmailMultiAlternatives
+
 def send_activation_email(user, token):
-    """Send account activation email"""
     try:
         subject = 'فعال‌سازی حساب کاربری'
         activation_url = f"{settings.SITE_URL}{reverse('users:activate')}?token={token}"
 
-        message = f"""
+        text_content = f"""
 سلام {user.mobile},
 
 برای فعال‌سازی حساب کاربری خود روی لینک زیر کلیک کنید:
@@ -23,7 +24,7 @@ def send_activation_email(user, token):
 با تشکر
         """
 
-        html_message = f"""
+        html_content = f"""
         <html>
         <head>
             <meta charset="utf-8">
@@ -39,14 +40,14 @@ def send_activation_email(user, token):
         </html>
         """
 
-        send_mail(
+        msg = EmailMultiAlternatives(
             subject=subject,
-            message=message,
+            body=text_content,
             from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            html_message=html_message,
-            fail_silently=False,
+            to=[user.email]
         )
+        msg.attach_alternative(html_content, "text/html")
+        msg.send()
 
         logger.info(f"Activation email sent to {user.email}")
         return True
@@ -62,7 +63,7 @@ def send_password_reset_email(user, token):
         subject = 'بازیابی رمز عبور'
         reset_url = f"{settings.SITE_URL}{reverse('reset-password-email')}?token={token}"
 
-        message = f"""
+        text_content = f"""
 سلام {user.mobile},
 
 برای بازیابی رمز عبور خود روی لینک زیر کلیک کنید:
@@ -75,7 +76,7 @@ def send_password_reset_email(user, token):
 با تشکر
         """
 
-        html_message = f"""
+        html_content = f"""
         <html>
         <head>
             <meta charset="utf-8">
@@ -92,14 +93,14 @@ def send_password_reset_email(user, token):
         </html>
         """
 
-        send_mail(
+        msg = EmailMultiAlternatives(
             subject=subject,
-            message=message,
+            body=text_content,
             from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            html_message=html_message,
-            fail_silently=False,
+            to=[user.email]
         )
+        msg.attach_alternative(html_content, "text/html")
+        msg.send()
 
         logger.info(f"Password reset email sent to {user.email}")
         return True
