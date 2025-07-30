@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from email.header import Header
 
 from django.core.mail import send_mail
@@ -14,9 +16,10 @@ def send_activation_email(user, token):
     try:
         subject = str(Header('فعال‌سازی حساب کاربری', 'utf-8'))
         activation_url = f"{settings.SITE_URL}{reverse('users:activate')}?token={token}"
+        mobile = str(user.mobile)
 
         text_content = f"""
-سلام {user.mobile},
+سلام {mobile},
 
 برای فعال‌سازی حساب کاربری خود روی لینک زیر کلیک کنید:
 {activation_url}
@@ -33,7 +36,7 @@ def send_activation_email(user, token):
         </head>
         <body dir="rtl">
             <h2>فعال‌سازی حساب کاربری</h2>
-            <p>سلام {user.mobile},</p>
+            <p>سلام {mobile},</p>
             <p>برای فعال‌سازی حساب کاربری خود روی لینک زیر کلیک کنید:</p>
             <a href="{activation_url}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">فعال‌سازی حساب</a>
             <p>این لینک تا 15 دقیقه معتبر است.</p>

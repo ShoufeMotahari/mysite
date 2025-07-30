@@ -383,6 +383,7 @@ CKEDITOR_CONFIGS = {
         ],
     },
 }
+EMAIL_USE_UTF8 = True
 EMAIL_CHARSET = 'utf-8'
 LOGGING = {
     'version': 1,
