@@ -1,4 +1,4 @@
-from django.core.mail import send_mail
+from django.core.mail import EmailMessage
 from django.conf import settings
 from django.urls import reverse
 import logging
@@ -12,7 +12,7 @@ def send_activation_email(user, token):
         subject = 'فعال‌سازی حساب کاربری'
         activation_url = f"{settings.SITE_URL}{reverse('users:activate')}?token={token}"
 
-        message = f"""
+        text_message = f"""
 سلام {user.mobile},
 
 برای فعال‌سازی حساب کاربری خود روی لینک زیر کلیک کنید:
@@ -25,6 +25,9 @@ def send_activation_email(user, token):
 
         html_message = f"""
         <html>
+        <head>
+            <meta charset="utf-8">
+        </head>
         <body dir="rtl">
             <h2>فعال‌سازی حساب کاربری</h2>
             <p>سلام {user.mobile},</p>
@@ -36,14 +39,23 @@ def send_activation_email(user, token):
         </html>
         """
 
-        send_mail(
+        # Create EmailMessage with explicit encoding
+        email = EmailMessage(
             subject=subject,
-            message=message,
+            body=text_message,
             from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            html_message=html_message,
-            fail_silently=False,
+            to=[user.email],
         )
+
+        # Set content type and charset explicitly
+        email.content_subtype = 'plain'
+        email.encoding = 'utf-8'
+
+        # Attach HTML version
+        email.attach_alternative(html_message, "text/html")
+
+        # Send the email
+        email.send(fail_silently=False)
 
         logger.info(f"Activation email sent to {user.email}")
         return True
@@ -59,7 +71,7 @@ def send_password_reset_email(user, token):
         subject = 'بازیابی رمز عبور'
         reset_url = f"{settings.SITE_URL}{reverse('reset-password-email')}?token={token}"
 
-        message = f"""
+        text_message = f"""
 سلام {user.mobile},
 
 برای بازیابی رمز عبور خود روی لینک زیر کلیک کنید:
@@ -74,6 +86,9 @@ def send_password_reset_email(user, token):
 
         html_message = f"""
         <html>
+        <head>
+            <meta charset="utf-8">
+        </head>
         <body dir="rtl">
             <h2>بازیابی رمز عبور</h2>
             <p>سلام {user.mobile},</p>
@@ -86,14 +101,23 @@ def send_password_reset_email(user, token):
         </html>
         """
 
-        send_mail(
+        # Create EmailMessage with explicit encoding
+        email = EmailMessage(
             subject=subject,
-            message=message,
+            body=text_message,
             from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            html_message=html_message,
-            fail_silently=False,
+            to=[user.email],
         )
+
+        # Set content type and charset explicitly
+        email.content_subtype = 'plain'
+        email.encoding = 'utf-8'
+
+        # Attach HTML version
+        email.attach_alternative(html_message, "text/html")
+
+        # Send the email
+        email.send(fail_silently=False)
 
         logger.info(f"Password reset email sent to {user.email}")
         return True
