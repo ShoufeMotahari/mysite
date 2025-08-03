@@ -310,6 +310,12 @@ class VerificationToken(models.Model):
                 timezone.now() - self.created_at < timezone.timedelta(minutes=5)
                 and not self.is_used
         )
+    def is_expired(self):
+        """Check if token has expired (15 minutes)"""
+        from django.utils import timezone
+        import datetime
+        expiry_time = self.created_at + datetime.timedelta(minutes=15)
+        return timezone.now() > expiry_time
 
     def mark_as_used(self):
         self.is_used = True

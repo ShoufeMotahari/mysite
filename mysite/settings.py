@@ -239,7 +239,7 @@ SMS_API_KEY = env("SMS_API_KEY")
 SMS_LINE_NUMBER = env("SMS_LINE_NUMBER")
 SMS_TEMPLATE_ID = env("SMS_TEMPLATE_ID")
 
-SITE_URL = env('SITE_URL')
+
 
 LOG_DIR = os.path.join(BASE_DIR, 'logs')  # مسیر ذخیره‌ی فایل‌های لاگ
 
@@ -299,6 +299,7 @@ DEFAULT_CHARSET = 'utf-8'
 EMAIL_USE_LOCALTIME = True
 EMAIL_USE_UTF8 = True
 EMAIL_CHARSET = 'utf-8'
+SITE_URL = env('SITE_URL')
 
 # Basic rate limiting settings
 RATE_LIMIT_REQUESTS = 30000         # Only 1 request allowed

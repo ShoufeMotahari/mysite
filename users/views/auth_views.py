@@ -16,6 +16,13 @@ from users.models import User, RegisterToken, VerificationToken
 from core.sms import send_verification_sms
 from core.email import send_activation_email
 from core.views import home_view
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.urls import reverse
+from django.conf import settings
+from django.contrib.auth import login
+from core.email import send_activation_email  # ADD THIS LINE
+import logging
 
 logger = logging.getLogger('users')
 
@@ -98,15 +105,22 @@ def signup_view(request):
             # Send activation email if email provided
             if email:
                 try:
+                    # FIXED: Use the proper email function instead of manual construction
                     email_token = str(verification_token.email_token)
-                    activation_link = f"http://127.0.0.1:8000/activate/?token={email_token}"
 
-                    # 🔑 CONSOLE LOGGING FOR EMAIL ACTIVATION
-                    console_logger.info(f"Email activation link for {email}: {activation_link}")
-                    console_logger.info(f"Email Token: {email_token}")
+                    # Use the proper email sending function
+                    email_sent = send_activation_email(user, email_token)
 
-                    send_activation_email(user, email_token)
-                    logger.info(f"Activation email sent to {email}")
+                    if email_sent:
+                        logger.info(f"Activation email sent successfully to {email}")
+
+                        # 🔑 CONSOLE LOGGING FOR EMAIL ACTIVATION (for development)
+                        activation_link = f"{settings.SITE_URL}{reverse('users:activate')}?token={email_token}"
+                        console_logger.info(f"Email activation link for {email}: {activation_link}")
+                        console_logger.info(f"Email Token: {email_token}")
+                    else:
+                        logger.error(f"Failed to send activation email to {email}")
+
                 except Exception as e:
                     logger.error(f"Failed to send activation email to {email}: {e}")
 
@@ -129,9 +143,6 @@ def signup_view(request):
         logger.info("Signup page accessed via GET")
 
     return render(request, 'users/signup.html', {'form': form})
-
-
-
 
 def login_view(request):
     """Simple login view with username/password authentication"""
@@ -575,31 +586,56 @@ def verify_login_view(request):
 
 
 def activate_account_view(request):
-    """Handle email activation link with console logging"""
+    """Handle email activation and redirect to dashboard"""
     token = request.GET.get('token')
+
     if not token:
-        messages.error(request, "توکن وجود ندارد.")
-        return redirect('users:signup')
+        messages.error(request, 'لینک فعال‌سازی نامعتبر است.')
+        return redirect('users:login')
 
     try:
-        verification_token = VerificationToken.objects.get(email_token=token, is_used=False)
-        if not verification_token.is_valid():
-            messages.error(request, "توکن منقضی شده است.")
-            return redirect('users:signup')
+        # Find the verification token
+        verification_token = VerificationToken.objects.get(
+            email_token=token,
+            token_type='registration'
+        )
 
         user = verification_token.user
+
+        # Check if token is still valid (not expired)
+        if verification_token.is_expired():
+            messages.error(request, 'لینک فعال‌سازی منقضی شده است.')
+            verification_token.delete()
+            return redirect('users:signup')
+
+        # Activate the user
         user.is_active = True
         user.is_email_verified = True
         user.save()
-        verification_token.mark_as_used()
 
-        console_logger.info(f"User activated via email: {user.username} ({user.email})")
-        messages.success(request, "حساب شما با موفقیت از طریق ایمیل فعال شد.")
-        return redirect('users:login')
+        # Delete the used token
+        verification_token.delete()
+
+        logger.info(f"User {user.email} activated successfully via email")
+
+        # Log the user in automatically
+        from django.contrib.auth import login
+        login(request, user)
+
+        messages.success(request, 'حساب شما با موفقیت فعال شد!')
+
+        # Redirect to dashboard
+        return redirect('users:dashboard')
 
     except VerificationToken.DoesNotExist:
-        messages.error(request, "توکن معتبر نیست یا قبلاً استفاده شده.")
-        return redirect('users:signup')
+        logger.warning(f"Invalid activation token attempted: {token}")
+        messages.error(request, 'لینک فعال‌سازی نامعتبر است.')
+        return redirect('users:login')
+
+    except Exception as e:
+        logger.error(f"Activation error: {str(e)}")
+        messages.error(request, 'خطا در فعال‌سازی حساب.')
+        return redirect('users:login')
 
 
 def send_sms_view(request):
