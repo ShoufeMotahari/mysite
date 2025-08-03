@@ -50,11 +50,25 @@ def load_email_template_django(template_name, context_data):
         return None
 
 
-def send_activation_email(user, token):
-    """Send account activation email using HTML template"""
+def send_activation_email(user, token, request=None):
+    """Send account activation email using HTML template with dynamic URL detection"""
     try:
         subject = 'Account Activation'
-        activation_url = f"{settings.SITE_URL}{reverse('users:activate')}?token={token}"
+
+        # Auto-detect the correct domain
+        if request:
+            # Get the current domain from the request
+            if request.is_secure():
+                protocol = 'https'
+            else:
+                protocol = 'http'
+            domain = request.get_host()
+            site_url = f"{protocol}://{domain}"
+        else:
+            # Fallback to settings if no request available
+            site_url = settings.SITE_URL
+
+        activation_url = f"{site_url}{reverse('users:activate')}?token={token}"
         mobile = str(user.mobile)
 
         text_content = f"""Hi {mobile},
@@ -96,7 +110,7 @@ Support Team"""
         result = msg.send()
 
         if result:
-            logger.info(f"Activation email sent successfully to {user.email}")
+            logger.info(f"Activation email sent successfully to {user.email} with URL: {activation_url}")
             return True
         else:
             logger.error(f"Failed to send activation email to {user.email}: No result returned")
@@ -107,11 +121,61 @@ Support Team"""
         return False
 
 
-def send_password_reset_email(user, token):
-    """Send password reset email using HTML template"""
+def send_activation_email_django_template(user, token):
+    """Send account activation email using Django's template system"""
+    try:
+        subject = 'Account Activation'
+        activation_url = f"{settings.SITE_URL}{reverse('users:activate')}?token={token}"
+
+        context = {
+            'user': user,
+            'mobile': str(user.mobile),
+            'activation_url': activation_url,
+            'site_name': getattr(settings, 'SITE_NAME', 'Our Site'),
+        }
+
+        text_content = render_to_string('emails/activation_email.txt', context)
+        html_content = render_to_string('emails/activation_email.html', context)
+
+        msg = EmailMultiAlternatives(
+            subject=subject,
+            body=text_content,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[user.email],
+        )
+
+        msg.attach_alternative(html_content, "text/html")
+        result = msg.send()
+
+        if result:
+            logger.info(f"Activation email sent successfully to {user.email}")
+            return True
+        else:
+            logger.error(f"Failed to send activation email to {user.email}")
+            return False
+
+    except Exception as e:
+        logger.error(f"Failed to send activation email to {user.email}: {str(e)}")
+        return False
+
+
+def send_password_reset_email(user, token, request=None):
+    """Send password reset email using HTML template with dynamic URL detection"""
     try:
         subject = 'Password Reset'
-        reset_url = f"{settings.SITE_URL}{reverse('reset-password-email')}?token={token}"
+
+        # Auto-detect the correct domain
+        if request:
+            if request.is_secure():
+                protocol = 'https'
+            else:
+                protocol = 'http'
+            domain = request.get_host()
+            site_url = f"{protocol}://{domain}"
+        else:
+            site_url = settings.SITE_URL
+
+        reset_url = f"{site_url}{reverse('reset-password-email')}?token={token}"
         mobile = str(user.mobile)
 
         text_content = f"""Hi {mobile},
@@ -155,7 +219,7 @@ Support Team"""
         result = msg.send()
 
         if result:
-            logger.info(f"Password reset email sent successfully to {user.email}")
+            logger.info(f"Password reset email sent successfully to {user.email} with URL: {reset_url}")
             return True
         else:
             logger.error(f"Failed to send password reset email to {user.email}: No result returned")
@@ -163,42 +227,4 @@ Support Team"""
 
     except Exception as e:
         logger.error(f"Failed to send password reset email to {user.email}: {str(e)}")
-        return False
-
-
-def send_activation_email_django_template(user, token):
-    """Send account activation email using Django's template system"""
-    try:
-        subject = 'Account Activation'
-        activation_url = f"{settings.SITE_URL}{reverse('users:activate')}?token={token}"
-
-        context = {
-            'user': user,
-            'mobile': str(user.mobile),
-            'activation_url': activation_url,
-            'site_name': getattr(settings, 'SITE_NAME', 'Our Site'),
-        }
-
-        text_content = render_to_string('emails/activation_email.txt', context)
-        html_content = render_to_string('emails/activation_email.html', context)
-
-        msg = EmailMultiAlternatives(
-            subject=subject,
-            body=text_content,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            to=[user.email],
-        )
-
-        msg.attach_alternative(html_content, "text/html")
-        result = msg.send()
-
-        if result:
-            logger.info(f"Activation email sent successfully to {user.email}")
-            return True
-        else:
-            logger.error(f"Failed to send activation email to {user.email}")
-            return False
-
-    except Exception as e:
-        logger.error(f"Failed to send activation email to {user.email}: {str(e)}")
         return False

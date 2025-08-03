@@ -299,7 +299,35 @@ DEFAULT_CHARSET = 'utf-8'
 EMAIL_USE_LOCALTIME = True
 EMAIL_USE_UTF8 = True
 EMAIL_CHARSET = 'utf-8'
-SITE_URL = env('SITE_URL')
+import os
+from urllib.parse import urlparse
+
+
+def get_site_url():
+    """Get SITE_URL based on environment"""
+    env_type = env('ENV_TYPE', default='production')
+
+    if env_type == 'local':
+        return env('SITE_URL', default='http://localhost:8000')
+    else:
+        # For production, you can also detect from environment variables
+        # that hosting providers often set
+        site_url = env('SITE_URL', default=None)
+
+        if not site_url:
+            # Try to get from common hosting environment variables
+            if 'HTTP_HOST' in os.environ:
+                protocol = 'https' if env('HTTPS', default='off').lower() == 'on' else 'http'
+                site_url = f"{protocol}://{os.environ['HTTP_HOST']}"
+            elif 'SERVER_NAME' in os.environ:
+                site_url = f"https://{os.environ['SERVER_NAME']}"
+            else:
+                site_url = 'https://yourdomain.com'  # Fallback
+
+        return site_url
+
+
+SITE_URL = get_site_url()
 
 # Basic rate limiting settings
 RATE_LIMIT_REQUESTS = 30000         # Only 1 request allowed

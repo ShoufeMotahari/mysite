@@ -109,7 +109,7 @@ def signup_view(request):
                     email_token = str(verification_token.email_token)
 
                     # Use the proper email sending function
-                    email_sent = send_activation_email(user, email_token)
+                    email_sent = send_activation_email(user, email_token, request)
 
                     if email_sent:
                         logger.info(f"Activation email sent successfully to {email}")
