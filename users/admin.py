@@ -29,7 +29,429 @@ from django_jalali.admin.filters import JDateFieldListFilter
 logger = logging.getLogger('users')
 password_logger = logging.getLogger(__name__)
 
+# users/admin.py -
 
+from django.contrib import admin
+from django.utils.html import format_html
+from django.urls import path
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.db.models import Sum, Count
+from django.http import HttpResponse, JsonResponse
+import logging
+
+from .models import ImageUpload, ImageGallery
+
+
+
+@admin.register(ImageUpload)
+class ImageUploadAdmin(admin.ModelAdmin):
+    """Enhanced admin for image uploads with minification options"""
+
+    list_display = [
+        'title','is_active'
+    ]
+
+    list_filter = [
+        'minification_level', 'resize_option', 'convert_to_webp',
+        'maintain_aspect_ratio', 'is_active', 'uploaded_by',
+        ('created_at', admin.DateFieldListFilter)
+    ]
+
+    search_fields = ['title', 'description', 'uploaded_by__username']
+
+    readonly_fields = [
+        'original_size', 'processed_size', 'compression_ratio',
+        'created_at', 'updated_at', 'size_info_display', 'image_preview'
+    ]
+
+    list_editable = ['is_active']
+    ordering = ['-created_at']
+    list_per_page = 20
+
+    actions = [
+        'reprocess_images', 'download_images', 'bulk_minify',
+        'convert_to_webp_action', 'activate_images', 'deactivate_images'
+    ]
+
+    fieldsets = (
+        ('اطلاعات اصلی', {
+            'fields': ('title', 'description', 'original_image', 'uploaded_by', 'is_active')
+        }),
+        ('تنظیمات پردازش', {
+            'fields': (
+                'minification_level', 'resize_option', 'maintain_aspect_ratio',
+                'convert_to_webp'
+            ),
+            'description': 'تنظیمات فشرده‌سازی و تغییر اندازه تصویر'
+        }),
+        ('تصویر پردازش شده', {
+            'fields': ('processed_image',),
+            'classes': ('collapse',)
+        }),
+        ('اطلاعات فایل', {
+            'fields': (
+                'size_info_display', 'original_size', 'processed_size',
+                'compression_ratio'
+            ),
+            'classes': ('collapse',)
+        }),
+        ('پیش‌نمایش', {
+            'fields': ('image_preview',),
+            'classes': ('collapse',)
+        }),
+        ('تاریخ‌ها', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        })
+    )
+
+    def get_queryset(self, request):
+        """Optimize queryset with select_related"""
+        return super().get_queryset(request).select_related('uploaded_by')
+
+    def image_thumbnail(self, obj):
+        """Display thumbnail in list view"""
+        active_image = obj.get_active_image()
+        if active_image:
+            return format_html(
+                '<img src="{}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px;" />',
+                active_image.url
+            )
+        return format_html(
+            '<div style="width: 50px; height: 50px; background: #f0f0f0; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #999;">بدون تصویر</div>')
+
+    image_thumbnail.short_description = 'تصویر'
+
+    def minification_display(self, obj):
+        """Display minification level with color"""
+        colors = {
+            'none': '#6c757d',
+            'low': '#28a745',
+            'medium': '#ffc107',
+            'high': '#fd7e14',
+            'maximum': '#dc3545'
+        }
+        color = colors.get(obj.minification_level, '#6c757d')
+        return format_html(
+            '<span style="color: {}; font-weight: bold;">{}</span>',
+            color,
+            obj.get_minification_level_display()
+        )
+
+    minification_display.short_description = 'فشرده‌سازی'
+
+    def resize_display(self, obj):
+        """Display resize option"""
+        if obj.resize_option == 'original':
+            return format_html('<span style="color: #6c757d;">اصلی</span>')
+        return format_html(
+            '<span style="color: #007bff;">{}</span>',
+            obj.get_resize_option_display()
+        )
+
+    resize_display.short_description = 'اندازه'
+
+    @admin.display(description="Size Comparison", ordering="compression_ratio")
+    def size_comparison(self, obj):
+        """Display size comparison"""
+        original_size = str(obj.get_original_size_display())
+
+        if obj.processed_image and obj.processed_size > 0:
+            processed_size = str(obj.get_processed_size_display())
+
+            # اطمینان از اینکه compression_ratio عددی است
+            try:
+                ratio = float(obj.compression_ratio)
+            except (ValueError, TypeError):
+                ratio = None
+
+            if ratio is not None and ratio > 0:
+                return format_html(
+                    '{} → <strong style="color: #28a745;">{}</strong><br>'
+                    '<small style="color: #dc3545;">-{:.1f}%</small>',
+                    original_size,
+                    processed_size,
+                    ratio
+                )
+            else:
+                return format_html(
+                    '{} → <strong>{}</strong>',
+                    original_size, processed_size
+                )
+
+        return format_html('<span style="color: #6c757d;">{}</span>', original_size)
+
+    size_comparison.short_description = 'مقایسه حجم'
+
+    def compression_display(self, obj):
+        """Display compression ratio"""
+        if obj.compression_ratio > 0:
+            color = '#28a745' if obj.compression_ratio > 20 else '#ffc107'
+            return format_html(
+                '<span style="color: {}; font-weight: bold;">{:.1f}%</span>',
+                color, obj.compression_ratio
+            )
+        return format_html('<span style="color: #6c757d;">-</span>')
+
+    compression_display.short_description = 'کاهش حجم'
+
+    def format_display(self, obj):
+        """Display image format information"""
+        badges = []
+
+        if obj.convert_to_webp:
+            badges.append(
+                '<span style="background: #28a745; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">WebP</span>')
+
+        if obj.maintain_aspect_ratio:
+            badges.append(
+                '<span style="background: #007bff; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">نسبت حفظ شده</span>')
+
+        return format_html(' '.join(badges)) if badges else '-'
+
+    format_display.short_description = 'فرمت'
+
+    def size_info_display(self, obj):
+        """Display detailed size information"""
+        info = []
+
+        if obj.original_size > 0:
+            info.append(f"<strong>اصلی:</strong> {obj.get_original_size_display()}")
+
+        if obj.processed_size > 0:
+            info.append(f"<strong>پردازش شده:</strong> {obj.get_processed_size_display()}")
+
+        if obj.compression_ratio > 0:
+            info.append(f"<strong>کاهش:</strong> {obj.compression_ratio:.1f}%")
+
+        return format_html('<br>'.join(info)) if info else 'اطلاعات در دسترس نیست'
+
+    size_info_display.short_description = 'اطلاعات حجم'
+
+    def image_preview(self, obj):
+        """Display image preview"""
+        html_parts = []
+
+        if obj.original_image:
+            html_parts.append(f'''
+                <div style="margin-bottom: 20px;">
+                    <h4>تصویر اصلی</h4>
+                    <img src="{obj.original_image.url}" style="max-width: 300px; max-height: 200px; border: 1px solid #ddd; border-radius: 5px;" />
+                    <p><small>حجم: {obj.get_original_size_display()}</small></p>
+                </div>
+            ''')
+
+        if obj.processed_image:
+            html_parts.append(f'''
+                <div style="margin-bottom: 20px;">
+                    <h4>تصویر پردازش شده</h4>
+                    <img src="{obj.processed_image.url}" style="max-width: 300px; max-height: 200px; border: 1px solid #ddd; border-radius: 5px;" />
+                    <p><small>حجم: {obj.get_processed_size_display()}</small></p>
+                </div>
+            ''')
+
+        return format_html(''.join(html_parts)) if html_parts else 'تصویری موجود نیست'
+
+    image_preview.short_description = 'پیش‌نمایش تصاویر'
+
+    def save_model(self, request, obj, form, change):
+        """Set uploaded_by to current user if not set"""
+        if not obj.uploaded_by_id:
+            obj.uploaded_by = request.user
+
+        # Log the action
+        action = 'updated' if change else 'created'
+        logger.info(
+            f"Image {action} by {request.user.username}: {obj.title} "
+            f"(minification: {obj.minification_level}, resize: {obj.resize_option})"
+        )
+
+        super().save_model(request, obj, form, change)
+
+    # Custom Actions
+    def reprocess_images(self, request, queryset):
+        """Reprocess selected images"""
+        count = 0
+        for image in queryset:
+            try:
+                image.process_image()
+                count += 1
+            except Exception as e:
+                logger.error(f"Error reprocessing image {image.id}: {str(e)}")
+
+        self.message_user(
+            request,
+            f'{count} تصویر مجدداً پردازش شد.',
+            messages.SUCCESS
+        )
+
+    reprocess_images.short_description = 'پردازش مجدد تصاویر انتخاب شده'
+
+    def bulk_minify(self, request, queryset):
+        """Apply medium minification to selected images"""
+        updated = queryset.update(minification_level='medium')
+
+        # Reprocess images
+        for image in queryset:
+            try:
+                image.process_image()
+            except Exception as e:
+                logger.error(f"Error in bulk minify: {str(e)}")
+
+        self.message_user(
+            request,
+            f'{updated} تصویر با فشرده‌سازی متوسط پردازش شد.',
+            messages.SUCCESS
+        )
+
+    bulk_minify.short_description = 'اعمال فشرده‌سازی متوسط'
+
+    def convert_to_webp_action(self, request, queryset):
+        """Convert selected images to WebP"""
+        updated = queryset.update(convert_to_webp=True)
+
+        # Reprocess images
+        for image in queryset:
+            try:
+                image.process_image()
+            except Exception as e:
+                logger.error(f"Error converting to WebP: {str(e)}")
+
+        self.message_user(
+            request,
+            f'{updated} تصویر به فرمت WebP تبدیل شد.',
+            messages.SUCCESS
+        )
+
+    convert_to_webp_action.short_description = 'تبدیل به فرمت WebP'
+
+    def activate_images(self, request, queryset):
+        """Activate selected images"""
+        updated = queryset.update(is_active=True)
+        self.message_user(
+            request,
+            f'{updated} تصویر فعال شد.',
+            messages.SUCCESS
+        )
+
+    activate_images.short_description = 'فعال کردن تصاویر انتخاب شده'
+
+    def deactivate_images(self, request, queryset):
+        """Deactivate selected images"""
+        updated = queryset.update(is_active=False)
+        self.message_user(
+            request,
+            f'{updated} تصویر غیرفعال شد.',
+            messages.WARNING
+        )
+
+    deactivate_images.short_description = 'غیرفعال کردن تصاویر انتخاب شده'
+
+
+@admin.register(ImageGallery)
+class ImageGalleryAdmin(admin.ModelAdmin):
+    """Admin for image galleries"""
+
+    list_display = [
+        'name', 'images_count', 'total_size_display', 'cover_thumbnail',
+        'is_public', 'created_by', 'created_at'
+    ]
+
+    list_filter = ['is_public', 'created_by', ('created_at', admin.DateFieldListFilter)]
+
+    search_fields = ['name', 'description', 'created_by__username']
+
+    readonly_fields = ['created_at', 'updated_at', 'gallery_stats']
+
+    filter_horizontal = ['images']
+
+    fieldsets = (
+        ('اطلاعات گالری', {
+            'fields': ('name', 'description', 'cover_image', 'is_public', 'created_by')
+        }),
+        ('تصاویر', {
+            'fields': ('images',)
+        }),
+        ('آمار', {
+            'fields': ('gallery_stats',),
+            'classes': ('collapse',)
+        }),
+        ('تاریخ‌ها', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        })
+    )
+
+    def get_queryset(self, request):
+        """Optimize queryset"""
+        return super().get_queryset(request).select_related('created_by', 'cover_image').prefetch_related('images')
+
+    def images_count(self, obj):
+        """Display number of images"""
+        count = obj.get_images_count()
+        return format_html('<strong>{}</strong> تصویر', count)
+
+    images_count.short_description = 'تعداد تصاویر'
+
+    def total_size_display(self, obj):
+        """Display total size of gallery"""
+        return obj.get_total_size_display()
+
+    total_size_display.short_description = 'حجم کل'
+
+    def cover_thumbnail(self, obj):
+        """Display cover image thumbnail"""
+        if obj.cover_image:
+            active_image = obj.cover_image.get_active_image()
+            if active_image:
+                return format_html(
+                    '<img src="{}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 5px;" />',
+                    active_image.url
+                )
+        return format_html(
+            '<div style="width: 40px; height: 40px; background: #f0f0f0; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #999;">بدون کاور</div>')
+
+    cover_thumbnail.short_description = 'کاور'
+
+    def gallery_stats(self, obj):
+        """Display gallery statistics"""
+        if not obj.pk:
+            return 'آمار پس از ذخیره نمایش داده می‌شود'
+
+        stats = []
+
+        # Image count
+        image_count = obj.get_images_count()
+        stats.append(f"<strong>تعداد تصاویر:</strong> {image_count}")
+
+        # Total size
+        total_size = obj.get_total_size_display()
+        stats.append(f"<strong>حجم کل:</strong> {total_size}")
+
+        # Format breakdown
+        images = obj.images.all()
+        webp_count = sum(1 for img in images if img.convert_to_webp)
+        if webp_count > 0:
+            stats.append(f"<strong>تصاویر WebP:</strong> {webp_count}")
+
+        # Minification breakdown
+        minified_count = sum(1 for img in images if img.minification_level != 'none')
+        if minified_count > 0:
+            stats.append(f"<strong>تصاویر فشرده شده:</strong> {minified_count}")
+
+        return format_html('<br>'.join(stats))
+
+    gallery_stats.short_description = 'آمار گالری'
+
+    def save_model(self, request, obj, form, change):
+        """Set created_by to current user if not set"""
+        if not obj.created_by_id:
+            obj.created_by = request.user
+
+        super().save_model(request, obj, form, change)
+
+#############################################
 class UserTypeFilter(admin.SimpleListFilter):
     """Filter users by user type"""
     title = 'نوع کاربری'
@@ -1372,6 +1794,8 @@ class AdminMessageReplyAdmin(admin.ModelAdmin):
     def has_module_permission(self, request):
         """Only superusers can access this module"""
         return request.user.is_superuser
+
+
 # Customize admin site
 admin.site.site_header = 'پنل مدیریت'
 admin.site.site_title = 'پنل مدیریت'
