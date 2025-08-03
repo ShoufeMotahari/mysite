@@ -18,15 +18,15 @@ def test_email_view(request):
         logger.warning(f"📧 Trying to send email from: {settings.DEFAULT_FROM_EMAIL}")
 
         send_mail(
-            subject='تست ایمیل از هاست',
-            message='این ایمیل تستی از ویوی تستی هست.',
+            subject='test1',
+            message='test2.',
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=['your_email@example.com'],  # آدرس ایمیل خودت رو بذار اینجا
             fail_silently=False,
         )
 
-        return HttpResponse("✅ ایمیل با موفقیت ارسال شد.")
+        return HttpResponse("✅ersal shod")
     except Exception as e:
-        logger.error(f"❌ خطا در ارسال ایمیل: {e}")
-        return HttpResponse(f"❌ خطا در ارسال ایمیل: {e}")
+        logger.error(f"❌ error {e}")
+        return HttpResponse(f"❌eroor{e}")
 
