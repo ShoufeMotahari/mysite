@@ -251,30 +251,54 @@ if not os.path.exists(LOG_DIR):
     os.makedirs(LOG_DIR)
 
 # Email Configuration
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'# smpt باید فعال بشه فعلا برای تست ما کد پیین را میذاریم
+ENV_TYPE = env('ENV_TYPE', default='production')
+EMAIL_MODE = env('EMAIL_MODE', default='auto')  # auto, console, real, file
 
 
-if ENV_TYPE == 'local':
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-    EMAIL_HOST = ''
-    EMAIL_PORT = ''
-    EMAIL_USE_TLS = False
-    EMAIL_USE_SSL = False
-    EMAIL_HOST_USER = ''
-    EMAIL_HOST_PASSWORD = ''
-    DEFAULT_FROM_EMAIL = ''
-else:
-    EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
-    EMAIL_HOST = env('EMAIL_HOST')
-    EMAIL_PORT = env('EMAIL_PORT', cast=int)
-    EMAIL_USE_TLS = env('EMAIL_USE_TLS', cast=bool)
-    EMAIL_USE_SSL = env('EMAIL_USE_SSL', cast=bool)
-    EMAIL_HOST_USER = env('EMAIL_HOST_USER')
-    EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
-    DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
+# Determine email backend based on configuration
+def get_email_backend():
+    # If EMAIL_BACKEND is explicitly set in .env, use it (highest priority)
+    explicit_backend = env('EMAIL_BACKEND', default=None)
+    if explicit_backend:
+        return explicit_backend
+
+    # Otherwise, use EMAIL_MODE logic
+    if EMAIL_MODE == 'console':
+        return 'django.core.mail.backends.console.EmailBackend'
+    elif EMAIL_MODE == 'file':
+        return 'django.core.mail.backends.filebased.EmailBackend'
+    elif EMAIL_MODE == 'real':
+        return 'django.core.mail.backends.smtp.EmailBackend'
+    elif EMAIL_MODE == 'auto':
+        # Auto mode: console for local development, SMTP for production
+        if ENV_TYPE == 'local':
+            return 'django.core.mail.backends.console.EmailBackend'
+        else:
+            return 'django.core.mail.backends.smtp.EmailBackend'
+    else:
+        # Default to SMTP
+        return 'django.core.mail.backends.smtp.EmailBackend'
+
+
+# Email Configuration
+EMAIL_BACKEND = get_email_backend()
+
+# SMTP settings (always load these, even if using console backend)
+EMAIL_HOST = env('EMAIL_HOST', default='')
+EMAIL_PORT = env('EMAIL_PORT', default=587, cast=int)
+EMAIL_USE_TLS = env('EMAIL_USE_TLS', default=True, cast=bool)
+EMAIL_USE_SSL = env('EMAIL_USE_SSL', default=False, cast=bool)
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER if EMAIL_HOST_USER else 'webmaster@localhost')
+
+# File backend settings (if using file backend)
+EMAIL_FILE_PATH = BASE_DIR / 'sent_emails'
 
 DEFAULT_CHARSET = 'utf-8'
 EMAIL_USE_LOCALTIME = True
+EMAIL_USE_UTF8 = True
+EMAIL_CHARSET = 'utf-8'
 
 # Basic rate limiting settings
 RATE_LIMIT_REQUESTS = 30000         # Only 1 request allowed
@@ -385,8 +409,7 @@ CKEDITOR_CONFIGS = {
         ],
     },
 }
-EMAIL_USE_UTF8 = True
-EMAIL_CHARSET = 'utf-8'
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
