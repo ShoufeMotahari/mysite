@@ -1,4 +1,4 @@
-# emails.py - Updated with template loading
+# emails.py - Updated with English messages
 # -*- coding: utf-8 -*-
 
 import os
@@ -12,22 +12,12 @@ import logging
 
 logger = logging.getLogger('emails')
 
-# Get the base directory for templates
 BASE_DIR = Path(__file__).resolve().parent.parent
 TEMPLATES_DIR = BASE_DIR / 'templates' / 'emails'
 
 
 def load_email_template(template_name, context_data):
-    """
-    Load and render HTML email template with context data
-
-    Args:
-        template_name (str): Name of the template file
-        context_data (dict): Data to replace in template
-
-    Returns:
-        str: Rendered HTML content
-    """
+    """Load and render HTML email template with context data"""
     global template_content
     try:
         template_path = TEMPLATES_DIR / template_name
@@ -36,11 +26,9 @@ def load_email_template(template_name, context_data):
             logger.error(f"Template not found: {template_path}")
             return None
 
-        # Read the template file
         with open(template_path, 'r', encoding='utf-8') as file:
             template_content = file.read()
 
-        # Replace placeholders with actual data
         for key, value in context_data.items():
             placeholder = f"{{{{{key}}}}}"
             template_content = template_content.replace(placeholder, str(value))
@@ -53,16 +41,7 @@ def load_email_template(template_name, context_data):
 
 
 def load_email_template_django(template_name, context_data):
-    """
-    Alternative method using Django's template system (if preferred)
-
-    Args:
-        template_name (str): Name of the template file (e.g., 'emails/activation_email.html')
-        context_data (dict): Data to pass to template
-
-    Returns:
-        str: Rendered HTML content
-    """
+    """Alternative method using Django's template system"""
     try:
         return render_to_string(template_name, context_data)
     except Exception as e:
@@ -71,44 +50,37 @@ def load_email_template_django(template_name, context_data):
 
 
 def send_activation_email(user, token):
-    """
-    Send activation email using HTML template
-    """
+    """Send account activation email using HTML template"""
     try:
-        subject = 'فعال‌سازی حساب کاربری'
-
+        subject = 'Account Activation'
         activation_url = f"{settings.SITE_URL}{reverse('users:activate')}?token={token}"
         mobile = str(user.mobile)
 
-        # Plain text version
-        text_content = f"""سلام {mobile},
+        text_content = f"""Hi {mobile},
 
-از ثبت نام شما در سایت ما خوشحالیم!
+We're happy to have you join our site!
 
-برای فعال‌سازی حساب کاربری خود روی لینک زیر کلیک کنید:
+To activate your account, please click the link below:
 {activation_url}
 
-این لینک تا 15 دقیقه معتبر است.
+This link is valid for 15 minutes.
 
-با تشکر
-تیم پشتیبانی"""
+Thank you,
+Support Team"""
 
-        # Prepare context data for template
         context_data = {
             'mobile': mobile,
             'activation_url': activation_url,
-            'site_name': getattr(settings, 'SITE_NAME', 'سایت ما'),
+            'site_name': getattr(settings, 'SITE_NAME', 'Our Site'),
             'support_email': getattr(settings, 'SUPPORT_EMAIL', settings.DEFAULT_FROM_EMAIL)
         }
 
-        # Load HTML template
         html_content = load_email_template('activation_email.html', context_data)
 
         if not html_content:
             logger.error("Failed to load activation email template")
             return False
 
-        # Create and send email
         msg = EmailMultiAlternatives(
             subject=subject,
             body=text_content,
@@ -116,7 +88,6 @@ def send_activation_email(user, token):
             to=[user.email],
         )
 
-        # Set encoding and attach HTML version
         msg.content_subtype = "plain"
         msg.encoding = 'utf-8'
         msg.attach_alternative(html_content, "text/html")
@@ -136,45 +107,39 @@ def send_activation_email(user, token):
 
 
 def send_password_reset_email(user, token):
-    """
-    Send password reset email using HTML template
-    """
+    """Send password reset email using HTML template"""
     try:
-        subject = 'بازیابی رمز عبور'
+        subject = 'Password Reset'
         reset_url = f"{settings.SITE_URL}{reverse('reset-password-email')}?token={token}"
         mobile = str(user.mobile)
 
-        # Plain text version
-        text_content = f"""سلام {mobile},
+        text_content = f"""Hi {mobile},
 
-درخواست بازیابی رمز عبور برای حساب کاربری شما دریافت شد.
+We received a request to reset your account password.
 
-برای تنظیم رمز عبور جدید روی لینک زیر کلیک کنید:
+To set a new password, click the link below:
 {reset_url}
 
-این لینک تا 15 دقیقه معتبر است.
+This link is valid for 15 minutes.
 
-اگر شما درخواست بازیابی رمز عبور نداده‌اید، این پیام را نادیده بگیرید.
+If you did not request a password reset, please ignore this message.
 
-با تشکر
-تیم پشتیبانی"""
+Thank you,
+Support Team"""
 
-        # Prepare context data for template
         context_data = {
             'mobile': mobile,
             'reset_url': reset_url,
-            'site_name': getattr(settings, 'SITE_NAME', 'سایت ما'),
+            'site_name': getattr(settings, 'SITE_NAME', 'Our Site'),
             'support_email': getattr(settings, 'SUPPORT_EMAIL', settings.DEFAULT_FROM_EMAIL)
         }
 
-        # Load HTML template
         html_content = load_email_template('password_reset_email.html', context_data)
 
         if not html_content:
             logger.error("Failed to load password reset email template")
             return False
 
-        # Create and send email
         msg = EmailMultiAlternatives(
             subject=subject,
             body=text_content,
@@ -200,24 +165,19 @@ def send_password_reset_email(user, token):
         return False
 
 
-# Alternative functions using Django's template system
 def send_activation_email_django_template(user, token):
-    """
-    Send activation email using Django's template system
-    """
+    """Send account activation email using Django's template system"""
     try:
-        subject = 'فعال‌سازی حساب کاربری'
-
+        subject = 'Account Activation'
         activation_url = f"{settings.SITE_URL}{reverse('users:activate')}?token={token}"
 
         context = {
             'user': user,
             'mobile': str(user.mobile),
             'activation_url': activation_url,
-            'site_name': getattr(settings, 'SITE_NAME', 'سایت ما'),
+            'site_name': getattr(settings, 'SITE_NAME', 'Our Site'),
         }
 
-        # Render templates using Django's template system
         text_content = render_to_string('emails/activation_email.txt', context)
         html_content = render_to_string('emails/activation_email.html', context)
 
