@@ -198,6 +198,12 @@ ALLOWED_HOSTS = ['*']
 
 # Application definition
 
+
+GOOGLE_CLIENT_ID = env("GOOGLE_OAUTH_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = env("GOOGLE_OAUTH_CLIENT_SECRET")
+GOOGLE_REDIRECT_URI = env("GOOGLE_REDIRECT_URI")
+
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -215,7 +221,6 @@ INSTALLED_APPS = [
     'arvan_integration',
     'emails',
     'ckeditor',
-    # 'passwords',
     'django_pwned',
     'django_jalali',
 ]

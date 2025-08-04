@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ورود - مدیریت رمز عبور</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -54,6 +55,117 @@
         .btn-link:hover {
             color: #764ba2;
         }
+
+        /* Google Login Button Styles */
+        .google-login-container {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .google-login-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            border: 2px solid #dadce0;
+            border-radius: 15px;
+            color: #3c4043;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 500;
+            height: 50px;
+            padding: 0 24px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            width: 100%;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .google-login-btn:hover {
+            background: #f8f9fa;
+            border-color: #c5c7ca;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+            text-decoration: none;
+            color: #3c4043;
+            transform: translateY(-2px);
+        }
+
+        .google-login-btn:active {
+            background: #f1f3f4;
+            border-color: #c5c7ca;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            transform: translateY(0);
+        }
+
+        .google-icon {
+            width: 20px;
+            height: 20px;
+            margin-left: 12px;
+            flex-shrink: 0;
+        }
+
+        .divider {
+            position: relative;
+            text-align: center;
+            margin: 25px 0;
+            color: #6c757d;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: #dee2e6;
+        }
+
+        .divider span {
+            background: #fff;
+            padding: 0 20px;
+            position: relative;
+        }
+
+        /* Loading state for Google button */
+        .google-login-btn.loading {
+            opacity: 0.7;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .spinning {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* RTL Support */
+        [dir="rtl"] .google-icon {
+            margin-left: 0;
+            margin-right: 12px;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 576px) {
+            .login-container {
+                padding-top: 50px;
+                margin: 0 20px;
+            }
+
+            .card-header {
+                padding: 20px 15px 15px;
+            }
+
+            .card-body {
+                padding: 20px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -61,7 +173,7 @@
         <div class="login-container">
             <div class="card">
                 <div class="card-header">
-                    <h3 class="mb-0">ورود به سیستم</h3>
+                    <h3 class="mb-0"><i class="fas fa-sign-in-alt me-2"></i>ورود به سیستم</h3>
                 </div>
                 <div class="card-body p-4">
                     {% if messages %}
@@ -73,41 +185,72 @@
                         {% endfor %}
                     {% endif %}
 
+                    <!-- Google Login Button -->
+                    <div class="google-login-container">
+                        <a href="{% url 'users:google_login' %}" class="google-login-btn">
+                            <svg class="google-icon" viewBox="0 0 24 24">
+                                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                            </svg>
+                            <i class="fas fa-sign-in-alt me-2"></i>
+                            ورود با گوگل
+                        </a>
+                    </div>
+
+                    <!-- Divider -->
+                    <div class="divider">
+                        <span>یا</span>
+                    </div>
+
                     <form method="post">
                         {% csrf_token %}
                         <div class="mb-3">
-                            <label for="{{ form.identifier.id_for_label }}" class="form-label">نام کاربری / شماره موبایل / ایمیل</label>
+                            <label for="{{ form.identifier.id_for_label }}" class="form-label">
+                                <i class="fas fa-user me-2"></i>نام کاربری / شماره موبایل / ایمیل
+                            </label>
                             {{ form.identifier }}
                             {% if form.identifier.errors %}
                                 <div class="text-danger">
                                     {% for error in form.identifier.errors %}
-                                        <small>{{ error }}</small>
+                                        <small><i class="fas fa-exclamation-triangle me-1"></i>{{ error }}</small>
                                     {% endfor %}
                                 </div>
                             {% endif %}
                         </div>
-                        
+
                         <div class="mb-4">
-                            <label for="{{ form.password.id_for_label }}" class="form-label">رمز عبور</label>
+                            <label for="{{ form.password.id_for_label }}" class="form-label">
+                                <i class="fas fa-lock me-2"></i>رمز عبور
+                            </label>
                             {{ form.password }}
                             {% if form.password.errors %}
                                 <div class="text-danger">
                                     {% for error in form.password.errors %}
-                                        <small>{{ error }}</small>
+                                        <small><i class="fas fa-exclamation-triangle me-1"></i>{{ error }}</small>
                                     {% endfor %}
                                 </div>
                             {% endif %}
                         </div>
 
-                        <button type="submit" class="btn btn-primary mb-3">ورود</button>
+                        <button type="submit" class="btn btn-primary mb-3">
+                            <i class="fas fa-sign-in-alt me-2"></i>ورود
+                        </button>
                     </form>
 
                     <div class="text-center">
-                        <a href="{% url 'users:forgot_password' %}" class="btn btn-link">رمز عبور خود را فراموش کرده‌اید؟</a>
+                        <a href="{% url 'users:forgot_password' %}" class="btn btn-link">
+                            <i class="fas fa-key me-1"></i>رمز عبور خود را فراموش کرده‌اید؟
+                        </a>
                     </div>
-                    
+
                     <div class="text-center mt-3">
-                        <small>حساب کاربری ندارید؟ <a href="{% url 'users:signup' %}" class="btn-link">ثبت‌نام کنید</a></small>
+                        <small>حساب کاربری ندارید؟
+                            <a href="{% url 'users:signup' %}" class="btn-link">
+                                <i class="fas fa-user-plus me-1"></i>ثبت‌نام کنید
+                            </a>
+                        </small>
                     </div>
                 </div>
             </div>
@@ -115,7 +258,113 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Enhanced Google Login functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const googleLoginBtn = document.querySelector('.google-login-btn');
+            if (googleLoginBtn) {
+                googleLoginBtn.addEventListener('click', function(e) {
+                    // Show loading state
+                    const originalText = this.innerHTML;
+                    this.dataset.originalText = originalText;
+                    this.classList.add('loading');
+
+                    const loadingHTML = `
+                        <svg class="google-icon spinning" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10" stroke="#dadce0" stroke-width="2" fill="none" stroke-dasharray="62.8" stroke-dashoffset="62.8">
+                                <animate attributeName="stroke-dashoffset" dur="2s" values="62.8;0;62.8" repeatCount="indefinite"/>
+                            </circle>
+                        </svg>
+                        <i class="fas fa-spinner fa-spin me-2"></i>
+                        در حال اتصال به گوگل...
+                    `;
+
+                    this.innerHTML = loadingHTML;
+                    this.style.pointerEvents = 'none';
+
+                    // Fallback timeout
+                    setTimeout(() => {
+                        if (this.classList.contains('loading')) {
+                            this.innerHTML = originalText;
+                            this.classList.remove('loading');
+                            this.style.pointerEvents = 'auto';
+                        }
+                    }, 15000);
+                });
+            }
+
+            // Handle page visibility change (user returns from Google)
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden) {
+                    const googleLoginBtn = document.querySelector('.google-login-btn');
+                    if (googleLoginBtn && googleLoginBtn.classList.contains('loading')) {
+                        const originalText = googleLoginBtn.dataset.originalText;
+                        if (originalText) {
+                            googleLoginBtn.innerHTML = originalText;
+                            googleLoginBtn.classList.remove('loading');
+                            googleLoginBtn.style.pointerEvents = 'auto';
+                        }
+                    }
+                }
+            });
+
+            // Auto-hide alerts after 5 seconds
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                setTimeout(function() {
+                    if (alert.parentNode) {
+                        alert.style.transition = 'opacity 0.5s ease';
+                        alert.style.opacity = '0';
+                        setTimeout(() => {
+                            if (alert.parentNode) {
+                                alert.remove();
+                            }
+                        }, 500);
+                    }
+                }, 5000);
+            });
+
+            // Handle OAuth errors in URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const error = urlParams.get('error');
+
+            if (error) {
+                let errorMessage = 'خطا در ورود با گوگل';
+
+                switch (error) {
+                    case 'access_denied':
+                        errorMessage = 'دسترسی به حساب گوگل رد شد';
+                        break;
+                    case 'invalid_request':
+                        errorMessage = 'درخواست نامعتبر';
+                        break;
+                    case 'unauthorized_client':
+                        errorMessage = 'کلاینت غیرمجاز';
+                        break;
+                    case 'server_error':
+                        errorMessage = 'خطای سرور گوگل';
+                        break;
+                    case 'temporarily_unavailable':
+                        errorMessage = 'سرور گوگل موقتاً در دسترس نیست';
+                        break;
+                }
+
+                // Show error message
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'alert alert-danger alert-dismissible fade show';
+                errorDiv.innerHTML = `
+                    ${errorMessage}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+
+                const cardBody = document.querySelector('.card-body');
+                cardBody.insertBefore(errorDiv, cardBody.firstChild);
+
+                // Clean up URL
+                const cleanUrl = window.location.pathname;
+                window.history.replaceState({}, document.title, cleanUrl);
+            }
+        });
+    </script>
 </body>
 </html>
-
-
