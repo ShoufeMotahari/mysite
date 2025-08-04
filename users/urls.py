@@ -73,6 +73,6 @@ urlpatterns = [
     path('api/notifications/', admin_notifications_api, name='admin_notifications_api'),
     path('api/mark-read/<int:message_id>/', mark_message_read_api, name='mark_message_read_api'),
 
-    path("login/google/", google_login, name="google_login"),
-    path("login/google/callback/", google_callback, name="google_callback"),
+    path("accounts/login/google/", google_login, name="google_login"),
+    path("accounts/login/google/callback/", google_callback, name="google_callback"),
 ]
