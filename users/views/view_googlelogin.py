@@ -1,10 +1,11 @@
 from django.conf import settings
-from django.http import HttpResponse
-from django.shortcuts import redirect
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import redirect, render
 from urllib.parse import urlencode
 import requests
 from django.contrib.auth import login
-from django.contrib.auth.models import User
+from users.models import User
+
 
 def google_login(request):
     params = {
@@ -56,3 +57,18 @@ def google_callback(request):
     login(request, user)
 
     return redirect("/")  # مسیر دلخواه بعد از ورود
+
+
+# ADD THIS DEBUG VIEW
+def debug_oauth_config(request):
+    """Debug view to check OAuth configuration"""
+    config_info = {
+        "GOOGLE_CLIENT_ID": settings.GOOGLE_CLIENT_ID[:20] + "..." if settings.GOOGLE_CLIENT_ID else "NOT SET",
+        "GOOGLE_CLIENT_SECRET": "SET" if settings.GOOGLE_CLIENT_SECRET else "NOT SET",
+        "GOOGLE_REDIRECT_URI": settings.GOOGLE_REDIRECT_URI,
+        "Current Domain": request.get_host(),
+        "Full Redirect URL": f"https://{request.get_host()}/users/login/google/callback/",
+        "OAuth URL": f"https://accounts.google.com/o/oauth2/v2/auth?client_id={settings.GOOGLE_CLIENT_ID}&redirect_uri={settings.GOOGLE_REDIRECT_URI}&response_type=code&scope=openid email profile&access_type=offline&prompt=select_account"
+    }
+
+    return JsonResponse(config_info, json_dumps_params={'ensure_ascii': False, 'indent': 2})

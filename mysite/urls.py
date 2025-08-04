@@ -14,28 +14,30 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-# Replace your urls.py with this corrected version:
 
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
+# Import Google OAuth views directly
+from users.views.view_googlelogin import google_login, google_callback
+
 urlpatterns = [
-    path('emails/', include('emails.urls')),  # Add this line
-    path('ckeditor/', include('ckeditor_uploader.urls')),  # If using file uploads
+    path('emails/', include('emails.urls')),
+    path('ckeditor/', include('ckeditor_uploader.urls')),
     path('admin/', admin.site.urls),
     path('', include('core.urls')),
     path('users/', include(('users.urls', 'users'), namespace='users')),
     path('filemanager/', include('filemanager.urls')),
-    path('ckeditor/', include('ckeditor_uploader.urls')),  # Add this for CKEditor
-    # path('comments/', include('comments.urls')),
-
+    path('ckeditor/', include('ckeditor_uploader.urls')),
     path('sections/', include('sections.urls')),
 
+    # ADDED: Direct Google OAuth URLs to match .env redirect URI
+    path('accounts/login/google/', google_login, name='google_login_direct'),
+    path('accounts/login/google/callback/', google_callback, name='google_callback_direct'),
 ]
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-

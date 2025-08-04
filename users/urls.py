@@ -16,7 +16,7 @@ from .views.dashboard_views import dashboard_view
 from .views.views import profile_edit, user_profile
 from .views.logout_view import message_admin_logout_view, smart_logout_view
 from .views.messaging_views import *
-from .views.view_googlelogin import google_login, google_callback
+from .views.view_googlelogin import google_login, google_callback, debug_oauth_config
 
 app_name = 'users'
 urlpatterns = [
@@ -73,6 +73,10 @@ urlpatterns = [
     path('api/notifications/', admin_notifications_api, name='admin_notifications_api'),
     path('api/mark-read/<int:message_id>/', mark_message_read_api, name='mark_message_read_api'),
 
-    path("accounts/login/google/", google_login, name="google_login"),
-    path("accounts/login/google/callback/", google_callback, name="google_callback"),
+    # FIXED: Google OAuth URLs (removed 'accounts/' prefix to match .env redirect URI)
+    path("login/google/", google_login, name="google_login"),
+    path("login/google/callback/", google_callback, name="google_callback"),
+
+    # DEBUG: OAuth configuration checker (remove in production)
+    path("debug/oauth/", debug_oauth_config, name="debug_oauth_config"),
 ]
