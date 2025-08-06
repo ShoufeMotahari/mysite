@@ -361,22 +361,5 @@ class EmailBroadcastAdmin(admin.ModelAdmin):
         return super().has_delete_permission(request, obj)
 
 
-@admin.register(EmailTemplate)
-class EmailTemplateAdmin(admin.ModelAdmin):
-    list_display = ['name', 'subject', 'is_active', 'created_at', 'updated_at']
-    list_filter = ['is_active', 'created_at']
-    search_fields = ['name', 'subject', 'content']
 
-    fieldsets = (
-        ('Template Information', {
-            'fields': ('name', 'subject', 'is_active')
-        }),
-        ('Content', {
-            'fields': ('content',)
-        }),
-    )
-
-    def save_model(self, request, obj, form, change):
-        logger.info(f"Email template {'updated' if change else 'created'} by {request.user.username}: '{obj.name}'")
-        super().save_model(request, obj, form, change)
 
