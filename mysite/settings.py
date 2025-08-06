@@ -36,7 +36,7 @@ AWS_S3_ENDPOINT_URL = env("AWS_S3_ENDPOINT_URL")  # Should be https://s3.ir-thr-
 AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME", default="ir-thr-at1")
 
 ENCRYPTION_KEY = env("ENCRYPTION_KEY")
-# SECURITY WARNING: keep the secret key used iSTATIC_ROOT = BASE_DIR / 'staticfiles'n production secret!
+# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-%&r-xz_$%zjxpv6j5!7j77vo&_c_37p_=rzwc*w@v%)wy+976*'
 DEBUG = config('DEBUG', default=True, cast=bool)
 # FIXED: Correct custom domain configuration
@@ -584,7 +584,12 @@ LOGGING = {
             'formatter': 'simple',
             'stream': sys.stdout,
         },
-
+        'accounts_file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(LOG_DIR, 'accounts.log'),
+            'formatter': 'verbose',
+        },
         'comments_file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
