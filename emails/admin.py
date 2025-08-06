@@ -106,7 +106,6 @@ class EmailBroadcastAdmin(admin.ModelAdmin):
         'preview_content',
         'recipient_list_preview'
     ]
-    inlines = [EmailLogInline]
 
     fieldsets = (
         ('Email Template', {
