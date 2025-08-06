@@ -182,7 +182,7 @@ STORAGES = {
     },
 }
 # STATICFILES_DIRS = [BASE_DIR / 'static']
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATIC_ROOT = "/home/fhmmeuob/public_html/shoku.erfann31dev.ir/static"
 
 # CKEditor configuration
 CKEDITOR_UPLOAD_PATH = "uploads/"
