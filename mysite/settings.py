@@ -406,6 +406,12 @@ DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER if EMAIL_
 # File backend settings (if using file backend)
 EMAIL_FILE_PATH = BASE_DIR / 'sent_emails'
 
+# Celery Task Configuration
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+
+
 DEFAULT_CHARSET = 'utf-8'
 EMAIL_USE_LOCALTIME = True
 EMAIL_USE_UTF8 = True
@@ -691,6 +697,14 @@ LOGGING = {
             'backupCount': 5,
             'formatter': 'detailed',
         },
+        'email_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'email_broadcast.log'),
+            'maxBytes': 1024 * 1024 * 5,  # 5MB
+            'backupCount': 2,
+            'formatter': 'simple',
+        },
     },
     'loggers': {
         'accounts_': {
@@ -800,6 +814,11 @@ LOGGING = {
         },
         'users.models.image': {
             'handlers': ['image_processing_file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'email_broadcast': {
+            'handlers': ['email_file'],
             'level': 'INFO',
             'propagate': False,
         },
