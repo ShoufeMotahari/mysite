@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #2d3748;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: #718096;
+            font-size: 1.1rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #2d3748;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 1rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .broadcasts { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .active { background: linear-gradient(135deg, #f093fb, #f5576c); }
+        .today-sent { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+        .today-failed { background: linear-gradient(135deg, #ff9a9e, #fecfef); }
+
+        .broadcasts, .active, .today-sent, .today-failed {
+            color: white;
+        }
+
+        .broadcasts .stat-number, .active .stat-number,
+        .today-sent .stat-number, .today-failed .stat-number {
+            color: white;
+        }
+
+        .broadcasts .stat-label, .active .stat-label,
+        .today-sent .stat-label, .today-failed .stat-label {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .content-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .content-card h2 {
+            color: #2d3748;
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .broadcast-item, .failure-item {
+            padding: 15px 0;
+            border-bottom: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .broadcast-item:last-child, .failure-item:last-child {
+            border-bottom: none;
+        }
+
+        .broadcast-item:hover, .failure-item:hover {
+            background: rgba(102, 126, 234, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 0 -15px;
+        }
+
+        .broadcast-title {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+
+        .broadcast-meta {
+            color: #718096;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-draft { background: #e2e8f0; color: #2d3748; }
+        .status-sending { background: #bee3f8; color: #2b6cb0; }
+        .status-sent { background: #c6f6d5; color: #22543d; }
+        .status-failed { background: #fed7d7; color: #c53030; }
+
+        .failure-recipient {
+            font-weight: 600;
+            color: #e53e3e;
+            margin-bottom: 5px;
+        }
+
+        .failure-error {
+            color: #718096;
+            font-size: 0.9rem;
+            font-style: italic;
+            margin-bottom: 5px;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 50px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.9);
+            color: #4a5568;
+            border: 1px solid #e2e8f0;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #718096;
+            font-style: italic;
+            padding: 40px 20px;
+        }
+
+        .empty-state span {
+            font-size: 3rem;
+            display: block;
+            margin-bottom: 10px;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 768px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .quick-actions {
+                flex-direction: column;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            }
+        }
+
+        .refresh-time {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 20px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>📧 Email Dashboard</h1>
+            <p>Monitor your email broadcasting system and track performance</p>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="stats-grid">
+            <div class="stat-card broadcasts">
+                <span class="stat-icon">📊</span>
+                <div class="stat-number">{{ total_broadcasts }}</div>
+                <div class="stat-label">Total Broadcasts</div>
+            </div>
+
+            <div class="stat-card active">
+                <span class="stat-icon">⚡</span>
+                <div class="stat-number">{{ active_broadcasts }}</div>
+                <div class="stat-label">Active Sending</div>
+            </div>
+
+            <div class="stat-card today-sent">
+                <span class="stat-icon">✅</span>
+                <div class="stat-number">{{ today_sent }}</div>
+                <div class="stat-label">Today Sent</div>
+            </div>
+
+            <div class="stat-card today-failed">
+                <span class="stat-icon">❌</span>
+                <div class="stat-number">{{ today_failed }}</div>
+                <div class="stat-label">Today Failed</div>
+            </div>
+        </div>
+
+        <!-- Content Grid -->
+        <div class="content-grid">
+            <!-- Recent Broadcasts -->
+            <div class="content-card">
+                <h2>🚀 Recent Broadcasts</h2>
+
+                {% if recent_broadcasts %}
+                    {% for broadcast in recent_broadcasts %}
+                    <div class="broadcast-item">
+                        <div class="broadcast-title">{{ broadcast.subject }}</div>
+                        <div class="broadcast-meta">
+                            <span>{{ broadcast.created_at|date:"M d, H:i" }} by {{ broadcast.created_by.username }}</span>
+                            <span class="status-badge status-{{ broadcast.status }}">
+                                {{ broadcast.get_status_display }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <span>📭</span>
+                        No broadcasts yet
+                    </div>
+                {% endif %}
+
+                <div class="quick-actions">
+                    <a href="{% url 'admin:emails_emailbroadcast_add' %}" class="btn btn-primary">
+                        ➕ New Broadcast
+                    </a>
+                    <a href="{% url 'emails:statistics' %}" class="btn btn-secondary">
+                        📈 View Statistics
+                    </a>
+                </div>
+            </div>
+
+            <!-- Recent Failures -->
+            <div class="content-card">
+                <h2>⚠️ Recent Failures</h2>
+
+                {% if recent_failures %}
+                    {% for failure in recent_failures %}
+                    <div class="failure-item">
+                        <div class="failure-recipient">{{ failure.recipient.email }}</div>
+                        <div class="failure-error">
+                            {% if failure.error_message %}
+                                {{ failure.error_message|truncatechars:100 }}
+                            {% else %}
+                                Unknown error occurred
+                            {% endif %}
+                        </div>
+                        <div class="broadcast-meta">
+                            <span>{{ failure.broadcast.subject }}</span>
+                            <span>{{ failure.sent_at|date:"M d, H:i" }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <span>🎉</span>
+                        No recent failures
+                    </div>
+                {% endif %}
+
+                <div class="quick-actions">
+                    <a href="{% url 'emails:logs' %}?status=failed" class="btn btn-primary">
+                        🔍 View All Failures
+                    </a>
+                    <a href="{% url 'emails:logs' %}" class="btn btn-secondary">
+                        📋 All Logs
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional Actions -->
+        <div class="content-card">
+            <h2>🛠️ Quick Actions</h2>
+            <div class="quick-actions">
+                <a href="{% url 'admin:emails_emailbroadcast_changelist' %}" class="btn btn-primary">
+                    📧 Manage Broadcasts
+                </a>
+                <a href="{% url 'emails:statistics' %}" class="btn btn-secondary">
+                    📊 Detailed Statistics
+                </a>
+                <a href="{% url 'emails:log_file' %}" class="btn btn-secondary">
+                    📄 View Log File
+                </a>
+                <a href="{% url 'admin:emails_emailtemplate_changelist' %}" class="btn btn-secondary">
+                    📝 Email Templates
+                </a>
+            </div>
+        </div>
+
+        <div class="refresh-time">
+            Last updated: <span id="current-time"></span> |
+            <a href="#" onclick="location.reload()" style="color: rgba(255,255,255,0.8)">🔄 Refresh</a>
+        </div>
+    </div>
+
+    <script>
+        // Update current time
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('current-time').textContent = now.toLocaleString();
+        }
+
+        updateTime();
+        setInterval(updateTime, 60000); // Update every minute
+
+        // Auto refresh every 5 minutes
+        setTimeout(() => location.reload(), 300000);
+
+        // Add loading animation for cards
+        document.querySelectorAll('.stat-card, .content-card').forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            setTimeout(() => {
+                card.style.transition = 'all 0.6s ease';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, index * 100);
+        });
+    </script>
+</body>
+</html>

@@ -8,4 +8,6 @@ urlpatterns = [
     path('logs/', views.email_logs, name='email_logs'),
     path('log-file/', views.view_log_file, name='view_log_file'),
     path('test-logging/', views.test_email_logging, name='test_email_logging'),
+    path('broadcast/<int:broadcast_id>/', views.broadcast_detail, name='broadcast_detail'),
+    path('', views.email_dashboard, name='dashboard'),
 ]
