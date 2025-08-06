@@ -36,7 +36,7 @@ AWS_S3_ENDPOINT_URL = env("AWS_S3_ENDPOINT_URL")  # Should be https://s3.ir-thr-
 AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME", default="ir-thr-at1")
 
 ENCRYPTION_KEY = env("ENCRYPTION_KEY")
-# SECURITY WARNING: keep the secret key used in production secret!
+# SECURITY WARNING: keep the secret key used iSTATIC_ROOT = BASE_DIR / 'staticfiles'n production secret!
 SECRET_KEY = 'django-insecure-%&r-xz_$%zjxpv6j5!7j77vo&_c_37p_=rzwc*w@v%)wy+976*'
 DEBUG = config('DEBUG', default=True, cast=bool)
 # FIXED: Correct custom domain configuration
@@ -182,7 +182,7 @@ STORAGES = {
     },
 }
 # STATICFILES_DIRS = [BASE_DIR / 'static']
-STATIC_ROOT = "/home/fhmmeuob/public_html/shoku.erfann31dev.ir/static"
+STATIC_ROOT = BASE_DIR / 'static'
 
 # CKEditor configuration
 CKEDITOR_UPLOAD_PATH = "uploads/"
