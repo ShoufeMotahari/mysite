@@ -205,6 +205,8 @@ GOOGLE_REDIRECT_URI = env("GOOGLE_REDIRECT_URI")
 
 
 INSTALLED_APPS = [
+    'django_celery_results',
+    'django_celery_beat',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -410,6 +412,8 @@ EMAIL_FILE_PATH = BASE_DIR / 'sent_emails'
 CELERY_ACCEPT_CONTENT = ['application/json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
+CELERY_BROKER_URL = 'sqla+sqlite:///celerydb.sqlite'
+CELERY_RESULT_BACKEND = 'django-db'
 
 
 DEFAULT_CHARSET = 'utf-8'
