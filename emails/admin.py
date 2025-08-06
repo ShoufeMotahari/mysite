@@ -8,9 +8,9 @@ from django.shortcuts import render
 from django import forms
 from ckeditor.widgets import CKEditorWidget
 from django.contrib.auth import get_user_model
-from .models import EmailBroadcast, EmailLog
-from .tasks import send_broadcast_email  # We'll create this
+from .models import EmailBroadcast
 import logging
+from .tasks import send_broadcast_email
 
 User = get_user_model()
 logger = logging.getLogger('emails')
@@ -31,7 +31,6 @@ class EmailBroadcastForm(forms.ModelForm):
 
 
 class EmailLogInline(admin.TabularInline):
-    model = EmailLog
     extra = 0
     readonly_fields = ['recipient', 'status', 'error_message', 'sent_at']
     can_delete = False
@@ -205,15 +204,3 @@ class EmailBroadcastAdmin(admin.ModelAdmin):
         return super().has_delete_permission(request, obj)
 
 
-@admin.register(EmailLog)
-class EmailLogAdmin(admin.ModelAdmin):
-    list_display = ['broadcast', 'recipient', 'status', 'sent_at']
-    list_filter = ['status', 'sent_at', 'broadcast']
-    search_fields = ['recipient__email', 'broadcast__subject']
-    readonly_fields = ['broadcast', 'recipient', 'status', 'error_message', 'sent_at']
-
-    def has_add_permission(self, request):
-        return False  # Logs are created automatically
-
-    def has_change_permission(self, request, obj=None):
-        return False  # Logs shouldn't be editable
