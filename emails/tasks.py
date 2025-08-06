@@ -14,17 +14,14 @@ logger = logging.getLogger('emails')
 @shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 60})
 def send_broadcast_email(self, broadcast_id):
     """
-    Send broadcast email to all active users
+    Send broadcast email to selected recipients
     """
     try:
         broadcast = EmailBroadcast.objects.get(id=broadcast_id)
         logger.info(f"Starting email broadcast task for broadcast ID: {broadcast_id}")
 
-        # Get all active users with valid email addresses
-        recipients = User.objects.filter(
-            is_active=True,
-            email__isnull=False
-        ).exclude(email='')
+        # Get recipients using the broadcast's recipient selection logic
+        recipients = broadcast.get_recipients()
 
         total_recipients = recipients.count()
         successful_sends = 0
@@ -35,7 +32,8 @@ def send_broadcast_email(self, broadcast_id):
         broadcast.status = 'sending'
         broadcast.save()
 
-        logger.info(f"Broadcast {broadcast_id}: Sending to {total_recipients} recipients")
+        logger.info(
+            f"Broadcast {broadcast_id}: Sending to {total_recipients} recipients (type: {broadcast.recipient_type})")
 
         # Send emails to each recipient
         for i, recipient in enumerate(recipients, 1):
@@ -46,9 +44,20 @@ def send_broadcast_email(self, broadcast_id):
                     meta={
                         'current': i,
                         'total': total_recipients,
-                        'status': f'Sending to {recipient.email}...'
+                        'status': f'Sending to {recipient.email}...',
+                        'recipient_type': broadcast.recipient_type
                     }
                 )
+
+                # Check if log already exists (prevent duplicates)
+                existing_log = EmailLog.objects.filter(
+                    broadcast=broadcast,
+                    recipient=recipient
+                ).first()
+
+                if existing_log:
+                    logger.warning(f"Email already sent to {recipient.email} for broadcast {broadcast_id}")
+                    continue
 
                 # Send individual email
                 send_mail(
@@ -88,17 +97,19 @@ def send_broadcast_email(self, broadcast_id):
         # Update broadcast with final results
         broadcast.successful_sends = successful_sends
         broadcast.failed_sends = failed_sends
-        broadcast.status = 'sent' if failed_sends == 0 else 'failed'
+        broadcast.status = 'sent' if failed_sends == 0 else ('failed' if successful_sends == 0 else 'sent')
         broadcast.sent_at = timezone.now()
         broadcast.save()
 
         logger.info(
             f"Broadcast {broadcast_id} completed: "
-            f"{successful_sends} successful, {failed_sends} failed"
+            f"{successful_sends} successful, {failed_sends} failed "
+            f"(recipient_type: {broadcast.recipient_type})"
         )
 
         return {
             'broadcast_id': broadcast_id,
+            'recipient_type': broadcast.recipient_type,
             'total_recipients': total_recipients,
             'successful_sends': successful_sends,
             'failed_sends': failed_sends,
@@ -163,4 +174,35 @@ def cleanup_old_email_logs():
 
     except Exception as e:
         logger.error(f"Error in cleanup_old_email_logs task: {str(e)}")
+        raise
+
+
+@shared_task
+def preview_recipients(recipient_type, custom_recipient_ids=None):
+    """
+    Preview task to count recipients without sending emails
+    """
+    try:
+        if recipient_type == 'all':
+            recipients = User.objects.filter(is_active=True, email__isnull=False).exclude(email='')
+        elif recipient_type == 'staff':
+            recipients = User.objects.filter(is_active=True, is_staff=True, email__isnull=False).exclude(email='')
+        elif recipient_type == 'superusers':
+            recipients = User.objects.filter(is_active=True, is_superuser=True, email__isnull=False).exclude(email='')
+        elif recipient_type == 'custom' and custom_recipient_ids:
+            recipient_ids = [int(id.strip()) for id in custom_recipient_ids.split(',') if id.strip().isdigit()]
+            recipients = User.objects.filter(id__in=recipient_ids, is_active=True)
+        else:
+            recipients = User.objects.none()
+
+        recipient_list = list(recipients.values('id', 'email', 'first_name', 'last_name', 'is_staff', 'is_superuser'))
+
+        return {
+            'count': len(recipient_list),
+            'recipients': recipient_list[:50],  # Return first 50 for preview
+            'recipient_type': recipient_type
+        }
+
+    except Exception as e:
+        logger.error(f"Error in preview_recipients task: {str(e)}")
         raise

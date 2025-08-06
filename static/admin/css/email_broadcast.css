@@ -1,0 +1,241 @@
+/* Place this file in: static/admin/css/email_broadcast.css */
+
+.field-email_template {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.field-email_template label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.field-email_template select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.field-recipient_type {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 8px;
+    padding: 15px;
+    margin: 20px 0;
+}
+
+.field-recipient_type label {
+    font-weight: 600;
+    color: #856404;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.field-recipient_type ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.field-recipient_type li {
+    margin-bottom: 8px;
+    padding: 8px 12px;
+    background: white;
+    border-radius: 4px;
+    border: 1px solid #ffeaa7;
+    transition: all 0.2s ease;
+}
+
+.field-recipient_type li:hover {
+    background: #fff8e1;
+}
+
+.field-recipient_type input[type="radio"] {
+    margin-right: 8px;
+    transform: scale(1.2);
+}
+
+.field-custom_recipients {
+    background: #e3f2fd;
+    border: 1px solid #90caf9;
+    border-radius: 8px;
+    padding: 15px;
+    margin: 20px 0;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.field-custom_recipients label {
+    font-weight: 600;
+    color: #1565c0;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.field-custom_recipients ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    columns: 2;
+    column-gap: 20px;
+}
+
+.field-custom_recipients li {
+    margin-bottom: 8px;
+    padding: 6px 10px;
+    background: white;
+    border-radius: 4px;
+    border: 1px solid #bbdefb;
+    break-inside: avoid;
+    transition: all 0.2s ease;
+}
+
+.field-custom_recipients li:hover {
+    background: #f3e5f5;
+    border-color: #ba68c8;
+}
+
+.field-custom_recipients input[type="checkbox"] {
+    margin-right: 8px;
+    transform: scale(1.1);
+}
+
+.field-recipient_list_preview {
+    background: #f1f8e9;
+    border: 1px solid #c8e6c9;
+    border-radius: 8px;
+    padding: 15px;
+    margin: 20px 0;
+}
+
+.field-recipient_list_preview label {
+    font-weight: 600;
+    color: #2e7d32;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.field-recipient_list_preview .readonly {
+    background: white;
+    padding: 15px;
+    border-radius: 4px;
+    border: 1px solid #c8e6c9;
+    min-height: 60px;
+}
+
+.field-preview_content {
+    background: #fafafa;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 15px;
+    margin: 20px 0;
+}
+
+.field-preview_content label {
+    font-weight: 600;
+    color: #424242;
+    margin-bottom: 10px;
+    display: block;
+}
+
+/* Status badges in admin list */
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .field-custom_recipients ul {
+        columns: 1;
+    }
+
+    .field-recipient_type li,
+    .field-custom_recipients li {
+        font-size: 14px;
+    }
+}
+
+/* Loading states */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+    position: relative;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Email template selection styling */
+.field-email_template select:focus {
+    outline: none;
+    border-color: #007cba;
+    box-shadow: 0 0 0 1px #007cba;
+}
+
+/* Help text styling */
+.help {
+    color: #666;
+    font-size: 12px;
+    margin-top: 5px;
+    font-style: italic;
+}
+
+/* Enhanced form fieldsets */
+.module h2 {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px 8px 0 0;
+    margin: 0 0 20px 0;
+    font-weight: 600;
+}
+
+.module {
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+/* Button styling */
+.button, input[type="submit"], .submit-row input {
+    background: linear-gradient(135deg, #667eea, #764ba2) !important;
+    border: none !important;
+    color: white !important;
+    padding: 10px 20px !important;
+    border-radius: 25px !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+}
+
+.button:hover, input[type="submit"]:hover, .submit-row input:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
+}
