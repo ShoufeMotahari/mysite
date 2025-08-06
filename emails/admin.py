@@ -30,15 +30,6 @@ class EmailBroadcastForm(forms.ModelForm):
         }
 
 
-class EmailLogInline(admin.TabularInline):
-    extra = 0
-    readonly_fields = ['recipient', 'status', 'error_message', 'sent_at']
-    can_delete = False
-
-    def has_add_permission(self, request, obj=None):
-        return False
-
-
 @admin.register(EmailBroadcast)
 class EmailBroadcastAdmin(admin.ModelAdmin):
     form = EmailBroadcastForm
@@ -63,7 +54,6 @@ class EmailBroadcastAdmin(admin.ModelAdmin):
         'sent_at',
         'preview_content'
     ]
-    inlines = [EmailLogInline]
 
     fieldsets = (
         ('Email Content', {
