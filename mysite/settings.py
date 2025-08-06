@@ -584,12 +584,6 @@ LOGGING = {
             'formatter': 'simple',
             'stream': sys.stdout,
         },
-        'accounts_file': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(LOG_DIR, 'accounts.log'),
-            'formatter': 'verbose',
-        },
         'comments_file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
@@ -711,11 +705,6 @@ LOGGING = {
         },
     },
     'loggers': {
-        'accounts_': {
-            'handlers': ['accounts_file'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
         'comments': {
             'handlers': ['comments_file'],
             'level': 'DEBUG',
