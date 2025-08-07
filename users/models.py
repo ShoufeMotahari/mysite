@@ -129,6 +129,7 @@ class User(AbstractUser):
     mobile = models.CharField(max_length=11, unique=True, null=True, blank=True)
     email = models.EmailField(max_length=254, unique=False, null=True, blank=True)
     username = models.CharField(max_length=150, unique=True, null=True, blank=True)
+    image = models.ImageField(upload_to='avatars/', null=True, blank=True)
     slug = models.SlugField(unique=True, blank=True, max_length=255)
 
     # User type relationship
@@ -255,21 +256,6 @@ class User(AbstractUser):
     def get_user_type_display(self):
         """Get user type display name"""
         return self.user_type.name if self.user_type else 'نامشخص'
-
-
-# Keep existing models with minor updates
-class Profile(models.Model):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    created_jalali = jmodels.jDateTimeField(auto_now_add=True)
-    updated_jalali = jmodels.jDateTimeField(auto_now=True)
-    image = models.ImageField(upload_to='avatars/', null=True, blank=True)
-
-    def __str__(self):
-        return f"Profile of {self.user}"
-
-    class Meta:
-        verbose_name = 'پروفایل'
-        verbose_name_plural = 'پروفایل‌ها'
 
 
 class RegisterToken(models.Model):

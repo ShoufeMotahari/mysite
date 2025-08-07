@@ -13,7 +13,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 import logging
 
 # Import models
-from users.models import User, Profile, PasswordEntry, Comment, UserType, AdminMessage, AdminMessageReadStatus, AdminMessageReply
+from users.models import User, PasswordEntry, Comment, UserType, AdminMessage, AdminMessageReadStatus, AdminMessageReply
 from emails.models import EmailTemplate
 
 # Import forms and services
@@ -120,15 +120,6 @@ class CommentInline(admin.TabularInline):
     def get_queryset(self, request):
         """Only show comments related to this user"""
         return super().get_queryset(request).select_related('user')
-
-
-class ProfileInline(admin.StackedInline):
-    """Inline for user profile"""
-    model = Profile
-    extra = 0
-    readonly_fields = ['created_jalali', 'updated_jalali']
-    fields = ['image', 'created_jalali', 'updated_jalali']
-
 
 @admin.register(UserType)
 class UserTypeAdmin(admin.ModelAdmin):
@@ -330,7 +321,7 @@ class UserTypeAdmin(admin.ModelAdmin):
 class UserAdmin(BaseUserAdmin):
     # List display with user types
     list_display = [
-        'username', 'email', 'mobile', 'full_name_display', 'user_type_display',
+        'username', 'image_tag', 'email', 'mobile', 'full_name_display', 'user_type_display',
         'is_active', 'is_staff', 'email_status', 'phone_status',
         'comments_count', 'last_login', 'created_at'
     ]
@@ -373,12 +364,15 @@ class UserAdmin(BaseUserAdmin):
     ordering = ['-created_at']
 
     # Add inlines
-    inlines = [ProfileInline, CommentInline]
+    inlines = [CommentInline]
 
     # Enhanced fieldsets for better organization
     fieldsets = (
         ('اطلاعات کاربری', {
             'fields': ('username', 'email', 'mobile', 'slug')
+        }),
+        ('تصویر کاربر', {
+            'fields': ('image',),  # 👈 اضافه کردن فیلد آپلود تصویر
         }),
         ('اطلاعات شخصی', {
             'fields': ('first_name', 'last_name', 'bio', 'birth_date')
@@ -404,7 +398,7 @@ class UserAdmin(BaseUserAdmin):
         }),
     )
 
-    readonly_fields = ['created_at', 'date_joined', 'last_login', 'last_activity', 'posts_count', 'comments_count']
+    readonly_fields = ['created_at','image_preview', 'date_joined', 'last_login', 'last_activity', 'posts_count', 'comments_count']
 
     # Optimize queries
     def get_queryset(self, request):
@@ -415,9 +409,20 @@ class UserAdmin(BaseUserAdmin):
             approved_comments_count=Count('comments', filter=Q(comments__is_approved=True))
         )
         # Select related for efficiency
-        queryset = queryset.select_related('profile', 'user_type')
+        queryset = queryset.select_related( 'user_type')
         return queryset
 
+    def image_preview(self, obj):
+        if obj.image:
+            return format_html('<img src="{}" style="height: 100px; border-radius: 5px;" />', obj.image.url)
+        return "بدون تصویر"
+
+    def image_tag(self, obj):
+        if obj.image:
+            return format_html('<img src="{}" style="height:40px; border-radius:4px;" />', obj.image.url)
+        return "-"
+    image_tag.short_description = "تصویر"
+    image_preview.short_description = "پیش‌نمایش تصویر"
     # Custom display methods
     def full_name_display(self, obj):
         """Display full name or fallback"""
@@ -665,8 +670,6 @@ class UserAdmin(BaseUserAdmin):
 
             user.save()
 
-            # Create profile
-            Profile.objects.get_or_create(user=user)
 
             logger.info(
                 f"👨‍💼 Admin {request.user.username} created user: {user.get_display_name()} with type: {user_type.name if user_type else 'None'}")
@@ -968,24 +971,6 @@ class CommentAdmin(admin.ModelAdmin):
     deactivate_comments.short_description = 'غیرفعال کردن نظرات انتخاب شده'
 
 
-# Keep existing admin registrations for other models
-@admin.register(Profile)
-class ProfileAdmin(admin.ModelAdmin):
-    def profile_image_thumb(self, obj):
-        if obj.image:
-            return format_html('<img src="{}" width="40" height="40" style="border-radius: 5px;" />', obj.image.url)
-        return "بدون تصویر"
-
-    profile_image_thumb.short_description = 'تصویر'
-
-    # list_display = ['user', 'profile_image_thumb', 'created_jalali', 'updated_jalali']
-    list_filter = (('created_jalali', JDateFieldListFilter),)
-    search_fields = ['user__username', 'user__email', 'user__mobile', 'user__slug']
-    readonly_fields = ['created_jalali', 'updated_jalali']
-    fieldsets = (
-        (None, {'fields': ('user', 'image')}),
-        ('تاریخ‌ها', {'fields': ('created_jalali', 'updated_jalali')}),
-    )
 
 
 @admin.register(PasswordEntry)

@@ -9,7 +9,7 @@ import logging
 import re
 
 # Import models
-from users.models import Profile, PasswordEntry, Comment
+from users.models import PasswordEntry, Comment
 from emails.models import EmailTemplate
 
 # Setup logging
@@ -295,7 +295,6 @@ class ProfileUpdateForm(forms.ModelForm):
     """Form for updating user profile"""
 
     class Meta:
-        model = Profile
         fields = ['image']
         widgets = {
             'image': forms.FileInput(attrs={
