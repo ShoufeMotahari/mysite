@@ -978,7 +978,7 @@ class ProfileAdmin(admin.ModelAdmin):
 
     profile_image_thumb.short_description = 'تصویر'
 
-    list_display = ['user', 'profile_image_thumb', 'created_jalali', 'updated_jalali']
+    # list_display = ['user', 'profile_image_thumb', 'created_jalali', 'updated_jalali']
     list_filter = (('created_jalali', JDateFieldListFilter),)
     search_fields = ['user__username', 'user__email', 'user__mobile', 'user__slug']
     readonly_fields = ['created_jalali', 'updated_jalali']
