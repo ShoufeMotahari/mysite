@@ -366,13 +366,13 @@ class UserAdmin(BaseUserAdmin):
     # Add inlines
     inlines = [CommentInline]
 
-    # Enhanced fieldsets for better organization
+    # Enhanced fieldsets for editing existing users
     fieldsets = (
         ('اطلاعات کاربری', {
             'fields': ('username', 'email', 'mobile', 'slug')
         }),
         ('تصویر کاربر', {
-            'fields': ('image',),  # 👈 اضافه کردن فیلد آپلود تصویر
+            'fields': ('image',),
         }),
         ('اطلاعات شخصی', {
             'fields': ('first_name', 'last_name', 'bio', 'birth_date')
@@ -398,7 +398,28 @@ class UserAdmin(BaseUserAdmin):
         }),
     )
 
-    readonly_fields = ['created_at','image_preview', 'date_joined', 'last_login', 'last_activity', 'posts_count', 'comments_count']
+    # Add fieldsets specifically for adding new users
+    add_fieldsets = (
+        ('اطلاعات کاربری ضروری', {
+            'classes': ('wide',),
+            'fields': ('username', 'email', 'mobile', 'password1', 'password2'),
+        }),
+        ('اطلاعات شخصی', {
+            'classes': ('wide',),
+            'fields': ('first_name', 'last_name'),
+        }),
+        ('نوع کاربری و دسترسی', {
+            'classes': ('wide',),
+            'fields': ('user_type', 'is_active', 'is_staff'),
+            'description': 'نوع کاربری تعیین کننده سطح دسترسی کاربر است'
+        }),
+        ('تصویر کاربر', {
+            'classes': ('wide',),
+            'fields': ('image',),
+        }),
+    )
+
+    readonly_fields = ['created_at', 'image_preview', 'date_joined', 'last_login', 'last_activity', 'posts_count', 'comments_count']
 
     # Optimize queries
     def get_queryset(self, request):
@@ -409,28 +430,27 @@ class UserAdmin(BaseUserAdmin):
             approved_comments_count=Count('comments', filter=Q(comments__is_approved=True))
         )
         # Select related for efficiency
-        queryset = queryset.select_related( 'user_type')
+        queryset = queryset.select_related('user_type')
         return queryset
 
     def image_preview(self, obj):
         if obj.image:
             return format_html('<img src="{}" style="height: 100px; border-radius: 5px;" />', obj.image.url)
         return "بدون تصویر"
+    image_preview.short_description = "پیش‌نمایش تصویر"
 
     def image_tag(self, obj):
         if obj.image:
             return format_html('<img src="{}" style="height:40px; border-radius:4px;" />', obj.image.url)
         return "-"
     image_tag.short_description = "تصویر"
-    image_preview.short_description = "پیش‌نمایش تصویر"
-    # Custom display methods
+
     def full_name_display(self, obj):
         """Display full name or fallback"""
         full_name = obj.get_full_name().strip()
         if full_name:
             return full_name
         return format_html('<em style="color: #888;">بدون نام</em>')
-
     full_name_display.short_description = 'نام کامل'
 
     def user_type_display(self, obj):
@@ -456,7 +476,6 @@ class UserAdmin(BaseUserAdmin):
             '<span style="color: {}; font-weight: {};">{}</span>',
             color, weight, obj.user_type.name
         )
-
     user_type_display.short_description = 'نوع کاربری'
 
     def email_status(self, obj):
@@ -480,7 +499,6 @@ class UserAdmin(BaseUserAdmin):
             status_parts.append('<span style="color: red;">نامعتبر</span>')
 
         return format_html(' | '.join(status_parts))
-
     email_status.short_description = 'وضعیت ایمیل'
 
     def phone_status(self, obj):
@@ -492,7 +510,6 @@ class UserAdmin(BaseUserAdmin):
             return format_html('<span style="color: green;">✓ تایید شده</span>')
         else:
             return format_html('<span style="color: orange;">⚠ تایید نشده</span>')
-
     phone_status.short_description = 'وضعیت تلفن'
 
     def comments_count(self, obj):
@@ -513,9 +530,10 @@ class UserAdmin(BaseUserAdmin):
             parts.append(f'<span style="color: orange;">{pending} انتظار</span>')
 
         return format_html(' | '.join(parts))
-
     comments_count.short_description = 'نظرات'
 
+    # Keep all your existing action methods here (send_email_action, activate_users, etc.)
+    # ... [include all your existing action methods]
     # Enhanced actions
     def send_email_action(self, request, queryset):
         selected = queryset.values_list('id', flat=True)

@@ -1,6 +1,6 @@
 # users/management/commands/create_message_admin_type.py
 from django.core.management.base import BaseCommand
-from users.models import User, Profile, PasswordEntry, Comment, UserType,AdminMessage,AdminMessageReadStatus
+from users.models import User, PasswordEntry, Comment, UserType,AdminMessage,AdminMessageReadStatus
 
 
 class Command(BaseCommand):
