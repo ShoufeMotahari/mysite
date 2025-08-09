@@ -7,6 +7,8 @@ from PIL import Image as PILImage
 from django.core.files.base import ContentFile
 from io import BytesIO
 import django_jalali.db.models as jmodels
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
 import os
 import logging
 
@@ -550,3 +552,29 @@ class Document(models.Model):
         """Increment download counter"""
         self.download_count += 1
         self.save(update_fields=['download_count'])
+
+
+@receiver(post_delete, sender='filemanager.ImageUpload')
+def delete_image_files(sender, instance, **kwargs):
+    """Delete files when ImageUpload instance is deleted"""
+    try:
+        if instance.original_image:
+            instance.original_image.delete(save=False)
+    except Exception as e:
+        logger.error(f"Error deleting original image for {instance.title}: {str(e)}")
+
+    try:
+        if instance.processed_image:
+            instance.processed_image.delete(save=False)
+    except Exception as e:
+        logger.error(f"Error deleting processed image for {instance.title}: {str(e)}")
+
+
+@receiver(post_delete, sender='filemanager.Document')
+def delete_document_file(sender, instance, **kwargs):
+    """Delete file when Document instance is deleted"""
+    try:
+        if instance.file:
+            instance.file.delete(save=False)
+    except Exception as e:
+        logger.error(f"Error deleting file for {instance.name}: {str(e)}")
