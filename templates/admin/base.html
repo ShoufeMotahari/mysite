@@ -1,0 +1,49 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <style>
+        .admin-notification {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .admin-notification.urgent {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .notification-count {
+            background: #dc3545;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+    </style>
+{% endblock %}
+
+{% block header %}
+    {{ block.super }}
+    {% if unread_messages_count > 0 %}
+        <div class="admin-notification {% if unread_admin_messages.0.priority == 'urgent' %}urgent{% endif %}">
+            <strong>📨 پیام‌های جدید: <span class="notification-count">{{ unread_messages_count }}</span></strong>
+            <ul style="margin: 5px 0 0 20px;">
+                {% for message in unread_admin_messages %}
+                    <li>
+                        <strong>{{ message.subject }}</strong> - {{ message.sender.get_display_name }}
+                        <small>({{ message.created_at|date:"Y/m/d H:i" }})</small>
+                    </li>
+                {% endfor %}
+            </ul>
+            <a href="{% url 'admin:users_adminmessage_changelist' %}" style="color: inherit; text-decoration: underline;">
+                مشاهده همه پیام‌ها
+            </a>
+        </div>
+    {% endif %}
+{% endblock %}

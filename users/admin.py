@@ -421,6 +421,35 @@ class UserAdmin(BaseUserAdmin):
 
     readonly_fields = ['created_at', 'image_preview', 'date_joined', 'last_login', 'last_activity', 'posts_count', 'comments_count']
 
+    def changelist_view(self, request, extra_context=None):
+        """Override changelist view to add notifications"""
+        extra_context = extra_context or {}
+
+        # Add your existing context
+        extra_context['show_send_all_email_button'] = True
+        extra_context['show_create_user_with_type_button'] = True
+        extra_context['user_types'] = UserType.objects.filter(is_active=True)
+
+        # Add admin message notifications
+        if request.user.is_staff:
+            try:
+                unread_messages = AdminMessage.objects.filter(status='unread').order_by('-created_at')[:3]
+                if unread_messages.exists():
+                    extra_context['admin_notifications'] = unread_messages
+                    extra_context['notification_count'] = unread_messages.count()
+
+                    # Add a Django message for immediate visibility
+                    messages.info(
+                        request,
+                        f'📨 شما {unread_messages.count()} پیام خوانده نشده دارید.',
+                        extra_tags='admin-notification'
+                    )
+            except Exception:
+                pass
+
+        return super().changelist_view(request, extra_context=extra_context)
+
+
     # Optimize queries
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
