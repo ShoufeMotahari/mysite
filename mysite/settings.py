@@ -221,7 +221,6 @@ INSTALLED_APPS = [
     'ckeditor_uploader',
     'filemanager',
     'arvan_integration',
-    'emails',
     'ckeditor',
     'django_pwned',
     'django_jalali',

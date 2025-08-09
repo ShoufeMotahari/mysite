@@ -1,4 +1,6 @@
 # users/models.py - Enhanced with User Types
+from ckeditor.fields import RichTextField
+from django.contrib.auth import get_user_model
 from django.db import models
 from django_jalali.db.models import jDateTimeField
 from django.contrib.auth.models import AbstractUser
@@ -11,6 +13,7 @@ import logging
 from cryptography.fernet import Fernet
 from django.core.exceptions import ValidationError
 
+
 logger = logging.getLogger(__name__)
 
 from django.db import models
@@ -18,7 +21,42 @@ from django.conf import settings
 from django.utils import timezone
 import django_jalali.db.models as jmodels
 
+class EmailTemplate(models.Model):
+    name = models.CharField(max_length=100, verbose_name='نام قالب')
+    subject = models.CharField(max_length=200, verbose_name='موضوع')
+    content = RichTextField(verbose_name='محتوا')  # CKEditor content
+    created_at = jmodels.jDateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
+    updated_at = jmodels.jDateTimeField(auto_now=True, verbose_name='تاریخ بروزرسانی')
+    is_active = models.BooleanField(default=True, verbose_name='فعال')
 
+    class Meta:
+        verbose_name = 'قالب ایمیل'
+        verbose_name_plural = 'قالب‌های ایمیل'
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return self.name
+
+class EmailLog(models.Model):
+    STATUS_CHOICES = [
+        ('sent', 'Sent'),
+        ('failed', 'Failed'),
+    ]
+
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    subject = models.CharField(max_length=255)
+    content = RichTextField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES)
+    error_message = models.TextField(blank=True, null=True)
+    sent_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-sent_at']
+        verbose_name = 'Email Log'
+        verbose_name_plural = 'Email Logs'
+
+    def __str__(self):
+        return f"{self.recipient.email} - {self.get_status_display()} - {self.subject}"
 class UserType(models.Model):
     """Model for different user types/roles"""
 

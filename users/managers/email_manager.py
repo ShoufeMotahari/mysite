@@ -5,7 +5,7 @@ import json
 from django.utils import timezone
 
 from users.services.email_service import EmailServiceFactory
-from emails.models import EmailTemplate
+from users.models import EmailTemplate
 
 logger = logging.getLogger('email_manager')
 

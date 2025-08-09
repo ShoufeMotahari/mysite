@@ -14,7 +14,7 @@ import logging
 
 # Import models
 from users.models import User, PasswordEntry, Comment, UserType, AdminMessage, AdminMessageReadStatus, AdminMessageReply
-from emails.models import EmailTemplate
+from .models import EmailTemplate
 
 # Import forms and services
 from users.forms.forms import EmailForm

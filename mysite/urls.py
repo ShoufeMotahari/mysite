@@ -24,7 +24,7 @@ from django.conf.urls.static import static
 from users.views.view_googlelogin import google_login, google_callback
 
 urlpatterns = [
-    path('emails/', include('emails.urls')),
+    # path('emails/', include('emails.urls')),
     path('ckeditor/', include('ckeditor_uploader.urls')),
     path('admin/', admin.site.urls),
     path('', include('core.urls')),

@@ -10,7 +10,7 @@ import re
 
 # Import models
 from users.models import PasswordEntry, Comment
-from emails.models import EmailTemplate
+from users.models import EmailTemplate
 
 # Setup logging
 logger = logging.getLogger(__name__)
