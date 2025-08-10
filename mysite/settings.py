@@ -10,58 +10,58 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
+import logging
 import os
 import sys
 from pathlib import Path
+
 import environ
-from cryptography.fernet import Fernet
 from decouple import config
 
-import logging
 logging.basicConfig(level=logging.DEBUG)
 
 # مسیر پروژه
 BASE_DIR = Path(__file__).resolve().parent.parent
-LOGS_DIR = BASE_DIR / 'logs'
+LOGS_DIR = BASE_DIR / "logs"
 LOGS_DIR.mkdir(exist_ok=True)
 # خواندن فایل env
 env = environ.Env()
-env_path = os.path.join(BASE_DIR, '.env')
+env_path = os.path.join(BASE_DIR, ".env")
 if os.path.exists(env_path):
     environ.Env.read_env(env_file=env_path)
 # Arvan Cloud S3 Configuration
 AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY")
 AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME")
-AWS_S3_ENDPOINT_URL = env("AWS_S3_ENDPOINT_URL")  # Should be https://s3.ir-thr-at1.arvanstorage.com
+AWS_S3_ENDPOINT_URL = env(
+    "AWS_S3_ENDPOINT_URL"
+)  # Should be https://s3.ir-thr-at1.arvanstorage.com
 AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME", default="ir-thr-at1")
 
 ENCRYPTION_KEY = env("ENCRYPTION_KEY")
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-%&r-xz_$%zjxpv6j5!7j77vo&_c_37p_=rzwc*w@v%)wy+976*'
-DEBUG = config('DEBUG', default=True, cast=bool)
+SECRET_KEY = "django-insecure-%&r-xz_$%zjxpv6j5!7j77vo&_c_37p_=rzwc*w@v%)wy+976*"
+DEBUG = config("DEBUG", default=True, cast=bool)
 # FIXED: Correct custom domain configuration
 AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.ir-thr-at1.arvanstorage.com"
 
 # S3 Configuration
 AWS_S3_ADDRESSING_STYLE = "virtual"  # Changed to virtual
-AWS_DEFAULT_ACL = 'public-read'  # IMPORTANT: Set to public-read for access
+AWS_DEFAULT_ACL = "public-read"  # IMPORTANT: Set to public-read for access
 AWS_QUERYSTRING_AUTH = False
 AWS_S3_FILE_OVERWRITE = False  # Prevent overwriting files with same name
 AWS_S3_SECURE_URLS = True
 AWS_S3_USE_SSL = True
-AWS_S3_SIGNATURE_VERSION = 's3v4'  # Required for Arvan
+AWS_S3_SIGNATURE_VERSION = "s3v4"  # Required for Arvan
 AWS_S3_VERIFY = True
 
 # بهینه‌سازی برای آپلود تصاویر
 AWS_S3_OBJECT_PARAMETERS = {
-    'CacheControl': 'max-age=86400',  # cache برای 24 ساعت
-    'Metadata': {
-        'processed-by': 'django-image-processor'
-    }
+    "CacheControl": "max-age=86400",  # cache برای 24 ساعت
+    "Metadata": {"processed-by": "django-image-processor"},
 }
 # فرمت‌های مجاز برای آپلود
-ALLOWED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+ALLOWED_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif", ".webp"]
 
 # حداکثر ابعاد تصویر
 MAX_IMAGE_DIMENSIONS = (8000, 8000)
@@ -80,7 +80,7 @@ CACHES = {
         "TIMEOUT": 3600,  # ✅ 1 ساعت
         "OPTIONS": {
             "MAX_ENTRIES": 10000,
-        }
+        },
     }
 }
 
@@ -89,7 +89,7 @@ CACHES = {
 # ========================================
 
 # فیلتر فرمت‌های خطرناک
-FORBIDDEN_IMAGE_TYPES = ['.svg', '.bmp', '.tiff']
+FORBIDDEN_IMAGE_TYPES = [".svg", ".bmp", ".tiff"]
 
 # اسکن ویروس (اختیاری - برای production)
 ENABLE_VIRUS_SCAN = False
@@ -113,8 +113,8 @@ ENABLE_IMAGE_API = True
 
 # محدودیت rate limit برای آپلود تصویر
 IMAGE_UPLOAD_RATE_LIMIT = {
-    'requests': 20,
-    'window': 3600,  # 20 تصویر در ساعت
+    "requests": 20,
+    "window": 3600,  # 20 تصویر در ساعت
 }
 
 # ========================================
@@ -134,56 +134,55 @@ WEEKLY_IMAGE_REPORT = True
 # FIXED: Media configuration
 # Image upload settings
 IMAGE_UPLOAD_SETTINGS = {
-    'DEFAULT_QUALITY': 85,
-    'DEFAULT_MAX_WIDTH': 1920,
-    'DEFAULT_MAX_HEIGHT': 1080,
-    'ALLOWED_FORMATS': ['JPEG', 'PNG', 'WebP'],
-    'MAX_FILE_SIZE': 10 * 1024 * 1024,  # 10MB
-
+    "DEFAULT_QUALITY": 85,
+    "DEFAULT_MAX_WIDTH": 1920,
+    "DEFAULT_MAX_HEIGHT": 1080,
+    "ALLOWED_FORMATS": ["JPEG", "PNG", "WebP"],
+    "MAX_FILE_SIZE": 10 * 1024 * 1024,  # 10MB
     # تنظیمات جدید برای سیستم minification
-    'MINIFICATION_LEVELS': {
-        'none': 95,
-        'low': 90,
-        'medium': 75,
-        'high': 60,
-        'maximum': 45,
+    "MINIFICATION_LEVELS": {
+        "none": 95,
+        "low": 90,
+        "medium": 75,
+        "high": 60,
+        "maximum": 45,
     },
-    'RESIZE_DIMENSIONS': {
-        'large': (1920, 1080),
-        'medium': (1280, 720),
-        'small': (800, 600),
-        'thumbnail': (300, 200),
+    "RESIZE_DIMENSIONS": {
+        "large": (1920, 1080),
+        "medium": (1280, 720),
+        "small": (800, 600),
+        "thumbnail": (300, 200),
     },
-    'WEBP_QUALITY': 85,
-    'ENABLE_PROGRESSIVE_JPEG': True,
-    'PRESERVE_EXIF': False,  # حذف اطلاعات اضافی برای کاهش حجم
+    "WEBP_QUALITY": 85,
+    "ENABLE_PROGRESSIVE_JPEG": True,
+    "PRESERVE_EXIF": False,  # حذف اطلاعات اضافی برای کاهش حجم
 }
 # تنظیمات storage برای تصاویر پردازش شده
 # همه چیز در Arvan Cloud ذخیره می‌شود (هم اصلی هم پردازش شده)
 IMAGE_STORAGES = {
-    'original': 'default',  # Arvan Cloud
-    'processed': 'default',  # Arvan Cloud
+    "original": "default",  # Arvan Cloud
+    "processed": "default",  # Arvan Cloud
 }
 
 # حداکثر زمان پردازش تصویر (ثانیه)
 IMAGE_PROCESSING_TIMEOUT = 30
-STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/static/'
+STATIC_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/static/"
 MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/media/"
 
 # Also update your STORAGES configuration to handle the different paths
 STORAGES = {
-    'default': {
-        'BACKEND': 'storages.backends.s3boto3.S3Boto3Storage',
-        'OPTIONS': {
-            'location': 'media',
+    "default": {
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        "OPTIONS": {
+            "location": "media",
         },
     },
-    'staticfiles': {
-        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',  # Local files
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",  # Local files
     },
 }
 # STATICFILES_DIRS = [BASE_DIR / 'static']
-STATIC_ROOT = BASE_DIR / 'static'
+STATIC_ROOT = BASE_DIR / "static"
 
 # CKEditor configuration
 CKEDITOR_UPLOAD_PATH = "uploads/"
@@ -192,10 +191,9 @@ CKEDITOR_BASEPATH = "/static/ckeditor/ckeditor/"
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 
-
 # SECURITY WARNING: don't run with debug turned on in production!
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ["*"]
 
 # Application definition
 
@@ -206,108 +204,107 @@ GOOGLE_REDIRECT_URI = env("GOOGLE_REDIRECT_URI")
 
 
 INSTALLED_APPS = [
-    'django_celery_results',
-    'django_celery_beat',
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'comments',
-    'core',
-    'sections',
-    'dashboard',
-    'users.apps.UsersConfig',
-    'ckeditor_uploader',
-    'filemanager',
-    'arvan_integration',
-    'ckeditor',
-    'django_pwned',
-    'django_jalali',
+    "django_celery_results",
+    "django_celery_beat",
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "comments",
+    "core",
+    "sections",
+    "dashboard",
+    "users.apps.UsersConfig",
+    "ckeditor_uploader",
+    "filemanager",
+    "arvan_integration",
+    "ckeditor",
+    "django_pwned",
+    "django_jalali",
 ]
 CKEDITOR_CONFIGS = {
-    'default': {
-        'toolbar': 'full',
-        'height': 300,
-        'width': '100%',
-        'extraPlugins': ','.join([
-            'uploadimage',
-            'div',
-            'autolink',
-            'autoembed',
-            'embedsemantic',
-            'autogrow',
-            'widget',
-            'lineutils',
-            'clipboard',
-            'dialog',
-            'dialogui',
-            'elementspath'
-        ]),
+    "default": {
+        "toolbar": "full",
+        "height": 300,
+        "width": "100%",
+        "extraPlugins": ",".join(
+            [
+                "uploadimage",
+                "div",
+                "autolink",
+                "autoembed",
+                "embedsemantic",
+                "autogrow",
+                "widget",
+                "lineutils",
+                "clipboard",
+                "dialog",
+                "dialogui",
+                "elementspath",
+            ]
+        ),
     },
 }
 
 MIDDLEWARE = [
-
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'core.middleware.rate_limit.RateLimitMiddleware',
-
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "core.middleware.rate_limit.RateLimitMiddleware",
     # Add this custom middleware for additional logging
-    'users.middleware.MessageAdminAccessMiddleware',
-
+    "users.middleware.MessageAdminAccessMiddleware",
 ]
 
-ROOT_URLCONF = 'mysite.urls'
-LOGOUT_REDIRECT_URL = '/'
+ROOT_URLCONF = "mysite.urls"
+LOGOUT_REDIRECT_URL = "/"
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / "templates"],  # ✅ پوشه templates سراسری
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
-                'users.context_processors.admin_notifications'
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [BASE_DIR / "templates"],  # ✅ پوشه templates سراسری
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+                "users.context_processors.admin_notifications",
             ],
         },
     },
 ]
 
-WSGI_APPLICATION = 'mysite.wsgi.application'
+WSGI_APPLICATION = "mysite.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-ENV_TYPE = env('ENV_TYPE', default='production')
+ENV_TYPE = env("ENV_TYPE", default="production")
 
 
-if ENV_TYPE == 'local':
+if ENV_TYPE == "local":
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
         }
     }
 else:
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': env('DB_NAME'),
-            'USER': env('DB_USER'),
-            'PASSWORD': env('DB_PASSWORD'),
-            'HOST': env('DB_HOST', default='localhost'),
-            'PORT': env('DB_PORT', default='3306'),
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": env("DB_NAME"),
+            "USER": env("DB_USER"),
+            "PASSWORD": env("DB_PASSWORD"),
+            "HOST": env("DB_HOST", default="localhost"),
+            "PORT": env("DB_PORT", default="3306"),
         }
     }
 
@@ -317,25 +314,25 @@ else:
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.0/topics/i18n/
 
-LANGUAGE_CODE = 'fa-ir'
+LANGUAGE_CODE = "fa-ir"
 
-TIME_ZONE = 'Asia/Tehran'
+TIME_ZONE = "Asia/Tehran"
 
 USE_I18N = True
 USE_L10N = False
@@ -343,108 +340,111 @@ USE_TZ = True
 
 # Default primary key field type
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 # MEDIA_ROOT = BASE_DIR / 'media'
 
-AUTH_USER_MODEL = 'users.User'
+AUTH_USER_MODEL = "users.User"
 SMS_API_KEY = env("SMS_API_KEY")
 SMS_LINE_NUMBER = env("SMS_LINE_NUMBER")
 SMS_TEMPLATE_ID = env("SMS_TEMPLATE_ID")
 
 
-
-LOG_DIR = os.path.join(BASE_DIR, 'logs')  # مسیر ذخیره‌ی فایل‌های لاگ
+LOG_DIR = os.path.join(BASE_DIR, "logs")  # مسیر ذخیره‌ی فایل‌های لاگ
 
 if not os.path.exists(LOG_DIR):
     os.makedirs(LOG_DIR)  # اگر فولدر logs وجود نداشت، بساز
 
-LOG_DIR = os.path.join(BASE_DIR, 'logs')
+LOG_DIR = os.path.join(BASE_DIR, "logs")
 if not os.path.exists(LOG_DIR):
     os.makedirs(LOG_DIR)
 
 # Email Configuration
-ENV_TYPE = env('ENV_TYPE', default='production')
-EMAIL_MODE = env('EMAIL_MODE', default='auto')  # auto, console, real, file
+ENV_TYPE = env("ENV_TYPE", default="production")
+EMAIL_MODE = env("EMAIL_MODE", default="auto")  # auto, console, real, file
 
 
 # Determine email backend based on configuration
 def get_email_backend():
     # If EMAIL_BACKEND is explicitly set in .env, use it (highest priority)
-    explicit_backend = env('EMAIL_BACKEND', default=None)
+    explicit_backend = env("EMAIL_BACKEND", default=None)
     if explicit_backend:
         return explicit_backend
 
     # Otherwise, use EMAIL_MODE logic
-    if EMAIL_MODE == 'console':
-        return 'django.core.mail.backends.console.EmailBackend'
-    elif EMAIL_MODE == 'file':
-        return 'django.core.mail.backends.filebased.EmailBackend'
-    elif EMAIL_MODE == 'real':
-        return 'django.core.mail.backends.smtp.EmailBackend'
-    elif EMAIL_MODE == 'auto':
+    if EMAIL_MODE == "console":
+        return "django.core.mail.backends.console.EmailBackend"
+    elif EMAIL_MODE == "file":
+        return "django.core.mail.backends.filebased.EmailBackend"
+    elif EMAIL_MODE == "real":
+        return "django.core.mail.backends.smtp.EmailBackend"
+    elif EMAIL_MODE == "auto":
         # Auto mode: console for local development, SMTP for production
-        if ENV_TYPE == 'local':
-            return 'django.core.mail.backends.console.EmailBackend'
+        if ENV_TYPE == "local":
+            return "django.core.mail.backends.console.EmailBackend"
         else:
-            return 'django.core.mail.backends.smtp.EmailBackend'
+            return "django.core.mail.backends.smtp.EmailBackend"
     else:
         # Default to SMTP
-        return 'django.core.mail.backends.smtp.EmailBackend'
+        return "django.core.mail.backends.smtp.EmailBackend"
 
 
 # Email Configuration
 EMAIL_BACKEND = get_email_backend()
 
 # SMTP settings (always load these, even if using console backend)
-EMAIL_HOST = env('EMAIL_HOST', default='')
-EMAIL_PORT = env('EMAIL_PORT', default=587, cast=int)
-EMAIL_USE_TLS = env('EMAIL_USE_TLS', default=True, cast=bool)
-EMAIL_USE_SSL = env('EMAIL_USE_SSL', default=False, cast=bool)
-EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
-EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
-DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER if EMAIL_HOST_USER else 'webmaster@localhost')
+EMAIL_HOST = env("EMAIL_HOST", default="")
+EMAIL_PORT = env("EMAIL_PORT", default=587, cast=int)
+EMAIL_USE_TLS = env("EMAIL_USE_TLS", default=True, cast=bool)
+EMAIL_USE_SSL = env("EMAIL_USE_SSL", default=False, cast=bool)
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+DEFAULT_FROM_EMAIL = env(
+    "DEFAULT_FROM_EMAIL",
+    default=EMAIL_HOST_USER if EMAIL_HOST_USER else "webmaster@localhost",
+)
 
 # File backend settings (if using file backend)
-EMAIL_FILE_PATH = BASE_DIR / 'sent_emails'
+EMAIL_FILE_PATH = BASE_DIR / "sent_emails"
 
 # Celery Task Configuration
-CELERY_ACCEPT_CONTENT = ['application/json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
-CELERY_BROKER_URL = 'sqla+sqlite:///celerydb.sqlite'
-CELERY_RESULT_BACKEND = 'django-db'
+CELERY_ACCEPT_CONTENT = ["application/json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_BROKER_URL = "sqla+sqlite:///celerydb.sqlite"
+CELERY_RESULT_BACKEND = "django-db"
 
 
-DEFAULT_CHARSET = 'utf-8'
+DEFAULT_CHARSET = "utf-8"
 EMAIL_USE_LOCALTIME = True
 EMAIL_USE_UTF8 = True
-EMAIL_CHARSET = 'utf-8'
+EMAIL_CHARSET = "utf-8"
 import os
-from urllib.parse import urlparse
 
 
 def get_site_url():
     """Get SITE_URL based on environment"""
-    env_type = env('ENV_TYPE', default='production')
+    env_type = env("ENV_TYPE", default="production")
 
-    if env_type == 'local':
-        return env('SITE_URL', default='http://localhost:8000')
+    if env_type == "local":
+        return env("SITE_URL", default="http://localhost:8000")
     else:
         # For production, you can also detect from environment variables
         # that hosting providers often set
-        site_url = env('SITE_URL', default=None)
+        site_url = env("SITE_URL", default=None)
 
         if not site_url:
             # Try to get from common hosting environment variables
-            if 'HTTP_HOST' in os.environ:
-                protocol = 'https' if env('HTTPS', default='off').lower() == 'on' else 'http'
+            if "HTTP_HOST" in os.environ:
+                protocol = (
+                    "https" if env("HTTPS", default="off").lower() == "on" else "http"
+                )
                 site_url = f"{protocol}://{os.environ['HTTP_HOST']}"
-            elif 'SERVER_NAME' in os.environ:
+            elif "SERVER_NAME" in os.environ:
                 site_url = f"https://{os.environ['SERVER_NAME']}"
             else:
-                site_url = 'https://yourdomain.com'  # Fallback
+                site_url = "https://yourdomain.com"  # Fallback
 
         return site_url
 
@@ -452,14 +452,14 @@ def get_site_url():
 SITE_URL = get_site_url()
 
 # Basic rate limiting settings
-RATE_LIMIT_REQUESTS = 30000         # Only 1 request allowed
-RATE_LIMIT_WINDOW = 300           # In 60 seconds (1 minute)
+RATE_LIMIT_REQUESTS = 30000  # Only 1 request allowed
+RATE_LIMIT_WINDOW = 300  # In 60 seconds (1 minute)
 RATE_LIMIT_BLOCK_RESPONSE = True
 
 # IP whitelist - These IPs will bypass rate limiting
 RATE_LIMIT_WHITELIST_IPS = [
-    '127.0.0.1',  # Localhost
-    '::1',  # IPv6 localhost
+    "127.0.0.1",  # Localhost
+    "::1",  # IPv6 localhost
     # Add your trusted IPs here
     # '192.168.1.100',  # Example internal IP
     # '203.0.113.1',    # Example external IP
@@ -467,369 +467,401 @@ RATE_LIMIT_WHITELIST_IPS = [
 
 # Paths to exclude from rate limiting
 RATE_LIMIT_SKIP_PATHS = [
-    '/admin/',  # Django admin
-    '/static/',  # Static files
-    '/media/',  # Media files
-    '/favicon.ico',  # Favicon
-    '/robots.txt',  # Robots file
-    '/health/',  # Health check endpoints
+    "/admin/",  # Django admin
+    "/static/",  # Static files
+    "/media/",  # Media files
+    "/favicon.ico",  # Favicon
+    "/robots.txt",  # Robots file
+    "/health/",  # Health check endpoints
     # Add more paths as needed
 ]
 
 
-    # For production, consider using Redis:
-    # "default": {
-    #     "BACKEND": "django_redis.cache.RedisCache",
-    #     "LOCATION": "redis://127.0.0.1:6379/1",
-    #     "OPTIONS": {
-    #         "CLIENT_CLASS": "django_redis.client.DefaultClient",
-    #         "CONNECTION_POOL_KWARGS": {"max_connections": 50},
-    #         "SERIALIZER": "django_redis.serializers.json.JSONSerializer",
-    #     },
-    #     "KEY_PREFIX": "mysite_rl",
-    #     "TIMEOUT": 300,  # 5 minutes default timeout
-    # }
+# For production, consider using Redis:
+# "default": {
+#     "BACKEND": "django_redis.cache.RedisCache",
+#     "LOCATION": "redis://127.0.0.1:6379/1",
+#     "OPTIONS": {
+#         "CLIENT_CLASS": "django_redis.client.DefaultClient",
+#         "CONNECTION_POOL_KWARGS": {"max_connections": 50},
+#         "SERIALIZER": "django_redis.serializers.json.JSONSerializer",
+#     },
+#     "KEY_PREFIX": "mysite_rl",
+#     "TIMEOUT": 300,  # 5 minutes default timeout
+# }
 
 
 # Different rate limits for different user types (optional)
 RATE_LIMIT_TIERS = {
-    'anonymous': {'requests': 30, 'window': 300},  # 30 req/5min for anonymous
-    'authenticated': {'requests': 60, 'window': 300},  # 60 req/5min for authenticated
-    'premium': {'requests': 120, 'window': 300},  # 120 req/5min for premium users
-    'staff': {'requests': 300, 'window': 300},  # 300 req/5min for staff
+    "anonymous": {"requests": 30, "window": 300},  # 30 req/5min for anonymous
+    "authenticated": {"requests": 60, "window": 300},  # 60 req/5min for authenticated
+    "premium": {"requests": 120, "window": 300},  # 120 req/5min for premium users
+    "staff": {"requests": 300, "window": 300},  # 300 req/5min for staff
 }
 
 # Rate limiting by endpoint patterns (optional)
 RATE_LIMIT_ENDPOINTS = {
-    r'^/api/auth/': {'requests': 5, 'window': 300},  # Login endpoints - stricter
-    r'^/api/search/': {'requests': 100, 'window': 300},  # Search endpoints - more lenient
-    r'^/api/upload/': {'requests': 10, 'window': 600},  # Upload endpoints - very strict
+    r"^/api/auth/": {"requests": 5, "window": 300},  # Login endpoints - stricter
+    r"^/api/search/": {
+        "requests": 100,
+        "window": 300,
+    },  # Search endpoints - more lenient
+    r"^/api/upload/": {"requests": 10, "window": 600},  # Upload endpoints - very strict
 }
 
 # CKEditor Configuration
 CKEDITOR_CONFIGS = {
-    'default': {
-        'toolbar': 'Full',
-        'height': 300,
-        'width': '100%',
-        'filebrowserBrowseUrl': '',
-        'filebrowserUploadUrl': '',
-        'extraPlugins': ','.join([
-            'uploadimage',
-            'div',
-            'autolink',
-            'autoembed',
-            'embedsemantic',
-            'autogrow',
-            'widget',
-            'lineutils',
-            'clipboard',
-            'dialog',
-            'dialogui',
-            'elementspath'
-        ]),
-        'removePlugins': 'stylesheetparser',
-        'allowedContent': True,
-        'tabSpaces': 4,
-        'mathJaxLib': '//cdn.mathjax.org/mathjax/2.2-latest/MathJax.js?config=TeX-AMS_HTML',
-        'toolbar_Full': [
-            ['Source', '-', 'Save', 'NewPage', 'Preview', '-', 'Templates'],
-            ['Cut', 'Copy', 'Paste', 'PasteText', 'PasteFromWord', '-', 'Undo', 'Redo'],
-            ['Find', 'Replace', '-', 'SelectAll', '-', 'SpellChecker', 'Scayt'],
-            ['Form', 'Checkbox', 'Radio', 'TextField', 'Textarea', 'Select', 'Button', 'ImageButton', 'HiddenField'],
-            '/',
-            ['Bold', 'Italic', 'Underline', 'Strike', '-', 'Subscript', 'Superscript'],
-            ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-', 'Blockquote', 'CreateDiv'],
-            ['JustifyLeft', 'JustifyCenter', 'JustifyRight', 'JustifyBlock'],
-            ['BidiLtr', 'BidiRtl'],
-            ['Link', 'Unlink', 'Anchor'],
-            ['Image', 'Flash', 'Table', 'HorizontalRule', 'Smiley', 'SpecialChar', 'PageBreak'],
-            '/',
-            ['Styles', 'Format', 'Font', 'FontSize'],
-            ['TextColor', 'BGColor'],
-            ['Maximize', 'ShowBlocks', '-', 'About'],
+    "default": {
+        "toolbar": "Full",
+        "height": 300,
+        "width": "100%",
+        "filebrowserBrowseUrl": "",
+        "filebrowserUploadUrl": "",
+        "extraPlugins": ",".join(
+            [
+                "uploadimage",
+                "div",
+                "autolink",
+                "autoembed",
+                "embedsemantic",
+                "autogrow",
+                "widget",
+                "lineutils",
+                "clipboard",
+                "dialog",
+                "dialogui",
+                "elementspath",
+            ]
+        ),
+        "removePlugins": "stylesheetparser",
+        "allowedContent": True,
+        "tabSpaces": 4,
+        "mathJaxLib": "//cdn.mathjax.org/mathjax/2.2-latest/MathJax.js?config=TeX-AMS_HTML",
+        "toolbar_Full": [
+            ["Source", "-", "Save", "NewPage", "Preview", "-", "Templates"],
+            ["Cut", "Copy", "Paste", "PasteText", "PasteFromWord", "-", "Undo", "Redo"],
+            ["Find", "Replace", "-", "SelectAll", "-", "SpellChecker", "Scayt"],
+            [
+                "Form",
+                "Checkbox",
+                "Radio",
+                "TextField",
+                "Textarea",
+                "Select",
+                "Button",
+                "ImageButton",
+                "HiddenField",
+            ],
+            "/",
+            ["Bold", "Italic", "Underline", "Strike", "-", "Subscript", "Superscript"],
+            [
+                "NumberedList",
+                "BulletedList",
+                "-",
+                "Outdent",
+                "Indent",
+                "-",
+                "Blockquote",
+                "CreateDiv",
+            ],
+            ["JustifyLeft", "JustifyCenter", "JustifyRight", "JustifyBlock"],
+            ["BidiLtr", "BidiRtl"],
+            ["Link", "Unlink", "Anchor"],
+            [
+                "Image",
+                "Flash",
+                "Table",
+                "HorizontalRule",
+                "Smiley",
+                "SpecialChar",
+                "PageBreak",
+            ],
+            "/",
+            ["Styles", "Format", "Font", "FontSize"],
+            ["TextColor", "BGColor"],
+            ["Maximize", "ShowBlocks", "-", "About"],
         ],
     },
 }
 
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
-            'style': '{',
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
+            "style": "{",
         },
-        'simple': {
-            'format': '{levelname} {asctime} {message}',
-            'style': '{',
+        "simple": {
+            "format": "{levelname} {asctime} {message}",
+            "style": "{",
         },
-        'detailed': {
-            'format': '[{asctime}] {levelname} {name} {module}.{funcName}:{lineno} - {message}',
-            'style': '{',
-        },
-    },
-    'filters': {
-        'require_debug_true': {
-            '()': 'django.utils.log.RequireDebugTrue',
-        },
-        'require_debug_false': {
-            '()': 'django.utils.log.RequireDebugFalse',
+        "detailed": {
+            "format": "[{asctime}] {levelname} {name} {module}.{funcName}:{lineno} - {message}",
+            "style": "{",
         },
     },
-    'handlers': {
-        'console': {
-            'level': 'DEBUG',  # Change from INFO to DEBUG
-            'filters': ['require_debug_true'],
-            'class': 'logging.StreamHandler',
-            'formatter': 'simple',
-            'stream': sys.stdout,
+    "filters": {
+        "require_debug_true": {
+            "()": "django.utils.log.RequireDebugTrue",
         },
-        'accounts_file': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(LOG_DIR, 'accounts.log'),
-            'formatter': 'verbose',
-        },
-        'comments_file': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(LOG_DIR, 'comments.log'),
-            'formatter': 'verbose',
-        },
-        'core_file': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(LOG_DIR, 'core.log'),
-            'formatter': 'verbose',
-        },
-        'sections_file': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(LOG_DIR, 'sections.log'),
-            'formatter': 'verbose',
-        },
-        'dashboard_file': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(LOG_DIR, 'dashboard.log'),
-            'formatter': 'verbose',
-        },
-        'users_file': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(LOG_DIR, 'users.log'),
-            'formatter': 'verbose',
-            'encoding': 'utf-8'
-        },
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': LOGS_DIR / 'password_manager.log',
-            'maxBytes': 1024 * 1024 * 5,  # 5 MB
-            'backupCount': 5,
-            'formatter': 'detailed',
-        },
-        'security_file': {
-            'level': 'WARNING',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': LOGS_DIR / 'security.log',
-            'maxBytes': 1024 * 1024 * 5,
-            'backupCount': 10,
-            'formatter': 'detailed',
-        },
-        'error_file': {
-            'level': 'ERROR',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': LOGS_DIR / 'errors.log',
-            'maxBytes': 1024 * 1024 * 5,
-            'backupCount': 10,
-            'formatter': 'detailed',
-        },
-        'auth_file': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': LOGS_DIR / 'auth.log',
-            'maxBytes': 1024 * 1024 * 5,
-            'backupCount': 10,
-            'formatter': 'detailed',
-        },
-        'admin_file': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': LOGS_DIR / 'admin.log',
-            'maxBytes': 1024 * 1024 * 5,
-            'backupCount': 10,
-            'formatter': 'detailed',
-        },
-        'filemanager_file': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(LOG_DIR, 'filemanager.log'),
-            'formatter': 'verbose',
-        },
-        'arvan_integration_file': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(LOG_DIR, 'arvan_integration.log'),
-            'formatter': 'verbose',
-        },
-        'emails_file': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(LOG_DIR, 'emails.log'),
-            'formatter': 'verbose',
-        },
-        'passwords_file': {
-            'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(LOG_DIR, 'passwords.log'),
-            'formatter': 'verbose',
-        },
-        'rate_limit_file': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(LOG_DIR, 'rate_limit.log'),
-            'maxBytes': 1024 * 1024 * 10,  # 10 MB
-            'backupCount': 5,
-            'formatter': 'detailed',
-        },
-        'image_processing_file': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(LOG_DIR, 'rate_limit.log'),
-            'maxBytes': 1024 * 1024 * 10,  # 10 MB
-            'backupCount': 5,
-            'formatter': 'detailed',
-        },
-        'email_file': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'email_broadcast.log'),
-            'maxBytes': 1024 * 1024 * 5,  # 5MB
-            'backupCount': 2,
-            'formatter': 'simple',
+        "require_debug_false": {
+            "()": "django.utils.log.RequireDebugFalse",
         },
     },
-    'loggers': {
-        'accounts_': {
-            'handlers': ['accounts_file'],
-            'level': 'DEBUG',
-            'propagate': False,
+    "handlers": {
+        "console": {
+            "level": "DEBUG",  # Change from INFO to DEBUG
+            "filters": ["require_debug_true"],
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
+            "stream": sys.stdout,
         },
-        'comments': {
-            'handlers': ['comments_file'],
-            'level': 'DEBUG',
-            'propagate': False,
+        "accounts_file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": os.path.join(LOG_DIR, "accounts.log"),
+            "formatter": "verbose",
         },
-        'core': {
-            'handlers': ['core_file'],
-            'level': 'DEBUG',
-            'propagate': False,
+        "comments_file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": os.path.join(LOG_DIR, "comments.log"),
+            "formatter": "verbose",
         },
-        'core.middleware.rate_limit': {
-            'handlers': ['rate_limit_file', 'console'],
-            'level': 'INFO',
-            'propagate': False,
+        "core_file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": os.path.join(LOG_DIR, "core.log"),
+            "formatter": "verbose",
         },
-        'sections': {
-            'handlers': ['sections_file'],
-            'level': 'DEBUG',
-            'propagate': False,
+        "sections_file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": os.path.join(LOG_DIR, "sections.log"),
+            "formatter": "verbose",
         },
-        'dashboard': {
-            'handlers': ['dashboard_file'],
-            'level': 'DEBUG',
-            'propagate': False,
+        "dashboard_file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": os.path.join(LOG_DIR, "dashboard.log"),
+            "formatter": "verbose",
         },
-        'users': {
-            'handlers': ['users_file'],
-            'level': 'DEBUG',
-            'propagate': False,
+        "users_file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": os.path.join(LOG_DIR, "users.log"),
+            "formatter": "verbose",
+            "encoding": "utf-8",
         },
-        'filemanager': {
-            'handlers': ['filemanager_file'],
-            'level': 'DEBUG',
-            'propagate': False,
+        "file": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOGS_DIR / "password_manager.log",
+            "maxBytes": 1024 * 1024 * 5,  # 5 MB
+            "backupCount": 5,
+            "formatter": "detailed",
         },
-        'arvan_integration': {
-            'handlers': ['arvan_integration_file'],
-            'level': 'DEBUG',
-            'propagate': False,
+        "security_file": {
+            "level": "WARNING",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOGS_DIR / "security.log",
+            "maxBytes": 1024 * 1024 * 5,
+            "backupCount": 10,
+            "formatter": "detailed",
         },
-        'emails': {
-            'handlers': ['emails_file', 'console'],
-            'level': 'DEBUG',
-            'propagate': False,
+        "error_file": {
+            "level": "ERROR",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOGS_DIR / "errors.log",
+            "maxBytes": 1024 * 1024 * 5,
+            "backupCount": 10,
+            "formatter": "detailed",
         },
-        'django.core.mail': {
-            'handlers': ['emails_file', 'console'],  # Add console handler
-            'level': 'INFO',
-            'propagate': True,  # Change to True
+        "auth_file": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOGS_DIR / "auth.log",
+            "maxBytes": 1024 * 1024 * 5,
+            "backupCount": 10,
+            "formatter": "detailed",
         },
-        'django': {
-            'handlers': ['console', 'file'],
-            'level': 'INFO',
-            'propagate': True,
+        "admin_file": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOGS_DIR / "admin.log",
+            "maxBytes": 1024 * 1024 * 5,
+            "backupCount": 10,
+            "formatter": "detailed",
         },
-        'django.request': {
-            'handlers': ['error_file'],
-            'level': 'ERROR',
-            'propagate': False,
+        "filemanager_file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": os.path.join(LOG_DIR, "filemanager.log"),
+            "formatter": "verbose",
         },
-        'django.security': {
-            'handlers': ['security_file'],
-            'level': 'WARNING',
-            'propagate': False,
+        "arvan_integration_file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": os.path.join(LOG_DIR, "arvan_integration.log"),
+            "formatter": "verbose",
         },
-        'django.contrib.auth': {
-            'handlers': ['auth_file'],
-            'level': 'INFO',
-            'propagate': False,
+        "emails_file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": os.path.join(LOG_DIR, "emails.log"),
+            "formatter": "verbose",
         },
-        'django.contrib.admin': {
-            'handlers': ['admin_file'],
-            'level': 'INFO',
-            'propagate': False,
+        "passwords_file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": os.path.join(LOG_DIR, "passwords.log"),
+            "formatter": "verbose",
         },
-        'passwords': {
-            'handlers': ['console', 'file', 'security_file'],
-            'level': 'DEBUG',
-            'propagate': False,
+        "rate_limit_file": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": os.path.join(LOG_DIR, "rate_limit.log"),
+            "maxBytes": 1024 * 1024 * 10,  # 10 MB
+            "backupCount": 5,
+            "formatter": "detailed",
         },
-        'passwords.models': {
-            'handlers': ['file'],
-            'level': 'DEBUG',
-            'propagate': False,
+        "image_processing_file": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": os.path.join(LOG_DIR, "rate_limit.log"),
+            "maxBytes": 1024 * 1024 * 10,  # 10 MB
+            "backupCount": 5,
+            "formatter": "detailed",
         },
-        'passwords.views': {
-            'handlers': ['file', 'security_file'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'passwords.forms': {
-            'handlers': ['file'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'passwords.admin': {
-            'handlers': ['admin_file'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-        'users.models.image': {
-            'handlers': ['image_processing_file', 'console'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-        'email_broadcast': {
-            'handlers': ['email_file'],
-            'level': 'INFO',
-            'propagate': False,
+        "email_file": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": os.path.join(BASE_DIR, "logs", "email_broadcast.log"),
+            "maxBytes": 1024 * 1024 * 5,  # 5MB
+            "backupCount": 2,
+            "formatter": "simple",
         },
     },
-    'root': {
-        'handlers': ['console', 'file'],
-        'level': 'INFO',
+    "loggers": {
+        "accounts_": {
+            "handlers": ["accounts_file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "comments": {
+            "handlers": ["comments_file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "core": {
+            "handlers": ["core_file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "core.middleware.rate_limit": {
+            "handlers": ["rate_limit_file", "console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "sections": {
+            "handlers": ["sections_file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "dashboard": {
+            "handlers": ["dashboard_file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "users": {
+            "handlers": ["users_file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "filemanager": {
+            "handlers": ["filemanager_file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "arvan_integration": {
+            "handlers": ["arvan_integration_file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "emails": {
+            "handlers": ["emails_file", "console"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "django.core.mail": {
+            "handlers": ["emails_file", "console"],  # Add console handler
+            "level": "INFO",
+            "propagate": True,  # Change to True
+        },
+        "django": {
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": True,
+        },
+        "django.request": {
+            "handlers": ["error_file"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        "django.security": {
+            "handlers": ["security_file"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+        "django.contrib.auth": {
+            "handlers": ["auth_file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "django.contrib.admin": {
+            "handlers": ["admin_file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "passwords": {
+            "handlers": ["console", "file", "security_file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "passwords.models": {
+            "handlers": ["file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "passwords.views": {
+            "handlers": ["file", "security_file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "passwords.forms": {
+            "handlers": ["file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "passwords.admin": {
+            "handlers": ["admin_file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "users.models.image": {
+            "handlers": ["image_processing_file", "console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "email_broadcast": {
+            "handlers": ["email_file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+    "root": {
+        "handlers": ["console", "file"],
+        "level": "INFO",
     },
 }

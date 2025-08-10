@@ -1,36 +1,32 @@
 # sections/admin.py - WORKING VERSION
-from django.contrib import admin
-from django.utils.html import format_html
-from django.urls import path, reverse
-from django.http import JsonResponse, HttpResponse
-from django.shortcuts import render, redirect
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib import messages
-from django.utils.translation import gettext_lazy as _
-from django.forms import ModelForm
-from django import forms
-from django.utils.decorators import method_decorator
-from django.views.decorators.http import require_http_methods
-from django.template.response import TemplateResponse
-from django.contrib.admin.views.decorators import staff_member_required
 import json
 import logging
 
+from django import forms
+from django.contrib import admin
+from django.forms import ModelForm
+from django.http import HttpResponse, JsonResponse
+from django.urls import path, reverse
+from django.utils.decorators import method_decorator
+from django.utils.html import format_html
+from django.utils.translation import gettext_lazy as _
+from django.views.decorators.csrf import csrf_exempt
+
 from .models import Section
 
-logger = logging.getLogger('sections')
+logger = logging.getLogger("sections")
 
 
 class SectionForm(ModelForm):
     class Meta:
         model = Section
-        fields = '__all__'
+        fields = "__all__"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         # Filter parent choices based on hierarchy rules
-        if 'parent' in self.fields:
+        if "parent" in self.fields:
             queryset = Section.objects.all()
 
             # Exclude self and descendants
@@ -39,45 +35,63 @@ class SectionForm(ModelForm):
                 exclude_ids = [self.instance.pk] + [d.pk for d in descendants]
                 queryset = queryset.exclude(pk__in=exclude_ids)
 
-            queryset = queryset.filter(level__lt=3).order_by('level', 'order')
+            queryset = queryset.filter(level__lt=3).order_by("level", "order")
 
-            choices = [('', '---------')]
+            choices = [("", "---------")]
             for section in queryset:
                 level_indicator = "—" * (section.level - 1)
                 label = f"{level_indicator} {section.display_title}"
                 choices.append((section.pk, label))
 
-            self.fields['parent'].choices = choices
-            self.fields['parent'].widget = forms.Select(choices=choices)
+            self.fields["parent"].choices = choices
+            self.fields["parent"].widget = forms.Select(choices=choices)
 
 
 class SectionAdmin(admin.ModelAdmin):
     form = SectionForm
-    list_display = ['hierarchical_title', 'section_type', 'level_indicator', 'order', 'is_active', 'created_at',
-                    'action_buttons']
-    list_filter = ['is_active', 'level', 'section_type', 'created_at']
-    search_fields = ['title', 'content']
-    ordering = ['level', 'order']
-    list_editable = ['is_active']
-    readonly_fields = ['created_at', 'updated_at', 'level', 'get_full_path']
+    list_display = [
+        "hierarchical_title",
+        "section_type",
+        "level_indicator",
+        "order",
+        "is_active",
+        "created_at",
+        "action_buttons",
+    ]
+    list_filter = ["is_active", "level", "section_type", "created_at"]
+    search_fields = ["title", "content"]
+    ordering = ["level", "order"]
+    list_editable = ["is_active"]
+    readonly_fields = ["created_at", "updated_at", "level", "get_full_path"]
 
     fieldsets = (
-        (None, {
-            'fields': ('title', 'slug', 'section_type', 'parent', 'content', 'order', 'is_active')
-        }),
-        (_('Hierarchy Info'), {
-            'fields': ('level', 'get_full_path'),
-            'classes': ('collapse',)
-        }),
-        (_('Timestamps'), {
-            'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',)
-        }),
+        (
+            None,
+            {
+                "fields": (
+                    "title",
+                    "slug",
+                    "section_type",
+                    "parent",
+                    "content",
+                    "order",
+                    "is_active",
+                )
+            },
+        ),
+        (
+            _("Hierarchy Info"),
+            {"fields": ("level", "get_full_path"), "classes": ("collapse",)},
+        ),
+        (
+            _("Timestamps"),
+            {"fields": ("created_at", "updated_at"), "classes": ("collapse",)},
+        ),
     )
 
     def get_full_path(self, obj):
         """Display the full hierarchical path"""
-        return obj.full_path if hasattr(obj, 'full_path') else obj.title
+        return obj.full_path if hasattr(obj, "full_path") else obj.title
 
     get_full_path.short_description = "Full Path"
 
@@ -85,27 +99,34 @@ class SectionAdmin(admin.ModelAdmin):
         """Add custom URLs for drag & drop functionality"""
         urls = super().get_urls()
         custom_urls = [
-            path('reorder/', self.reorder_sections_view, name='sections_section_reorder'),
-            path('drag-drop/', self.drag_drop_view, name='sections_section_drag_drop'),
+            path(
+                "reorder/", self.reorder_sections_view, name="sections_section_reorder"
+            ),
+            path("drag-drop/", self.drag_drop_view, name="sections_section_drag_drop"),
         ]
         return custom_urls + urls
 
     def hierarchical_title(self, obj):
         """نمایش عنوان با تورفتگی بر اساس سطح"""
         level_indicator = "—" * (obj.level - 1)
-        return format_html('<span style="margin-left: {}px;">{} {}</span>',
-                           (obj.level - 1) * 20, level_indicator, obj.title)
-
-    hierarchical_title.short_description = _('Title')
-
-    def level_indicator(self, obj):
-        colors = {1: '#28a745', 2: '#ffc107', 3: '#dc3545'}
         return format_html(
-            '<span style="background: {}; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">L{}</span>',
-            colors.get(obj.level, '#6c757d'), obj.level
+            '<span style="margin-left: {}px;">{} {}</span>',
+            (obj.level - 1) * 20,
+            level_indicator,
+            obj.title,
         )
 
-    level_indicator.short_description = _('Level')
+    hierarchical_title.short_description = _("Title")
+
+    def level_indicator(self, obj):
+        colors = {1: "#28a745", 2: "#ffc107", 3: "#dc3545"}
+        return format_html(
+            '<span style="background: {}; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">L{}</span>',
+            colors.get(obj.level, "#6c757d"),
+            obj.level,
+        )
+
+    level_indicator.short_description = _("Level")
 
     def action_buttons(self, obj):
         buttons = []
@@ -114,23 +135,28 @@ class SectionAdmin(admin.ModelAdmin):
             buttons.append(
                 format_html(
                     '<a class="button" href="{}?parent={}" title="Add Child Section">+ Child</a>',
-                    reverse('admin:sections_section_add'), obj.pk
+                    reverse("admin:sections_section_add"),
+                    obj.pk,
                 )
             )
         if obj.children.exists():
             buttons.append(
                 format_html(
                     '<a class="button" href="{}?parent__id__exact={}" title="View Children">Children ({})</a>',
-                    reverse('admin:sections_section_changelist'), obj.pk, obj.children.count()
+                    reverse("admin:sections_section_changelist"),
+                    obj.pk,
+                    obj.children.count(),
                 )
             )
-        return format_html(' '.join(buttons))
+        return format_html(" ".join(buttons))
 
-    action_buttons.short_description = _('Actions')
+    action_buttons.short_description = _("Actions")
 
     def drag_drop_view(self, request):
         """View for drag and drop reordering"""
-        sections = Section.objects.all().select_related('parent').order_by('level', 'order')
+        sections = (
+            Section.objects.all().select_related("parent").order_by("level", "order")
+        )
         grouped_sections = {}
 
         for section in sections:
@@ -140,14 +166,14 @@ class SectionAdmin(admin.ModelAdmin):
             grouped_sections[level].append(section)
 
         context = {
-            'sections': sections,
-            'grouped_sections': grouped_sections,
-            'title': 'Drag & Drop Reorder Sections',
-            'opts': self.model._meta,
-            'has_view_permission': self.has_view_permission(request),
-            'has_change_permission': self.has_change_permission(request),
-            'app_label': self.model._meta.app_label,
-            'original': 'sections',
+            "sections": sections,
+            "grouped_sections": grouped_sections,
+            "title": "Drag & Drop Reorder Sections",
+            "opts": self.model._meta,
+            "has_view_permission": self.has_view_permission(request),
+            "has_change_permission": self.has_change_permission(request),
+            "app_label": self.model._meta.app_label,
+            "original": "sections",
         }
 
         # Create the HTML content directly
@@ -218,8 +244,9 @@ class SectionAdmin(admin.ModelAdmin):
             if sections_in_level:
                 html_content += f'<ul class="sortable-list" data-level="{level}">'
                 for section in sections_in_level:
-                    section_type_display = dict(section._meta.get_field('section_type').choices).get(
-                        section.section_type, section.section_type)
+                    section_type_display = dict(
+                        section._meta.get_field("section_type").choices
+                    ).get(section.section_type, section.section_type)
                     status = "Active" if section.is_active else "Inactive"
                     html_content += f"""
                 <li class="sortable-item" data-id="{section.id}">
@@ -232,11 +259,13 @@ class SectionAdmin(admin.ModelAdmin):
                         </div>
                     </div>
                 </li>"""
-                html_content += '</ul>'
+                html_content += "</ul>"
             else:
-                html_content += f'<div class="empty-level">No sections at level {level}</div>'
+                html_content += (
+                    f'<div class="empty-level">No sections at level {level}</div>'
+                )
 
-            html_content += '</div>'
+            html_content += "</div>"
 
         # Add JavaScript
         html_content += """
@@ -326,36 +355,44 @@ class SectionAdmin(admin.ModelAdmin):
     @method_decorator(csrf_exempt)
     def reorder_sections_view(self, request):
         """Handle section reordering"""
-        if request.method != 'POST':
-            return JsonResponse({'success': False, 'message': 'Only POST allowed'}, status=405)
+        if request.method != "POST":
+            return JsonResponse(
+                {"success": False, "message": "Only POST allowed"}, status=405
+            )
 
         try:
-            data = json.loads(request.body.decode('utf-8'))
-            level_orders = data.get('level_orders', {})
+            data = json.loads(request.body.decode("utf-8"))
+            level_orders = data.get("level_orders", {})
 
             success_count = 0
             for level_str, section_ids in level_orders.items():
                 level = int(level_str)
                 for index, section_id in enumerate(section_ids, start=1):
-                    updated = Section.objects.filter(id=section_id, level=level).update(order=index)
+                    updated = Section.objects.filter(id=section_id, level=level).update(
+                        order=index
+                    )
                     if updated:
                         success_count += 1
 
-            logger.info(f'Reordered {success_count} sections by {request.user.username}')
+            logger.info(
+                f"Reordered {success_count} sections by {request.user.username}"
+            )
 
-            return JsonResponse({
-                'success': True,
-                'message': f'Successfully reordered {success_count} sections'
-            })
+            return JsonResponse(
+                {
+                    "success": True,
+                    "message": f"Successfully reordered {success_count} sections",
+                }
+            )
 
         except Exception as e:
-            logger.error(f'Reorder error: {str(e)}')
-            return JsonResponse({'success': False, 'message': str(e)}, status=500)
+            logger.error(f"Reorder error: {str(e)}")
+            return JsonResponse({"success": False, "message": str(e)}, status=500)
 
     def changelist_view(self, request, extra_context=None):
         """Add drag & drop button to changelist"""
         extra_context = extra_context or {}
-        extra_context['show_drag_drop_button'] = True
+        extra_context["show_drag_drop_button"] = True
         return super().changelist_view(request, extra_context)
 
 

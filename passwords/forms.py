@@ -1,9 +1,10 @@
+import logging
+
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django_pwned.validators import PwnedPasswordValidator
-import logging
 
 from users.models import PasswordEntry
 
@@ -18,7 +19,7 @@ class CustomUserCreationForm(UserCreationForm):
         fields = ("username", "email", "password1", "password2")
 
     def clean_username(self):
-        username = self.cleaned_data.get('username')
+        username = self.cleaned_data.get("username")
         logger.debug(f"Validating username: {username}")
 
         if User.objects.filter(username=username).exists():
@@ -29,7 +30,7 @@ class CustomUserCreationForm(UserCreationForm):
         return username
 
     def clean_email(self):
-        email = self.cleaned_data.get('email')
+        email = self.cleaned_data.get("email")
         logger.debug(f"Validating email: {email}")
 
         if User.objects.filter(email=email).exists():
@@ -40,8 +41,8 @@ class CustomUserCreationForm(UserCreationForm):
         return email
 
     def clean_password1(self):
-        password1 = self.cleaned_data.get('password1')
-        username = self.cleaned_data.get('username')
+        password1 = self.cleaned_data.get("password1")
+        username = self.cleaned_data.get("username")
 
         if password1:
             logger.debug(f"Validating password for user: {username}")
@@ -51,7 +52,9 @@ class CustomUserCreationForm(UserCreationForm):
                 logger.info(f"Password validation passed for user: {username}")
             except ValidationError:
                 logger.warning(f"Pwned password attempted for user: {username}")
-                raise ValidationError("رمز عبور شما در نشت اطلاعاتی یافت شده است. رمز دیگری انتخاب کنید.")
+                raise ValidationError(
+                    "رمز عبور شما در نشت اطلاعاتی یافت شده است. رمز دیگری انتخاب کنید."
+                )
             except Exception as e:
                 logger.error(f"Password validation error for user {username}: {str(e)}")
                 # Continue with registration even if pwned check fails
@@ -65,7 +68,9 @@ class CustomUserCreationForm(UserCreationForm):
 
         if commit:
             user.save()
-            logger.info(f"User created successfully: {user.username}, Email: {user.email}")
+            logger.info(
+                f"User created successfully: {user.username}, Email: {user.email}"
+            )
 
         return user
 
@@ -75,14 +80,18 @@ class PasswordEntryForm(forms.ModelForm):
 
     class Meta:
         model = PasswordEntry
-        fields = ['service_name', 'username', 'password']
+        fields = ["service_name", "username", "password"]
         widgets = {
-            'service_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Service Name'}),
-            'username': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Username'}),
+            "service_name": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Service Name"}
+            ),
+            "username": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Username"}
+            ),
         }
 
     def clean_service_name(self):
-        service_name = self.cleaned_data.get('service_name')
+        service_name = self.cleaned_data.get("service_name")
         logger.debug(f"Validating service name: {service_name}")
 
         if not service_name or not service_name.strip():
@@ -92,7 +101,7 @@ class PasswordEntryForm(forms.ModelForm):
         return service_name.strip()
 
     def clean_username(self):
-        username = self.cleaned_data.get('username')
+        username = self.cleaned_data.get("username")
         logger.debug(f"Validating username: {username}")
 
         if not username or not username.strip():
@@ -102,8 +111,8 @@ class PasswordEntryForm(forms.ModelForm):
         return username.strip()
 
     def clean_password(self):
-        password = self.cleaned_data.get('password')
-        service_name = self.cleaned_data.get('service_name')
+        password = self.cleaned_data.get("password")
+        service_name = self.cleaned_data.get("service_name")
 
         if password:
             logger.debug(f"Validating password for service: {service_name}")
@@ -114,18 +123,23 @@ class PasswordEntryForm(forms.ModelForm):
             except ValidationError:
                 logger.warning(f"Pwned password attempted for service: {service_name}")
                 raise ValidationError(
-                    "This password has been found in data breaches. Please choose a different password.")
+                    "This password has been found in data breaches. Please choose a different password."
+                )
             except Exception as e:
-                logger.error(f"Password validation error for service {service_name}: {str(e)}")
+                logger.error(
+                    f"Password validation error for service {service_name}: {str(e)}"
+                )
                 # Don't block entry if pwned check fails
 
         return password
 
     def clean(self):
         cleaned_data = super().clean()
-        service_name = cleaned_data.get('service_name')
-        username = cleaned_data.get('username')
+        service_name = cleaned_data.get("service_name")
+        username = cleaned_data.get("username")
 
-        logger.debug(f"Validating form data - Service: {service_name}, Username: {username}")
+        logger.debug(
+            f"Validating form data - Service: {service_name}, Username: {username}"
+        )
 
         return cleaned_data

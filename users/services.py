@@ -1,13 +1,12 @@
 # users/services.py
 import logging
 from abc import ABC, abstractmethod
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
+
 from django.conf import settings
-from django.urls import reverse
+from django.core.mail import send_mail
 from smsir import SmsIr
 
-logger = logging.getLogger('users')
+logger = logging.getLogger("users")
 
 
 # Abstract Factory
@@ -25,8 +24,7 @@ class NotificationService(ABC):
 class SMSService(NotificationService):
     def __init__(self):
         self.sms_ir = SmsIr(
-            api_key=settings.SMS_API_KEY,
-            line_number=settings.SMS_LINE_NUMBER
+            api_key=settings.SMS_API_KEY, line_number=settings.SMS_LINE_NUMBER
         )
 
     def send_verification_code(self, user, token):
@@ -36,7 +34,7 @@ class SMSService(NotificationService):
             result = self.sms_ir.send_sms(
                 message=message,
                 mobile=user.mobile,
-                template_id=settings.SMS_TEMPLATE_ID
+                template_id=settings.SMS_TEMPLATE_ID,
             )
             logger.info(f"SMS sent to {user.mobile}: {result}")
             return True
@@ -51,7 +49,7 @@ class SMSService(NotificationService):
             result = self.sms_ir.send_sms(
                 message=message,
                 mobile=user.mobile,
-                template_id=settings.SMS_TEMPLATE_ID
+                template_id=settings.SMS_TEMPLATE_ID,
             )
             logger.info(f"Password reset SMS sent to {user.mobile}")
             return True
@@ -67,7 +65,7 @@ class EmailService(NotificationService):
         try:
             activation_url = f"{settings.SITE_URL}/users/activate/{token.email_token}/"
 
-            subject = 'فعال‌سازی حساب کاربری'
+            subject = "فعال‌سازی حساب کاربری"
             html_message = f"""
             <div style="direction: rtl; text-align: right; font-family: Tahoma;">
                 <h2>سلام {user.username or 'کاربر عزیز'}</h2>
@@ -98,7 +96,7 @@ class EmailService(NotificationService):
         try:
             reset_url = f"{settings.SITE_URL}/users/reset-password/{token.email_token}/"
 
-            subject = 'بازیابی رمز عبور'
+            subject = "بازیابی رمز عبور"
             html_message = f"""
             <div style="direction: rtl; text-align: right; font-family: Tahoma;">
                 <h2>سلام {user.username or 'کاربر عزیز'}</h2>
@@ -129,9 +127,9 @@ class EmailService(NotificationService):
 class NotificationServiceFactory:
     @staticmethod
     def create_service(service_type):
-        if service_type == 'sms':
+        if service_type == "sms":
             return SMSService()
-        elif service_type == 'email':
+        elif service_type == "email":
             return EmailService()
         else:
             raise ValueError(f"Unknown service type: {service_type}")
@@ -140,8 +138,8 @@ class NotificationServiceFactory:
 # Main Authentication Service
 class AuthenticationService:
     def __init__(self):
-        self.sms_service = NotificationServiceFactory.create_service('sms')
-        self.email_service = NotificationServiceFactory.create_service('email')
+        self.sms_service = NotificationServiceFactory.create_service("sms")
+        self.email_service = NotificationServiceFactory.create_service("email")
 
     def register_user(self, mobile=None, email=None, password=None):
         """Register user with SMS or Email verification"""
@@ -150,26 +148,23 @@ class AuthenticationService:
         try:
             # Create user
             user = User.objects.create_user(
-                mobile=mobile,
-                email=email,
-                password=password,
-                is_active=False
+                mobile=mobile, email=email, password=password, is_active=False
             )
 
             # Generate verification token
             token = VerificationToken.objects.create(
                 user=user,
                 token=VerificationToken.generate_sms_token(),
-                token_type='registration'
+                token_type="registration",
             )
 
             # Send verification based on registration method
             if mobile:
                 success = self.sms_service.send_verification_code(user, token)
-                return user, token, 'sms' if success else None
+                return user, token, "sms" if success else None
             elif email:
                 success = self.email_service.send_verification_code(user, token)
-                return user, token, 'email' if success else None
+                return user, token, "email" if success else None
 
             return user, token, None
 
@@ -177,28 +172,24 @@ class AuthenticationService:
             logger.error(f"User registration failed: {e}")
             return None, None, None
 
-    def verify_user(self, token_value, token_type='sms'):
+    def verify_user(self, token_value, token_type="sms"):
         """Verify user with SMS code or Email link"""
         from .models import VerificationToken
 
         try:
-            if token_type == 'sms':
+            if token_type == "sms":
                 token = VerificationToken.objects.get(
-                    token=token_value,
-                    token_type='registration',
-                    is_used=False
+                    token=token_value, token_type="registration", is_used=False
                 )
             else:  # email
                 token = VerificationToken.objects.get(
-                    email_token=token_value,
-                    token_type='registration',
-                    is_used=False
+                    email_token=token_value, token_type="registration", is_used=False
                 )
 
             if token.is_valid():
                 user = token.user
                 user.is_active = True
-                if token_type == 'sms':
+                if token_type == "sms":
                     user.is_phone_verified = True
                 else:
                     user.is_email_verified = True
@@ -232,7 +223,7 @@ class AuthenticationService:
             token = VerificationToken.objects.create(
                 user=user,
                 token=VerificationToken.generate_sms_token(),
-                token_type='password_reset'
+                token_type="password_reset",
             )
 
             # Send reset notification
@@ -243,22 +234,18 @@ class AuthenticationService:
             logger.error(f"User not found for password reset: {mobile or email}")
             return None, None
 
-    def reset_password(self, token_value, new_password, token_type='sms'):
+    def reset_password(self, token_value, new_password, token_type="sms"):
         """Reset user password"""
         from .models import VerificationToken
 
         try:
-            if token_type == 'sms':
+            if token_type == "sms":
                 token = VerificationToken.objects.get(
-                    token=token_value,
-                    token_type='password_reset',
-                    is_used=False
+                    token=token_value, token_type="password_reset", is_used=False
                 )
             else:  # email
                 token = VerificationToken.objects.get(
-                    email_token=token_value,
-                    token_type='password_reset',
-                    is_used=False
+                    email_token=token_value, token_type="password_reset", is_used=False
                 )
 
             if token.is_valid():

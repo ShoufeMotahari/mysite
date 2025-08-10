@@ -1,9 +1,11 @@
-from django.conf import settings
-from django.http import HttpResponse, JsonResponse
-from django.shortcuts import redirect, render
 from urllib.parse import urlencode
+
 import requests
+from django.conf import settings
 from django.contrib.auth import login
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import redirect
+
 from users.models import User
 
 
@@ -42,6 +44,7 @@ def google_callback(request):
 
     # Decode id_token (بدون تایید امضا برای سادگی)
     from jose import jwt
+
     user_info = jwt.get_unverified_claims(id_token)
 
     email = user_info.get("email")
@@ -51,7 +54,9 @@ def google_callback(request):
         return HttpResponse("Error: Email not found", status=400)
 
     # بررسی کاربر
-    user, created = User.objects.get_or_create(username=email, defaults={"first_name": name or ""})
+    user, created = User.objects.get_or_create(
+        username=email, defaults={"first_name": name or ""}
+    )
 
     # ورود کاربر
     login(request, user)
@@ -63,12 +68,18 @@ def google_callback(request):
 def debug_oauth_config(request):
     """Debug view to check OAuth configuration"""
     config_info = {
-        "GOOGLE_CLIENT_ID": settings.GOOGLE_CLIENT_ID[:20] + "..." if settings.GOOGLE_CLIENT_ID else "NOT SET",
+        "GOOGLE_CLIENT_ID": (
+            settings.GOOGLE_CLIENT_ID[:20] + "..."
+            if settings.GOOGLE_CLIENT_ID
+            else "NOT SET"
+        ),
         "GOOGLE_CLIENT_SECRET": "SET" if settings.GOOGLE_CLIENT_SECRET else "NOT SET",
         "GOOGLE_REDIRECT_URI": settings.GOOGLE_REDIRECT_URI,
         "Current Domain": request.get_host(),
         "Full Redirect URL": f"https://{request.get_host()}/users/login/google/callback/",
-        "OAuth URL": f"https://accounts.google.com/o/oauth2/v2/auth?client_id={settings.GOOGLE_CLIENT_ID}&redirect_uri={settings.GOOGLE_REDIRECT_URI}&response_type=code&scope=openid email profile&access_type=offline&prompt=select_account"
+        "OAuth URL": f"https://accounts.google.com/o/oauth2/v2/auth?client_id={settings.GOOGLE_CLIENT_ID}&redirect_uri={settings.GOOGLE_REDIRECT_URI}&response_type=code&scope=openid email profile&access_type=offline&prompt=select_account",
     }
 
-    return JsonResponse(config_info, json_dumps_params={'ensure_ascii': False, 'indent': 2})
+    return JsonResponse(
+        config_info, json_dumps_params={"ensure_ascii": False, "indent": 2}
+    )

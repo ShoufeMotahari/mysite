@@ -1,9 +1,11 @@
-import boto3
-from django.conf import settings
-from botocore.exceptions import ClientError
 import logging
 
+import boto3
+from botocore.exceptions import ClientError
+from django.conf import settings
+
 logger = logging.getLogger(__name__)
+
 
 def delete_file(file_path):
     """
@@ -11,7 +13,7 @@ def delete_file(file_path):
     :param file_path: مسیر فایل داخل باکت (مثلاً avatars/test.jpg)
     """
     s3 = boto3.client(
-        's3',
+        "s3",
         endpoint_url=settings.AWS_S3_ENDPOINT_URL,
         aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
         aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,

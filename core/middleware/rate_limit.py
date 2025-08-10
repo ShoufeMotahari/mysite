@@ -1,20 +1,22 @@
 # core/middleware/rate_limit.py
-import time
 import logging
-from django.core.cache import cache
+
 from django.conf import settings
+from django.core.cache import cache
 from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
 from django.utils.deprecation import MiddlewareMixin
 
-logger = logging.getLogger('core')
+logger = logging.getLogger("core")
 
 # Configuration with defaults
 RATE_LIMIT_REQUESTS = getattr(settings, "RATE_LIMIT_REQUESTS", 30)
 RATE_LIMIT_WINDOW = getattr(settings, "RATE_LIMIT_WINDOW", 300)
 RATE_LIMIT_BLOCK_RESPONSE = getattr(settings, "RATE_LIMIT_BLOCK_RESPONSE", True)
 RATE_LIMIT_WHITELIST_IPS = getattr(settings, "RATE_LIMIT_WHITELIST_IPS", [])
-RATE_LIMIT_SKIP_PATHS = getattr(settings, "RATE_LIMIT_SKIP_PATHS", ['/admin/', '/static/', '/media/'])
+RATE_LIMIT_SKIP_PATHS = getattr(
+    settings, "RATE_LIMIT_SKIP_PATHS", ["/admin/", "/static/", "/media/"]
+)
 
 BLOCK_MESSAGE = "تعداد درخواست‌های شما بیش از حد مجاز است. لطفاً بعداً دوباره تلاش کنید."
 
@@ -81,40 +83,44 @@ class RateLimitMiddleware(MiddlewareMixin):
             )
 
             if RATE_LIMIT_BLOCK_RESPONSE:
-                return self._create_blocked_response(request, current_count, time_remaining)
+                return self._create_blocked_response(
+                    request, current_count, time_remaining
+                )
 
         # Store rate limit info for response headers
         request.rate_limit_info = {
-            'current_count': current_count,
-            'limit': RATE_LIMIT_REQUESTS,
-            'window': RATE_LIMIT_WINDOW
+            "current_count": current_count,
+            "limit": RATE_LIMIT_REQUESTS,
+            "window": RATE_LIMIT_WINDOW,
         }
 
         return None
 
     def process_response(self, request, response):
         """Add rate limit headers to response"""
-        if hasattr(request, 'rate_limit_info'):
+        if hasattr(request, "rate_limit_info"):
             info = request.rate_limit_info
-            response['X-RateLimit-Limit'] = str(info['limit'])
-            response['X-RateLimit-Remaining'] = str(max(0, info['limit'] - info['current_count']))
-            response['X-RateLimit-Window'] = str(info['window'])
+            response["X-RateLimit-Limit"] = str(info["limit"])
+            response["X-RateLimit-Remaining"] = str(
+                max(0, info["limit"] - info["current_count"])
+            )
+            response["X-RateLimit-Window"] = str(info["window"])
 
         return response
 
     def _get_client_ip(self, request):
         """Get client IP address from request headers"""
-        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
         if x_forwarded_for:
-            ip = x_forwarded_for.split(',')[0].strip()
+            ip = x_forwarded_for.split(",")[0].strip()
         else:
-            ip = request.META.get('REMOTE_ADDR', 'unknown')
+            ip = request.META.get("REMOTE_ADDR", "unknown")
         return ip
 
     def _get_identifier(self, request):
         """Generate unique identifier for rate limiting"""
         try:
-            if hasattr(request, 'user') and hasattr(request.user, 'is_authenticated'):
+            if hasattr(request, "user") and hasattr(request.user, "is_authenticated"):
                 if request.user.is_authenticated:
                     return f"user:{request.user.pk}"
         except Exception as e:
@@ -135,7 +141,9 @@ class RateLimitMiddleware(MiddlewareMixin):
     def _should_skip_path(self, request):
         """Check if request path should be excluded from rate limiting"""
         path = request.path
-        should_skip = any(path.startswith(skip_path) for skip_path in RATE_LIMIT_SKIP_PATHS)
+        should_skip = any(
+            path.startswith(skip_path) for skip_path in RATE_LIMIT_SKIP_PATHS
+        )
         if should_skip:
             logger.info(f"Path {path} should be skipped")
         return should_skip
@@ -143,9 +151,11 @@ class RateLimitMiddleware(MiddlewareMixin):
     def _is_superuser(self, request):
         """Safely check if user is superuser"""
         try:
-            if (hasattr(request, 'user') and
-                    hasattr(request.user, 'is_authenticated') and
-                    hasattr(request.user, 'is_superuser')):
+            if (
+                hasattr(request, "user")
+                and hasattr(request.user, "is_authenticated")
+                and hasattr(request.user, "is_superuser")
+            ):
                 return request.user.is_authenticated and request.user.is_superuser
         except Exception as e:
             logger.warning(f"Error checking superuser status: {e}")
@@ -162,7 +172,7 @@ class RateLimitMiddleware(MiddlewareMixin):
             return 0, None
 
         if isinstance(data, dict):
-            return data.get('count', 0), data.get('window_start')
+            return data.get("count", 0), data.get("window_start")
         else:
             return data, None
 
@@ -171,25 +181,26 @@ class RateLimitMiddleware(MiddlewareMixin):
         if window_start is None:
             window_start = timezone.now().timestamp()
 
-        data = {
-            'count': count,
-            'window_start': window_start
-        }
-        cache.set(cache_key, data, RATE_LIMIT_WINDOW + 10)  # Add extra time to prevent race conditions
+        data = {"count": count, "window_start": window_start}
+        cache.set(
+            cache_key, data, RATE_LIMIT_WINDOW + 10
+        )  # Add extra time to prevent race conditions
 
     def _create_blocked_response(self, request, current_count, time_remaining):
         """Create appropriate response when rate limit is exceeded"""
         retry_after = max(1, int(time_remaining))
 
-        if request.headers.get('Accept', '').startswith('application/json') or request.path.startswith('/api/'):
+        if request.headers.get("Accept", "").startswith(
+            "application/json"
+        ) or request.path.startswith("/api/"):
             response_data = {
-                'error': 'Rate limit exceeded',
-                'message': BLOCK_MESSAGE,
-                'current_requests': current_count,
-                'limit': RATE_LIMIT_REQUESTS,
-                'window_seconds': RATE_LIMIT_WINDOW,
-                'retry_after': retry_after,
-                'timestamp': timezone.now().isoformat()
+                "error": "Rate limit exceeded",
+                "message": BLOCK_MESSAGE,
+                "current_requests": current_count,
+                "limit": RATE_LIMIT_REQUESTS,
+                "window_seconds": RATE_LIMIT_WINDOW,
+                "retry_after": retry_after,
+                "timestamp": timezone.now().isoformat(),
             }
             response = JsonResponse(response_data, status=429)
         else:
@@ -224,9 +235,13 @@ class RateLimitMiddleware(MiddlewareMixin):
             """
             response = HttpResponse(html_content, status=429)
 
-        response['X-RateLimit-Limit'] = str(RATE_LIMIT_REQUESTS)
-        response['X-RateLimit-Remaining'] = str(max(0, RATE_LIMIT_REQUESTS - current_count))
-        response['X-RateLimit-Reset'] = str(int(timezone.now().timestamp() + time_remaining))
-        response['Retry-After'] = str(retry_after)
+        response["X-RateLimit-Limit"] = str(RATE_LIMIT_REQUESTS)
+        response["X-RateLimit-Remaining"] = str(
+            max(0, RATE_LIMIT_REQUESTS - current_count)
+        )
+        response["X-RateLimit-Reset"] = str(
+            int(timezone.now().timestamp() + time_remaining)
+        )
+        response["Retry-After"] = str(retry_after)
 
         return response

@@ -1,13 +1,13 @@
 # arvan_integration/uploader.py
-import boto3
-import uuid
-import os
-from django.conf import settings
-from botocore.exceptions import ClientError
-from django.core.files.storage import default_storage
 import logging
+import os
+import uuid
 
-logger = logging.getLogger('arvan_integration')
+import boto3
+from botocore.exceptions import ClientError
+from django.conf import settings
+
+logger = logging.getLogger("arvan_integration")
 
 
 def upload_file(file_obj, path="uploads/"):
@@ -15,11 +15,11 @@ def upload_file(file_obj, path="uploads/"):
     Upload file to Arvan Cloud with collision handling
     """
     s3 = boto3.client(
-        's3',
+        "s3",
         endpoint_url=settings.AWS_S3_ENDPOINT_URL,
         aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
         aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-        region_name=settings.AWS_S3_REGION_NAME
+        region_name=settings.AWS_S3_REGION_NAME,
     )
 
     # Generate unique filename to avoid collisions
@@ -33,7 +33,7 @@ def upload_file(file_obj, path="uploads/"):
             file_obj,
             settings.AWS_STORAGE_BUCKET_NAME,
             full_path,
-            ExtraArgs={'ACL': 'public-read'}  # Make file publicly readable
+            ExtraArgs={"ACL": "public-read"},  # Make file publicly readable
         )
 
         # Return the correct URL

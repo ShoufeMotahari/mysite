@@ -1,8 +1,9 @@
 # arvan_integration/downloader.py
-from django.conf import settings
 import logging
 
-logger = logging.getLogger('arvan_integration')
+from django.conf import settings
+
+logger = logging.getLogger("arvan_integration")
 
 
 def get_file_url(file_path):
@@ -15,7 +16,7 @@ def get_file_url(file_path):
         return None
 
     # Remove leading slash if present
-    if file_path.startswith('/'):
+    if file_path.startswith("/"):
         file_path = file_path[1:]
 
     # Use the custom domain for URL generation
@@ -37,18 +38,18 @@ def get_file_download_url(file_path, expires_in=3600):
     from botocore.exceptions import ClientError
 
     s3 = boto3.client(
-        's3',
+        "s3",
         endpoint_url=settings.AWS_S3_ENDPOINT_URL,
         aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
         aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-        region_name=settings.AWS_S3_REGION_NAME
+        region_name=settings.AWS_S3_REGION_NAME,
     )
 
     try:
         url = s3.generate_presigned_url(
-            'get_object',
-            Params={'Bucket': settings.AWS_STORAGE_BUCKET_NAME, 'Key': file_path},
-            ExpiresIn=expires_in
+            "get_object",
+            Params={"Bucket": settings.AWS_STORAGE_BUCKET_NAME, "Key": file_path},
+            ExpiresIn=expires_in,
         )
         return url
     except ClientError as e:

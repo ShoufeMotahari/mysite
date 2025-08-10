@@ -1,20 +1,19 @@
 # emails.py - Updated with English messages
 # -*- coding: utf-8 -*-
 
-import os
-from pathlib import Path
-from django.core.mail import EmailMultiAlternatives
-from django.conf import settings
-from django.urls import reverse
-from django.template.loader import render_to_string
-from django.template import Context, Template
 import logging
+from pathlib import Path
 
-logger = logging.getLogger('emails')
+from django.conf import settings
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.urls import reverse
+
+logger = logging.getLogger("emails")
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-TEMPLATES_DIR = BASE_DIR / 'templates' / 'emails'
+TEMPLATES_DIR = BASE_DIR / "templates" / "emails"
 
 
 def load_email_template(template_name, context_data):
@@ -27,7 +26,7 @@ def load_email_template(template_name, context_data):
             logger.error(f"Template not found: {template_path}")
             return None
 
-        with open(template_path, 'r', encoding='utf-8') as file:
+        with open(template_path, "r", encoding="utf-8") as file:
             template_content = file.read()
 
         for key, value in context_data.items():
@@ -53,15 +52,15 @@ def load_email_template_django(template_name, context_data):
 def send_activation_email(user, token, request=None):
     """Send account activation email using HTML template with dynamic URL detection"""
     try:
-        subject = 'Account Activation'
+        subject = "Account Activation"
 
         # Auto-detect the correct domain
         if request:
             # Get the current domain from the request
             if request.is_secure():
-                protocol = 'https'
+                protocol = "https"
             else:
-                protocol = 'http'
+                protocol = "http"
             domain = request.get_host()
             site_url = f"{protocol}://{domain}"
         else:
@@ -84,13 +83,15 @@ Thank you,
 Support Team"""
 
         context_data = {
-            'mobile': mobile,
-            'activation_url': activation_url,
-            'site_name': getattr(settings, 'SITE_NAME', 'Our Site'),
-            'support_email': getattr(settings, 'SUPPORT_EMAIL', settings.DEFAULT_FROM_EMAIL)
+            "mobile": mobile,
+            "activation_url": activation_url,
+            "site_name": getattr(settings, "SITE_NAME", "Our Site"),
+            "support_email": getattr(
+                settings, "SUPPORT_EMAIL", settings.DEFAULT_FROM_EMAIL
+            ),
         }
 
-        html_content = load_email_template('activation_email.html', context_data)
+        html_content = load_email_template("activation_email.html", context_data)
 
         if not html_content:
             logger.error("Failed to load activation email template")
@@ -104,16 +105,20 @@ Support Team"""
         )
 
         msg.content_subtype = "plain"
-        msg.encoding = 'utf-8'
+        msg.encoding = "utf-8"
         msg.attach_alternative(html_content, "text/html")
 
         result = msg.send()
 
         if result:
-            logger.info(f"Activation email sent successfully to {user.email} with URL: {activation_url}")
+            logger.info(
+                f"Activation email sent successfully to {user.email} with URL: {activation_url}"
+            )
             return True
         else:
-            logger.error(f"Failed to send activation email to {user.email}: No result returned")
+            logger.error(
+                f"Failed to send activation email to {user.email}: No result returned"
+            )
             return False
 
     except Exception as e:
@@ -124,18 +129,18 @@ Support Team"""
 def send_activation_email_django_template(user, token):
     """Send account activation email using Django's template system"""
     try:
-        subject = 'Account Activation'
+        subject = "Account Activation"
         activation_url = f"{settings.SITE_URL}{reverse('users:activate')}?token={token}"
 
         context = {
-            'user': user,
-            'mobile': str(user.mobile),
-            'activation_url': activation_url,
-            'site_name': getattr(settings, 'SITE_NAME', 'Our Site'),
+            "user": user,
+            "mobile": str(user.mobile),
+            "activation_url": activation_url,
+            "site_name": getattr(settings, "SITE_NAME", "Our Site"),
         }
 
-        text_content = render_to_string('emails/activation_email.txt', context)
-        html_content = render_to_string('emails/activation_email.html', context)
+        text_content = render_to_string("emails/activation_email.txt", context)
+        html_content = render_to_string("emails/activation_email.html", context)
 
         msg = EmailMultiAlternatives(
             subject=subject,
@@ -162,14 +167,14 @@ def send_activation_email_django_template(user, token):
 def send_password_reset_email(user, token, request=None):
     """Send password reset email using HTML template with dynamic URL detection"""
     try:
-        subject = 'Password Reset'
+        subject = "Password Reset"
 
         # Auto-detect the correct domain
         if request:
             if request.is_secure():
-                protocol = 'https'
+                protocol = "https"
             else:
-                protocol = 'http'
+                protocol = "http"
             domain = request.get_host()
             site_url = f"{protocol}://{domain}"
         else:
@@ -193,13 +198,15 @@ Thank you,
 Support Team"""
 
         context_data = {
-            'mobile': mobile,
-            'reset_url': reset_url,
-            'site_name': getattr(settings, 'SITE_NAME', 'Our Site'),
-            'support_email': getattr(settings, 'SUPPORT_EMAIL', settings.DEFAULT_FROM_EMAIL)
+            "mobile": mobile,
+            "reset_url": reset_url,
+            "site_name": getattr(settings, "SITE_NAME", "Our Site"),
+            "support_email": getattr(
+                settings, "SUPPORT_EMAIL", settings.DEFAULT_FROM_EMAIL
+            ),
         }
 
-        html_content = load_email_template('password_reset_email.html', context_data)
+        html_content = load_email_template("password_reset_email.html", context_data)
 
         if not html_content:
             logger.error("Failed to load password reset email template")
@@ -209,20 +216,24 @@ Support Team"""
             subject=subject,
             body=text_content,
             from_email=settings.DEFAULT_FROM_EMAIL,
-            to=[user.email]
+            to=[user.email],
         )
 
         msg.content_subtype = "plain"
-        msg.encoding = 'utf-8'
+        msg.encoding = "utf-8"
         msg.attach_alternative(html_content, "text/html")
 
         result = msg.send()
 
         if result:
-            logger.info(f"Password reset email sent successfully to {user.email} with URL: {reset_url}")
+            logger.info(
+                f"Password reset email sent successfully to {user.email} with URL: {reset_url}"
+            )
             return True
         else:
-            logger.error(f"Failed to send password reset email to {user.email}: No result returned")
+            logger.error(
+                f"Failed to send password reset email to {user.email}: No result returned"
+            )
             return False
 
     except Exception as e:

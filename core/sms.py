@@ -1,4 +1,3 @@
-from sms_ir import SmsIr
 #
 # sms_ir = SmsIr('un7i93fQdsGxOqFHpF5Z3bccQfA8MWFFJKb24lpUWeJfpufG', 30007732904200, )
 #
@@ -6,10 +5,11 @@ from sms_ir import SmsIr
 #     {"name": "CODE", "value": '45455'}
 # ], )
 import logging
-from sms_ir import SmsIr
-from django.conf import settings
 
-logger = logging.getLogger('accounts_')
+from django.conf import settings
+from sms_ir import SmsIr
+
+logger = logging.getLogger("accounts_")
 
 # تنظیمات اولیه API از settings یا .env
 API_KEY = getattr(settings, "SMS_API_KEY", "your-api-key")

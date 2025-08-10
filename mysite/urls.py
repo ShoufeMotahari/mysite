@@ -15,27 +15,30 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
-from django.contrib import admin
-from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.contrib import admin
+from django.urls import include, path
 
 # Import Google OAuth views directly
-from users.views.view_googlelogin import google_login, google_callback
+from users.views.view_googlelogin import google_callback, google_login
 
 urlpatterns = [
     # path('emails/', include('emails.urls')),
-    path('ckeditor/', include('ckeditor_uploader.urls')),
-    path('admin/', admin.site.urls),
-    path('', include('core.urls')),
-    path('users/', include(('users.urls', 'users'), namespace='users')),
-    path('filemanager/', include('filemanager.urls')),
-    path('ckeditor/', include('ckeditor_uploader.urls')),
-    path('sections/', include('sections.urls')),
-
+    path("ckeditor/", include("ckeditor_uploader.urls")),
+    path("admin/", admin.site.urls),
+    path("", include("core.urls")),
+    path("users/", include(("users.urls", "users"), namespace="users")),
+    path("filemanager/", include("filemanager.urls")),
+    path("ckeditor/", include("ckeditor_uploader.urls")),
+    path("sections/", include("sections.urls")),
     # ADDED: Direct Google OAuth URLs to match .env redirect URI
-    path('accounts/login/google/', google_login, name='google_login_direct'),
-    path('accounts/login/google/callback/', google_callback, name='google_callback_direct'),
+    path("accounts/login/google/", google_login, name="google_login_direct"),
+    path(
+        "accounts/login/google/callback/",
+        google_callback,
+        name="google_callback_direct",
+    ),
 ]
 
 if settings.DEBUG:

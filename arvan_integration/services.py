@@ -1,11 +1,14 @@
 # arvan_integration/services.py
-from arvan_integration.uploader import upload_file
-from arvan_integration.remover import delete_file
-from arvan_integration.downloader import get_file_url, get_file_download_url
-from django.core.files.storage import default_storage
 import logging
 
-logger = logging.getLogger('arvan_integration')
+from django.core.files.storage import default_storage
+
+from arvan_integration.downloader import get_file_download_url, get_file_url
+from arvan_integration.remover import delete_file
+from arvan_integration.uploader import upload_file
+
+logger = logging.getLogger("arvan_integration")
+
 
 class ArvanService:
 

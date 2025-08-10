@@ -14,11 +14,9 @@
 #     msg.attach_alternative(html_content, "text/html")
 #     msg.send()
 
-from PIL import Image
-import os
-from django.core.files.storage import default_storage
-from django.core.files.base import ContentFile
 from io import BytesIO
+
+from PIL import Image
 
 
 class ImageMinifier:
@@ -40,15 +38,19 @@ class ImageMinifier:
         """
         # Open image
         image = Image.open(image_file)
-        original_size = image_file.size if hasattr(image_file, 'size') else len(image_file.read())
+        original_size = (
+            image_file.size if hasattr(image_file, "size") else len(image_file.read())
+        )
         image_file.seek(0)  # Reset file pointer
 
         # Convert RGBA to RGB if necessary
-        if image.mode in ('RGBA', 'LA', 'P'):
-            background = Image.new('RGB', image.size, (255, 255, 255))
-            if image.mode == 'P':
-                image = image.convert('RGBA')
-            background.paste(image, mask=image.split()[-1] if image.mode == 'RGBA' else None)
+        if image.mode in ("RGBA", "LA", "P"):
+            background = Image.new("RGB", image.size, (255, 255, 255))
+            if image.mode == "P":
+                image = image.convert("RGBA")
+            background.paste(
+                image, mask=image.split()[-1] if image.mode == "RGBA" else None
+            )
             image = background
 
         # Resize if needed
@@ -57,9 +59,11 @@ class ImageMinifier:
 
         # Save to BytesIO
         output = BytesIO()
-        format_type = 'JPEG' if image_file.name.lower().endswith(('.jpg', '.jpeg')) else 'PNG'
+        format_type = (
+            "JPEG" if image_file.name.lower().endswith((".jpg", ".jpeg")) else "PNG"
+        )
 
-        if format_type == 'JPEG':
+        if format_type == "JPEG":
             image.save(output, format=format_type, quality=quality, optimize=True)
         else:
             image.save(output, format=format_type, optimize=True)
