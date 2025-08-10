@@ -15,9 +15,10 @@ import sys
 from pathlib import Path
 import environ
 from cryptography.fernet import Fernet
-import logging
 from decouple import config
 
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 # مسیر پروژه
 BASE_DIR = Path(__file__).resolve().parent.parent

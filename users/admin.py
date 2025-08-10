@@ -16,7 +16,6 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 import logging
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
-from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -576,6 +575,7 @@ class UserAdmin(BaseUserAdmin):
     export_to_excel.short_description = 'دریافت خروجی اکسل از کاربران انتخاب شده'
 
     def export_to_pdf(self, request, queryset):
+        from reportlab.lib import colors
         """Export selected users to PDF with proper Persian BIDI support"""
         try:
             # Import BIDI support libraries
