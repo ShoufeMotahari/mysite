@@ -14,7 +14,6 @@ from django.db import models
 from django.db.models import Count, Q, Exists, OuterRef
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 import logging
-import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 from reportlab.lib import colors
@@ -467,6 +466,7 @@ class UserAdmin(BaseUserAdmin):
         return None
 
     def export_to_excel(self, request, queryset):
+        import openpyxl
         """Export selected users to Persian Excel file"""
         try:
             # Create workbook and worksheet
