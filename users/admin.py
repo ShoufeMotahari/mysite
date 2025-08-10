@@ -1,4 +1,7 @@
 # users/admin.py - Enhanced User Admin Panel with User Types
+import os
+import platform
+
 from django.contrib import admin
 from django.shortcuts import render, redirect
 from django.contrib import messages
@@ -11,6 +14,20 @@ from django.db import models
 from django.db.models import Count, Q, Exists, OuterRef
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 import logging
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from django.http import HttpResponse
+from django.utils import timezone
+from datetime import datetime
+import io
 
 # Import models
 from users.models import User, PasswordEntry, Comment, UserType, AdminMessage, AdminMessageReadStatus, AdminMessageReply
@@ -316,7 +333,6 @@ class UserTypeAdmin(admin.ModelAdmin):
 
     create_predefined_types.short_description = 'ایجاد انواع کاربری پیش‌فرض'
 
-
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     # List display with user types
@@ -326,10 +342,8 @@ class UserAdmin(BaseUserAdmin):
         'comments_count', 'last_login', 'created_at'
     ]
 
-    # Enable editing in the list view
     list_editable = ['is_active', 'is_staff']
 
-    # Comprehensive filters including user type
     list_filter = [
         'is_active',
         'is_staff',
@@ -343,17 +357,17 @@ class UserAdmin(BaseUserAdmin):
         ('last_login', JDateFieldListFilter),
     ]
 
-    # Comprehensive search fields
     search_fields = [
         'username', 'email', 'mobile', 'first_name', 'last_name',
         'slug', 'comments__content', 'user_type__name'
     ]
 
-    # Enhanced actions
+    # Enhanced actions - including export actions
     actions = [
         'send_email_action', 'activate_users', 'deactivate_users',
         'verify_emails', 'verify_phones', 'change_user_type_action',
-        'promote_to_staff', 'demote_from_staff'
+        'promote_to_staff', 'demote_from_staff',
+        'export_to_excel', 'export_to_pdf'
     ]
 
     # Pagination
@@ -419,15 +433,437 @@ class UserAdmin(BaseUserAdmin):
         }),
     )
 
-    readonly_fields = ['created_at', 'image_preview', 'date_joined', 'last_login', 'last_activity', 'posts_count', 'comments_count']
+    readonly_fields = ['created_at', 'image_preview', 'date_joined', 'last_login', 'last_activity', 'posts_count',
+                       'comments_count']
+
+    def get_persian_font_path(self):
+        """Get available Persian font path from system"""
+        system = platform.system()
+
+        if system == "Windows":
+            paths = [
+                "C:/Windows/Fonts/tahoma.ttf",
+                "C:/Windows/Fonts/arial.ttf",
+                "C:/Windows/Fonts/calibri.ttf"
+            ]
+        elif system == "Linux":
+            paths = [
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+                "/usr/share/fonts/TTF/arial.ttf",
+                "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"
+            ]
+        elif system == "Darwin":  # macOS
+            paths = [
+                "/System/Library/Fonts/Arial.ttf",
+                "/Library/Fonts/Arial.ttf",
+                "/System/Library/Fonts/Helvetica.ttc"
+            ]
+        else:
+            return None
+
+        for path in paths:
+            if os.path.exists(path):
+                return path
+        return None
+
+    def export_to_excel(self, request, queryset):
+        """Export selected users to Persian Excel file"""
+        try:
+            # Create workbook and worksheet
+            wb = openpyxl.Workbook()
+            ws = wb.active
+            ws.title = "کاربران"
+
+            # Set RTL direction for the worksheet
+            ws.sheet_view.rightToLeft = True
+
+            # Define headers in Persian
+            headers = [
+                'نام کاربری', 'نام کامل', 'ایمیل', 'موبایل', 'نوع کاربری',
+                'وضعیت فعال', 'عضو کادر', 'ایمیل تایید شده', 'تلفن تایید شده',
+                'تعداد نظرات', 'آخرین ورود', 'تاریخ عضویت'
+            ]
+
+            # Style for headers
+            header_font = Font(bold=True, color="FFFFFF")
+            header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+            header_alignment = Alignment(horizontal="center", vertical="center")
+            border = Border(
+                left=Side(style='thin'),
+                right=Side(style='thin'),
+                top=Side(style='thin'),
+                bottom=Side(style='thin')
+            )
+
+            # Write headers
+            for col, header in enumerate(headers, 1):
+                cell = ws.cell(row=1, column=col, value=header)
+                cell.font = header_font
+                cell.fill = header_fill
+                cell.alignment = header_alignment
+                cell.border = border
+
+            # Write data
+            for row, user in enumerate(queryset, 2):
+                data = [
+                    user.username or '',
+                    user.get_full_name() or 'بدون نام',
+                    user.email or '',
+                    user.mobile or '',
+                    user.user_type.name if user.user_type else 'پیش‌فرض',
+                    'فعال' if user.is_active else 'غیرفعال',
+                    'بله' if user.is_staff else 'خیر',
+                    'تایید شده' if user.is_email_verified else 'تایید نشده',
+                    'تایید شده' if user.is_phone_verified else 'تایید نشده',
+                    user.comments.count(),
+                    user.last_login.strftime('%Y/%m/%d %H:%M') if user.last_login else 'هرگز',
+                    user.created_at.strftime('%Y/%m/%d %H:%M') if user.created_at else ''
+                ]
+
+                for col, value in enumerate(data, 1):
+                    cell = ws.cell(row=row, column=col, value=value)
+                    cell.border = border
+                    cell.alignment = Alignment(horizontal="center", vertical="center")
+
+            # Auto-adjust column widths
+            for column in ws.columns:
+                max_length = 0
+                column_letter = get_column_letter(column[0].column)
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = min(max_length + 2, 50)
+                ws.column_dimensions[column_letter].width = adjusted_width
+
+            # Prepare response
+            output = io.BytesIO()
+            wb.save(output)
+            output.seek(0)
+
+            timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
+            filename = f'users_export_{timestamp}.xlsx'
+
+            response = HttpResponse(
+                output.getvalue(),
+                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+            # Log success
+            logger.info(f"✅ Excel export completed by admin {request.user.username}")
+            logger.info(f"   📊 Exported {queryset.count()} users to {filename}")
+
+            self.message_user(
+                request,
+                f'فایل اکسل شامل {queryset.count()} کاربر با موفقیت ایجاد شد.',
+                level=messages.SUCCESS
+            )
+
+            return response
+
+        except Exception as e:
+            logger.error(f"❌ Excel export failed by admin {request.user.username}: {str(e)}")
+            self.message_user(
+                request,
+                f'خطا در ایجاد فایل اکسل: {str(e)}',
+                level=messages.ERROR
+            )
+            return redirect('admin:users_user_changelist')
+
+    export_to_excel.short_description = 'دریافت خروجی اکسل از کاربران انتخاب شده'
+
+    def export_to_pdf(self, request, queryset):
+        """Export selected users to PDF with proper Persian BIDI support"""
+        try:
+            # Import BIDI support libraries
+            try:
+                from bidi.algorithm import get_display
+                from arabic_reshaper import reshape
+                bidi_available = True
+            except ImportError:
+                bidi_available = False
+                logger.warning("BIDI libraries not available. Install: pip install python-bidi arabic-reshaper")
+
+            # Create response
+            response = HttpResponse(content_type='application/pdf')
+            timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
+            filename = f'users_export_{timestamp}.pdf'
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+            # Create PDF document
+            doc = SimpleDocTemplate(
+                response,
+                pagesize=landscape(A4),
+                rightMargin=20,
+                leftMargin=20,
+                topMargin=20,
+                bottomMargin=20
+            )
+
+            # Font registration with better Persian support
+            persian_font_available = False
+            registered_font_name = 'Helvetica'
+
+            # Try to get Persian font
+            font_path = self.get_persian_font_path()
+            if font_path:
+                try:
+                    pdfmetrics.registerFont(TTFont('SystemFont', font_path))
+                    registered_font_name = 'SystemFont'
+                    persian_font_available = True
+                    logger.info(f"Successfully registered font from: {font_path}")
+                except Exception as font_error:
+                    logger.warning(f"Failed to register system font: {font_error}")
+
+            # Helper function to process Persian text
+            def process_persian_text(text):
+                """Process Persian text for proper RTL display"""
+                if not text or not isinstance(text, str):
+                    return str(text) if text else ''
+
+                if not bidi_available:
+                    return text
+
+                try:
+                    # First reshape Arabic/Persian characters
+                    reshaped_text = reshape(text)
+                    # Then apply BIDI algorithm
+                    bidi_text = get_display(reshaped_text)
+                    return bidi_text
+                except Exception as e:
+                    logger.warning(f"Failed to process Persian text '{text}': {e}")
+                    return text
+
+            # Build content
+            story = []
+            styles = getSampleStyleSheet()
+
+            # Create custom styles with RTL support
+            if persian_font_available:
+                title_style = ParagraphStyle(
+                    'CustomTitle',
+                    parent=styles['Title'],
+                    fontName=registered_font_name,
+                    fontSize=16,
+                    alignment=1,  # Center
+                    spaceAfter=20,
+                    textColor=colors.HexColor('#366092'),
+                    # Add RTL support if available
+                    wordWrap='RTL' if bidi_available else 'LTR'
+                )
+
+                info_style = ParagraphStyle(
+                    'CustomInfo',
+                    parent=styles['Normal'],
+                    fontName=registered_font_name,
+                    fontSize=11,
+                    alignment=2,  # Right align for RTL
+                    spaceAfter=6,
+                    wordWrap='RTL' if bidi_available else 'LTR'
+                )
+            else:
+                title_style = styles['Title']
+                info_style = styles['Normal']
+
+            # Add title and metadata with proper Persian processing
+            if persian_font_available:
+                title_text = process_persian_text('گزارش کاربران سیستم')
+                story.append(Paragraph(title_text, title_style))
+                story.append(Spacer(1, 15))
+
+                current_time = timezone.now().strftime('%Y/%m/%d - %H:%M')
+                admin_name = request.user.get_full_name() or request.user.username
+
+                # Process entire strings with BIDI, not just parts
+                if bidi_available:
+                    # Create complete Persian sentences first, then process
+                    admin_line = f'{admin_name} :تهیه شده توسط'  # Reverse order for RTL
+                    date_line = f'{current_time} :تاریخ تهیه'
+                    count_line = f'{queryset.count()} :تعداد کاربران'
+
+                    # Process complete lines
+                    admin_line_processed = process_persian_text(admin_line)
+                    date_line_processed = process_persian_text(date_line)
+                    count_line_processed = process_persian_text(count_line)
+
+                    story.append(Paragraph(admin_line_processed, info_style))
+                    story.append(Paragraph(date_line_processed, info_style))
+                    story.append(Paragraph(count_line_processed, info_style))
+                else:
+                    # Fallback without BIDI - use simple approach
+                    story.append(Paragraph(f'تهیه شده توسط: {admin_name}', info_style))
+                    story.append(Paragraph(f'تاریخ تهیه: {current_time}', info_style))
+                    story.append(Paragraph(f'تعداد کاربران: {queryset.count()}', info_style))
+            else:
+                # Fallback to English
+                story.append(Paragraph('Users Export Report', title_style))
+                story.append(Spacer(1, 15))
+
+                current_time = timezone.now().strftime('%Y-%m-%d %H:%M')
+                admin_name = request.user.get_full_name() or request.user.username
+
+                story.append(Paragraph(f'Generated by: {admin_name}', info_style))
+                story.append(Paragraph(f'Export date: {current_time}', info_style))
+                story.append(Paragraph(f'Total users: {queryset.count()}', info_style))
+
+            story.append(Spacer(1, 20))
+
+            # Prepare table data with Persian processing
+            table_data = []
+
+            # Headers with proper Persian processing
+            if persian_font_available and bidi_available:
+                headers = [
+                    process_persian_text('نام کاربری'),
+                    process_persian_text('نام کامل'),
+                    process_persian_text('ایمیل'),
+                    process_persian_text('موبایل'),
+                    process_persian_text('نوع کاربری'),
+                    process_persian_text('وضعیت'),
+                    process_persian_text('تاریخ عضویت')
+                ]
+            elif persian_font_available:
+                headers = [
+                    'نام کاربری', 'نام کامل', 'ایمیل', 'موبایل',
+                    'نوع کاربری', 'وضعیت', 'تاریخ عضویت'
+                ]
+            else:
+                headers = [
+                    'Username', 'Full Name', 'Email', 'Mobile',
+                    'User Type', 'Status', 'Join Date'
+                ]
+
+            table_data.append(headers)
+
+            # Data rows with proper Persian processing
+            for user in queryset:
+                if persian_font_available and bidi_available:
+                    # Process all Persian text properly
+                    username = user.username or '-'
+                    full_name = process_persian_text(user.get_full_name() or 'بدون نام')
+                    email = user.email or '-'
+                    mobile = user.mobile or '-'
+                    user_type = process_persian_text(user.user_type.name if user.user_type else 'پیش‌فرض')
+                    status = process_persian_text('فعال' if user.is_active else 'غیرفعال')
+                    join_date = user.created_at.strftime('%Y/%m/%d') if user.created_at else '-'
+
+                    row = [username, full_name, email, mobile, user_type, status, join_date]
+
+                elif persian_font_available:
+                    # Without BIDI processing
+                    row = [
+                        user.username or '-',
+                        user.get_full_name() or 'بدون نام',
+                        user.email or '-',
+                        user.mobile or '-',
+                        user.user_type.name if user.user_type else 'پیش‌فرض',
+                        'فعال' if user.is_active else 'غیرفعال',
+                        user.created_at.strftime('%Y/%m/%d') if user.created_at else '-'
+                    ]
+                else:
+                    # English fallback
+                    full_name = user.get_full_name()
+                    if full_name:
+                        full_name = str(full_name)
+                    else:
+                        full_name = 'No name'
+
+                    user_type = str(user.user_type.name) if user.user_type else 'Default'
+
+                    row = [
+                        user.username or '-',
+                        full_name,
+                        user.email or '-',
+                        user.mobile or '-',
+                        user_type,
+                        'Active' if user.is_active else 'Inactive',
+                        user.created_at.strftime('%Y-%m-%d') if user.created_at else '-'
+                    ]
+
+                table_data.append(row)
+
+            # Create table with appropriate widths
+            col_widths = [1.2 * inch, 1.8 * inch, 2.2 * inch, 1.3 * inch, 1.5 * inch, 1 * inch, 1.2 * inch]
+            table = Table(table_data, colWidths=col_widths, repeatRows=1)
+
+            # Enhanced table styling for RTL
+            table_style = [
+                # Header styling
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#366092')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('FONTNAME', (0, 0), (-1, 0), registered_font_name if persian_font_available else 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+                ('TOPPADDING', (0, 0), (-1, 0), 8),
+
+                # Data rows styling
+                ('FONTNAME', (0, 1), (-1, -1), registered_font_name if persian_font_available else 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -1), 9),
+                ('TOPPADDING', (0, 1), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
+                ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+
+                # Alignment for Persian columns (right-aligned)
+                ('ALIGN', (0, 0), (-1, -1), 'RIGHT' if persian_font_available and bidi_available else 'CENTER'),
+
+                # Grid and borders
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                ('LINEBELOW', (0, 0), (-1, 0), 2, colors.HexColor('#366092')),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ]
+
+            # Add alternating row colors
+            for i in range(1, len(table_data)):
+                if i % 2 == 0:
+                    table_style.append(('BACKGROUND', (0, i), (-1, i), colors.lightgrey))
+                else:
+                    table_style.append(('BACKGROUND', (0, i), (-1, i), colors.white))
+
+            table.setStyle(TableStyle(table_style))
+            story.append(table)
+
+            # Build PDF
+            doc.build(story)
+
+            # Enhanced logging
+            logger.info(f"✅ PDF export completed by admin {request.user.username}")
+            logger.info(f"   📊 Exported {queryset.count()} users to {filename}")
+            logger.info(f"   🔤 Font used: {registered_font_name}, Persian support: {persian_font_available}")
+            logger.info(f"   🔄 BIDI support: {bidi_available}")
+
+            success_msg = f'فایل PDF شامل {queryset.count()} کاربر با موفقیت ایجاد شد.'
+            if not persian_font_available:
+                success_msg += ' (از فونت پیش‌فرض استفاده شد)'
+            elif not bidi_available:
+                success_msg += ' (بدون پشتیبانی کامل RTL)'
+
+            self.message_user(request, success_msg, level=messages.SUCCESS)
+            return response
+
+        except Exception as e:
+            logger.error(f"❌ PDF export failed by admin {request.user.username}: {str(e)}")
+            logger.exception("PDF export exception details:")
+            self.message_user(
+                request,
+                f'خطا در ایجاد فایل PDF: {str(e)}',
+                level=messages.ERROR
+            )
+            return redirect('admin:users_user_changelist')
+
+        export_to_pdf.short_description = 'دریافت خروجی PDF از کاربران انتخاب شده'
 
     def changelist_view(self, request, extra_context=None):
-        """Override changelist view to add notifications"""
+        """Override changelist view to add notifications and export buttons"""
         extra_context = extra_context or {}
 
         # Add your existing context
         extra_context['show_send_all_email_button'] = True
         extra_context['show_create_user_with_type_button'] = True
+        extra_context['show_export_buttons'] = True
         extra_context['user_types'] = UserType.objects.filter(is_active=True)
 
         # Add admin message notifications
@@ -449,7 +885,6 @@ class UserAdmin(BaseUserAdmin):
 
         return super().changelist_view(request, extra_context=extra_context)
 
-
     # Optimize queries
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
@@ -466,12 +901,14 @@ class UserAdmin(BaseUserAdmin):
         if obj.image:
             return format_html('<img src="{}" style="height: 100px; border-radius: 5px;" />', obj.image.url)
         return "بدون تصویر"
+
     image_preview.short_description = "پیش‌نمایش تصویر"
 
     def image_tag(self, obj):
         if obj.image:
             return format_html('<img src="{}" style="height:40px; border-radius:4px;" />', obj.image.url)
         return "-"
+
     image_tag.short_description = "تصویر"
 
     def full_name_display(self, obj):
@@ -480,6 +917,7 @@ class UserAdmin(BaseUserAdmin):
         if full_name:
             return full_name
         return format_html('<em style="color: #888;">بدون نام</em>')
+
     full_name_display.short_description = 'نام کامل'
 
     def user_type_display(self, obj):
@@ -505,6 +943,7 @@ class UserAdmin(BaseUserAdmin):
             '<span style="color: {}; font-weight: {};">{}</span>',
             color, weight, obj.user_type.name
         )
+
     user_type_display.short_description = 'نوع کاربری'
 
     def email_status(self, obj):
@@ -528,6 +967,7 @@ class UserAdmin(BaseUserAdmin):
             status_parts.append('<span style="color: red;">نامعتبر</span>')
 
         return format_html(' | '.join(status_parts))
+
     email_status.short_description = 'وضعیت ایمیل'
 
     def phone_status(self, obj):
@@ -539,6 +979,7 @@ class UserAdmin(BaseUserAdmin):
             return format_html('<span style="color: green;">✓ تایید شده</span>')
         else:
             return format_html('<span style="color: orange;">⚠ تایید نشده</span>')
+
     phone_status.short_description = 'وضعیت تلفن'
 
     def comments_count(self, obj):
@@ -559,10 +1000,9 @@ class UserAdmin(BaseUserAdmin):
             parts.append(f'<span style="color: orange;">{pending} انتظار</span>')
 
         return format_html(' | '.join(parts))
+
     comments_count.short_description = 'نظرات'
 
-    # Keep all your existing action methods here (send_email_action, activate_users, etc.)
-    # ... [include all your existing action methods]
     # Enhanced actions
     def send_email_action(self, request, queryset):
         selected = queryset.values_list('id', flat=True)
@@ -639,16 +1079,21 @@ class UserAdmin(BaseUserAdmin):
             path('send-email-all/', self.send_email_all_view, name='send_email_all'),
             path('change-user-type/', self.change_user_type_view, name='change_user_type'),
             path('create-user-with-type/', self.create_user_with_type_view, name='create_user_with_type'),
+            # Export URLs
+            path('export-all-excel/', self.export_all_excel_view, name='export_all_excel'),
+            path('export-all-pdf/', self.export_all_pdf_view, name='export_all_pdf'),
         ]
         return custom_urls + urls
 
-    def changelist_view(self, request, extra_context=None):
-        """Override changelist view to add custom buttons"""
-        extra_context = extra_context or {}
-        extra_context['show_send_all_email_button'] = True
-        extra_context['show_create_user_with_type_button'] = True
-        extra_context['user_types'] = UserType.objects.filter(is_active=True)
-        return super().changelist_view(request, extra_context=extra_context)
+    def export_all_excel_view(self, request):
+        """Export all users to Excel"""
+        all_users = User.objects.all()
+        return self.export_to_excel(request, all_users)
+
+    def export_all_pdf_view(self, request):
+        """Export all users to PDF"""
+        all_users = User.objects.all()
+        return self.export_to_pdf(request, all_users)
 
     def create_user_with_type_view(self, request):
         """Create user with specific type"""
@@ -716,7 +1161,6 @@ class UserAdmin(BaseUserAdmin):
                 user.user_type = user_type
 
             user.save()
-
 
             logger.info(
                 f"👨‍💼 Admin {request.user.username} created user: {user.get_display_name()} with type: {user_type.name if user_type else 'None'}")
@@ -812,7 +1256,7 @@ class UserAdmin(BaseUserAdmin):
             messages.error(request, f'خطا در تغییر نوع کاربری: {str(e)}')
             return self._handle_change_type_get(request)
 
-    # Keep existing email methods from original admin
+    # Email management methods
     def send_email_all_view(self, request):
         """Send email to all users view"""
         logger.info(f"👨‍💼 Admin {request.user.username} accessing send email to all users")
