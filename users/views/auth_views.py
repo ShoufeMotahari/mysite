@@ -5,21 +5,22 @@ import random
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
-from django.contrib.auth.hashers import check_password, make_password
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 
-from core.email import send_activation_email  # ADD THIS LINE
+from core.email import send_activation_email
 from core.sms import send_verification_sms
 from users.forms.forms import (
     CustomUserCreationForm,
-    ForgotPasswordForm,
     LoginForm,
     SignupForm,
-    VerificationForm,
+    VerificationForm, ForgotPasswordForm,
 )
 from users.models import User, VerificationToken
+
+# Import our custom password functions instead of Django's
+from users.utils.password_utils import make_password, check_password, get_password_strength, generate_secure_password
 
 logger = logging.getLogger("users")
 
@@ -43,9 +44,26 @@ def signup_view(request):
             email = form.cleaned_data.get("email")
             password = form.cleaned_data["password"]
 
+            # Check password strength before processing
+            password_strength = get_password_strength(password)
+            if password_strength['score'] < 3:  # Require at least "Fair" strength
+                messages.error(
+                    request,
+                    f"Password is too weak ({password_strength['strength']}). "
+                    f"Suggestions: {', '.join(password_strength['suggestions'])}"
+                )
+                return render(request, "users/signup.html", {"form": form})
+
             logger.info(
                 f"Signup attempt - Username: {username}, Mobile: {mobile}, Email: {email}"
             )
+
+            # Define a password setter function for automatic hash updates
+            def update_user_password(new_password):
+                nonlocal user
+                user.password = make_password(new_password)
+                user.save()
+                logger.info(f"Password hash updated for user: {user.username}")
 
             # Create or get existing user
             user, created = User.objects.get_or_create(
@@ -54,7 +72,7 @@ def signup_view(request):
                     "username": username,
                     "mobile": mobile,
                     "email": email,
-                    "password": make_password(password),
+                    "password": make_password(password),  # Use our custom make_password
                     "is_active": False,
                     "is_phone_verified": False,
                     "is_email_verified": False,
@@ -63,7 +81,8 @@ def signup_view(request):
 
             if created:
                 logger.info(
-                    f"New user created - Username: {username}, Mobile: {mobile}"
+                    f"New user created - Username: {username}, Mobile: {mobile}, "
+                    f"Password strength: {password_strength['strength']}"
                 )
             else:
                 logger.warning(
@@ -76,7 +95,7 @@ def signup_view(request):
                     # Update existing inactive user with new information
                     user.username = username
                     user.email = email
-                    user.password = make_password(password)
+                    user.password = make_password(password)  # Use our custom make_password
                     user.save()
 
             # Generate SMS verification code
@@ -110,7 +129,6 @@ def signup_view(request):
             # Send activation email if email provided
             if email:
                 try:
-                    # FIXED: Use the proper email function instead of manual construction
                     email_token = str(verification_token.email_token)
 
                     # Use the proper email sending function
@@ -190,8 +208,14 @@ def login_view(request):
                 logger.warning(f"User not found - Identifier: {identifier}")
                 return render(request, "users/login.html", {"form": form})
 
-            # Check password
-            if not check_password(password, user.password):
+            # Define a password setter function for automatic hash updates
+            def update_user_password(new_password):
+                user.password = make_password(new_password)
+                user.save()
+                logger.info(f"Password hash updated during login for user: {user.username}")
+
+            # Check password using our custom check_password with automatic updates
+            if not check_password(password, user.password, setter=update_user_password):
                 messages.error(request, "رمز عبور اشتباه است.")
                 logger.warning(f"Invalid password attempt - User: {user.username}")
                 return render(request, "users/login.html", {"form": form})
@@ -602,7 +626,7 @@ def verify_login_view(request):
                         f"User login verified: {user.username} ({user.mobile})"
                     )
                     messages.success(request, "با موفقیت وارد شدید.")
-                    return redirect("dashboard")
+                    return redirect("users:dashboard")
                 else:
                     messages.error(request, "کد وارد شده منقضی شده است.")
 
@@ -656,8 +680,6 @@ def activate_account_view(request):
         logger.info(f"User {user.email} activated successfully via email")
 
         # Log the user in automatically
-        from django.contrib.auth import login
-
         login(request, user)
 
         messages.success(request, "حساب شما با موفقیت فعال شد!")
@@ -691,7 +713,7 @@ def send_sms_view(request):
 
 
 def register(request):
-    """Alternative registration view"""
+    """Alternative registration view with password strength validation"""
     client_ip = request.META.get(
         "HTTP_X_FORWARDED_FOR", request.META.get("REMOTE_ADDR")
     )
@@ -707,13 +729,31 @@ def register(request):
 
         if form.is_valid():
             try:
-                user = form.save()
+                # Get the password from the form
+                password = form.cleaned_data.get("password1", "")
+
+                # Check password strength before creating user
+                password_strength = get_password_strength(password)
+                if password_strength['score'] < 3:
+                    messages.error(
+                        request,
+                        f"Password is too weak ({password_strength['strength']}). "
+                        f"Suggestions: {', '.join(password_strength['suggestions'])}"
+                    )
+                    return render(request, "users/registration/register.html", {"form": form})
+
+                # Create user with custom password hashing
+                user = form.save(commit=False)
+                user.password = make_password(password)  # Use our custom make_password
+                user.save()
+
                 logger.info(
-                    f"User created successfully - Username: {user.username}, Email: {user.email}, IP: {client_ip}"
+                    f"User created successfully - Username: {user.username}, Email: {user.email}, "
+                    f"IP: {client_ip}, Password strength: {password_strength['strength']}"
                 )
 
                 console_logger.info(
-                    f"New user registered: {user.username} ({user.email})"
+                    f"New user registered: {user.username} ({user.email}) - Password strength: {password_strength['strength']}"
                 )
 
                 login(request, user)
@@ -722,7 +762,7 @@ def register(request):
                 )
 
                 messages.success(request, "Registration successful!")
-                return redirect("dashboard")
+                return redirect("users:dashboard")
 
             except Exception as e:
                 logger.error(f"Registration failed - IP: {client_ip}, Error: {str(e)}")
@@ -735,3 +775,43 @@ def register(request):
         form = CustomUserCreationForm()
 
     return render(request, "users/registration/register.html", {"form": form})
+
+
+# API endpoints for password utilities (used during signup/registration)
+def generate_password_view(request):
+    """Generate a secure password for users"""
+    if request.method == "POST":
+        length = int(request.POST.get("length", 16))
+        length = max(8, min(64, length))  # Ensure reasonable length
+
+        try:
+            secure_password = generate_secure_password(length)
+            strength = get_password_strength(secure_password)
+
+            return JsonResponse({
+                "success": True,
+                "password": secure_password,
+                "strength": strength
+            })
+        except Exception as e:
+            logger.error(f"Password generation error: {e}")
+            return JsonResponse({
+                "success": False,
+                "message": "Failed to generate password"
+            })
+
+    return JsonResponse({"success": False, "message": "Invalid request method"})
+
+
+def check_password_strength_view(request):
+    """API endpoint to check password strength in real-time"""
+    if request.method == "POST":
+        password = request.POST.get("password", "")
+        strength = get_password_strength(password)
+
+        return JsonResponse({
+            "success": True,
+            "strength": strength
+        })
+
+    return JsonResponse({"success": False, "message": "Invalid request method"})

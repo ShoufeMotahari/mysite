@@ -455,51 +455,6 @@ class PasswordEntry(models.Model):
     def __str__(self):
         return f"{self.service_name} - {self.username}"
 
-    class Meta:
-        unique_together = ["user", "service_name", "username"]
-        verbose_name = "ورودی رمز عبور"
-        verbose_name_plural = "ورودی‌های رمز عبور"
-        indexes = [
-            models.Index(fields=["user", "service_name"]),
-        ]
-
-    def save(self, *args, **kwargs):
-        if self.password and not self.password.startswith("gAAAA"):
-            self.encrypt_password(self.password)
-        super().save(*args, **kwargs)
-
-    def encrypt_password(self, password):
-        """Encrypt password before storing"""
-        try:
-            f = Fernet(
-                settings.ENCRYPTION_KEY.encode()
-                if isinstance(settings.ENCRYPTION_KEY, str)
-                else settings.ENCRYPTION_KEY
-            )
-            encrypted_password = f.encrypt(password.encode())
-            self.password = encrypted_password.decode()
-        except Exception as e:
-            logger.error(
-                f"Password encryption failed - Service: {self.service_name}, Error: {str(e)}"
-            )
-            raise ValidationError("Error encrypting password")
-
-    def decrypt_password(self):
-        """Decrypt password for display"""
-        try:
-            f = Fernet(
-                settings.ENCRYPTION_KEY.encode()
-                if isinstance(settings.ENCRYPTION_KEY, str)
-                else settings.ENCRYPTION_KEY
-            )
-            decrypted_password = f.decrypt(self.password.encode())
-            return decrypted_password.decode()
-        except Exception as e:
-            logger.error(
-                f"Password decryption failed - Service: {self.service_name}, Error: {str(e)}"
-            )
-            raise ValidationError("Error decrypting password")
-
 
 class AdminMessage(models.Model):
     """Model for messages sent by message admins to superuser admins"""

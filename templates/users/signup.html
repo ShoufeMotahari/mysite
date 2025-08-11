@@ -1,299 +1,809 @@
-{% extends 'base.html' %}
-
-{% block title %}ثبت‌نام{% endblock %}
-
-{% block content %}
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6 col-lg-5">
-            <div class="card shadow-lg">
-                <div class="card-header bg-primary text-white text-center">
-                    <h3><i class="fas fa-user-plus"></i> ثبت‌نام</h3>
-                </div>
-                <div class="card-body">
-                    <!-- Display messages -->
-                    {% if messages %}
-                        {% for message in messages %}
-                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                            </div>
-                        {% endfor %}
-                    {% endif %}
-
-                    <!-- Google Login Button -->
-                    <div class="google-login-container mb-4">
-                        <a href="{% url 'users:google_login' %}" class="google-login-btn">
-                            <svg class="google-icon" viewBox="0 0 24 24">
-                                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                            </svg>
-                            <i class="fas fa-user-plus me-2"></i>
-                            ثبت نام با گوگل
-                        </a>
-                    </div>
-
-                    <!-- Divider -->
-                    <div class="divider mb-4">
-                        <span>یا</span>
-                    </div>
-
-                    <form method="post" novalidate>
-                        {% csrf_token %}
-
-                        <!-- Username Field -->
-                        <div class="mb-3">
-                            <label for="{{ form.username.id_for_label }}" class="form-label">
-                                <i class="fas fa-user"></i> {{ form.username.label }}
-                            </label>
-                            {{ form.username }}
-                            {% if form.username.errors %}
-                                <div class="text-danger mt-1">
-                                    {% for error in form.username.errors %}
-                                        <small>{{ error }}</small><br>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-
-                        <!-- Mobile Field -->
-                        <div class="mb-3">
-                            <label for="{{ form.mobile.id_for_label }}" class="form-label">
-                                <i class="fas fa-mobile-alt"></i> {{ form.mobile.label }}
-                            </label>
-                            {{ form.mobile }}
-                            {% if form.mobile.errors %}
-                                <div class="text-danger mt-1">
-                                    {% for error in form.mobile.errors %}
-                                        <small>{{ error }}</small><br>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-
-                        <!-- Email Field (Optional) -->
-                        <div class="mb-3">
-                            <label for="{{ form.email.id_for_label }}" class="form-label">
-                                <i class="fas fa-envelope"></i> {{ form.email.label }}
-                            </label>
-                            {{ form.email }}
-                            {% if form.email.errors %}
-                                <div class="text-danger mt-1">
-                                    {% for error in form.email.errors %}
-                                        <small>{{ error }}</small><br>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-
-                        <!-- Password Field -->
-                        <div class="mb-3">
-                            <label for="{{ form.password.id_for_label }}" class="form-label">
-                                <i class="fas fa-lock"></i> {{ form.password.label }}
-                            </label>
-                            {{ form.password }}
-                            {% if form.password.errors %}
-                                <div class="text-danger mt-1">
-                                    {% for error in form.password.errors %}
-                                        <small>{{ error }}</small><br>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-
-                        <!-- Registration Button -->
-                        <div class="d-grid gap-2 mb-3">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="fas fa-paper-plane"></i> ثبت‌نام
-                            </button>
-                        </div>
-
-                        <!-- Login Link -->
-                        <div class="text-center">
-                            <p class="text-muted mb-0">قبلاً حساب کاربری دارید؟</p>
-                            <a href="{% url 'users:login' %}" class="btn btn-link">
-                                <i class="fas fa-sign-in-alt"></i> ورود به حساب
-                            </a>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
+<!-- templates/users/signup.html -->
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ثبت نام</title>
+    <style>
+        .password-strength {
+            margin-top: 5px;
+        }
+        .strength-bar {
+            width: 100%;
+            height: 8px;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .strength-fill {
+            height: 100%;
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+        .strength-weak { background-color: #f44336; }
+        .strength-fair { background-color: #ff9800; }
+        .strength-good { background-color: #2196f3; }
+        .strength-strong { background-color: #4caf50; }
+        .suggestions {
+            margin-top: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        .container {
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>ثبت نام</h2>
+ <div class="google-login-container mb-4" style="text-align:center;">
+    <a href="{% url 'users:google_login' %}" class="google-login-btn">
+        <svg class="google-icon" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        </svg>
+        ثبت نام با گوگل
+    </a>
 </div>
 
 <style>
-    .card {
-        border-radius: 15px;
-        border: none;
-    }
-
-    .card-header {
-        border-radius: 15px 15px 0 0 !important;
-    }
-
-    .form-control:focus {
-        border-color: #007bff;
-        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-    }
-
-    .btn-primary {
-        background: linear-gradient(45deg, #007bff, #0056b3);
-        border: none;
-        border-radius: 10px;
-    }
-
-    .btn-primary:hover {
-        background: linear-gradient(45deg, #0056b3, #004085);
-        transform: translateY(-2px);
-        transition: all 0.3s ease;
-    }
-
-    /* Google Login Button Styles */
-    .google-login-container {
-        text-align: center;
-    }
-
-    .google-login-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        background: #fff;
-        border: 2px solid #dadce0;
-        border-radius: 10px;
-        color: #3c4043;
-        font-family: inherit;
-        font-size: 14px;
-        font-weight: 500;
-        height: 48px;
-        padding: 0 24px;
-        text-decoration: none;
-        transition: all 0.3s ease;
-        width: 100%;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
-
-    .google-login-btn:hover {
-        background: #f8f9fa;
-        border-color: #c5c7ca;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        text-decoration: none;
-        color: #3c4043;
-        transform: translateY(-1px);
-    }
-
-    .google-login-btn:active {
-        background: #f1f3f4;
-        border-color: #c5c7ca;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        transform: translateY(0);
-    }
-
-    .google-icon {
-        width: 20px;
-        height: 20px;
-        margin-left: 12px;
-        flex-shrink: 0;
-    }
-
-    .divider {
-        position: relative;
-        text-align: center;
-        color: #6c757d;
-        font-size: 14px;
-        font-weight: 500;
-    }
-
-    .divider::before {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: 0;
-        right: 0;
-        height: 1px;
-        background: #dee2e6;
-    }
-
-    .divider span {
-        background: #fff;
-        padding: 0 16px;
-        position: relative;
-    }
-
-    /* Loading state for Google button */
-    .google-login-btn.loading {
-        opacity: 0.7;
-        cursor: not-allowed;
-        pointer-events: none;
-    }
-
-    .spinning {
-        animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
-
-    /* RTL Support */
-    [dir="rtl"] .google-icon {
-        margin-left: 0;
-        margin-right: 12px;
-    }
+.google-login-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    border: 2px solid #dadce0;
+    border-radius: 10px;
+    color: #3c4043;
+    font-size: 14px;
+    font-weight: 500;
+    height: 48px;
+    padding: 0 24px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    width: 100%;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+.google-login-btn:hover {
+    background: #f8f9fa;
+    border-color: #c5c7ca;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+.google-icon {
+    width: 16px;   /* کوچیک‌تر شد */
+    height: 16px;  /* کوچیک‌تر شد */
+    margin-left: 8px; /* کمی کمتر شد تا تناسب داشته باشه */
+}
 </style>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+        
+        <form method="post" id="signup-form">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="username">نام کاربری:</label>
+                <input type="text" id="username" name="username" class="form-control" 
+                       value="{{ form.username.value|default:'' }}" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="mobile">شماره موبایل:</label>
+                <input type="tel" id="mobile" name="mobile" class="form-control" 
+                       value="{{ form.mobile.value|default:'' }}" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">ایمیل (اختیاری):</label>
+                <input type="email" id="email" name="email" class="form-control" 
+                       value="{{ form.email.value|default:'' }}">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">رمز عبور:</label>
+                <div style="position: relative;">
+                    <input type="password" id="password" name="password" class="form-control" required>
+                    <button type="button" id="generate-password" class="btn btn-secondary" 
+                            style="position: absolute; left: 5px; top: 5px; padding: 5px 10px; font-size: 12px;">
+                        تولید رمز
+                    </button>
+                </div>
+                
+                <div class="password-strength" id="password-strength" style="display: none;">
+                    <div class="strength-bar">
+                        <div class="strength-fill" id="strength-fill"></div>
+                    </div>
+                    <div id="strength-text"></div>
+                    <div class="suggestions" id="strength-suggestions"></div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="confirm_password">تکرار رمز عبور:</label>
+                <input type="password" id="confirm_password" name="confirm_password" class="form-control" required>
+                <div id="password-match" style="font-size: 12px; margin-top: 5px;"></div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" id="submit-btn">ثبت نام</button>
+        </form>
+        
+        <div style="margin-top: 20px; text-align: center;">
+            <a href="{% url 'users:login' %}">قبلاً حساب دارید؟ ورود</a>
+        </div>
+    </div>
 
-<script>
-// Enhanced Google Login functionality
-document.addEventListener('DOMContentLoaded', function() {
-    const googleLoginBtn = document.querySelector('.google-login-btn');
-    if (googleLoginBtn) {
-        googleLoginBtn.addEventListener('click', function(e) {
-            // Show loading state
-            const originalText = this.innerHTML;
-            this.dataset.originalText = originalText;
-            this.classList.add('loading');
+    <script>
+        // Password strength checking
+        const passwordInput = document.getElementById('password');
+        const strengthContainer = document.getElementById('password-strength');
+        const strengthFill = document.getElementById('strength-fill');
+        const strengthText = document.getElementById('strength-text');
+        const strengthSuggestions = document.getElementById('strength-suggestions');
+        const confirmPasswordInput = document.getElementById('confirm_password');
+        const passwordMatch = document.getElementById('password-match');
+        const submitBtn = document.getElementById('submit-btn');
 
-            const loadingHTML = `
-                <svg class="google-icon spinning" viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="10" stroke="#dadce0" stroke-width="2" fill="none" stroke-dasharray="62.8" stroke-dashoffset="62.8">
-                        <animate attributeName="stroke-dashoffset" dur="2s" values="62.8;0;62.8" repeatCount="indefinite"/>
-                    </circle>
-                </svg>
-                <i class="fas fa-spinner fa-spin me-2"></i>
-                در حال اتصال به گوگل...
-            `;
+        function checkPasswordStrength(password) {
+            if (!password) {
+                strengthContainer.style.display = 'none';
+                return;
+            }
 
-            this.innerHTML = loadingHTML;
-            this.style.pointerEvents = 'none';
-
-            // Fallback timeout
-            setTimeout(() => {
-                if (this.classList.contains('loading')) {
-                    this.innerHTML = originalText;
-                    this.classList.remove('loading');
-                    this.style.pointerEvents = 'auto';
+            fetch('{% url "users:check_password_strength" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: 'password=' + encodeURIComponent(password)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const strength = data.strength;
+                    strengthContainer.style.display = 'block';
+                    
+                    // Update progress bar
+                    const percentage = (strength.score / 6) * 100;
+                    strengthFill.style.width = percentage + '%';
+                    
+                    // Update color based on strength
+                    strengthFill.className = 'strength-fill';
+                    if (strength.strength === 'Weak') {
+                        strengthFill.classList.add('strength-weak');
+                    } else if (strength.strength === 'Fair') {
+                        strengthFill.classList.add('strength-fair');
+                    } else if (strength.strength === 'Good') {
+                        strengthFill.classList.add('strength-good');
+                    } else if (strength.strength === 'Strong') {
+                        strengthFill.classList.add('strength-strong');
+                    }
+                    
+                    // Update text
+                    strengthText.textContent = `قدرت رمز عبور: ${strength.strength} (${strength.score}/6)`;
+                    
+                    // Update suggestions
+                    if (strength.suggestions && strength.suggestions.length > 0) {
+                        strengthSuggestions.textContent = 'پیشنهادات: ' + strength.suggestions.join(', ');
+                        strengthSuggestions.style.display = 'block';
+                    } else {
+                        strengthSuggestions.style.display = 'none';
+                    }
+                    
+                    // Enable/disable submit button
+                    submitBtn.disabled = strength.score < 3;
                 }
-            }, 15000);
-        });
-    }
+            })
+            .catch(error => {
+                console.error('Error checking password strength:', error);
+            });
+        }
 
-    // Handle page visibility change (user returns from Google)
-    document.addEventListener('visibilitychange', function() {
-        if (!document.hidden) {
-            const googleLoginBtn = document.querySelector('.google-login-btn');
-            if (googleLoginBtn && googleLoginBtn.classList.contains('loading')) {
-                const originalText = googleLoginBtn.dataset.originalText;
-                if (originalText) {
-                    googleLoginBtn.innerHTML = originalText;
-                    googleLoginBtn.classList.remove('loading');
-                    googleLoginBtn.style.pointerEvents = 'auto';
-                }
+        function checkPasswordMatch() {
+            const password = passwordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+            
+            if (!confirmPassword) {
+                passwordMatch.textContent = '';
+                passwordMatch.style.color = '';
+                return;
+            }
+            
+            if (password === confirmPassword) {
+                passwordMatch.textContent = '✓ رمزهای عبور مطابقت دارند';
+                passwordMatch.style.color = 'green';
+            } else {
+                passwordMatch.textContent = '✗ رمزهای عبور مطابقت ندارند';
+                passwordMatch.style.color = 'red';
             }
         }
-    });
-});
-</script>
-{% endblock %}
+
+        // Generate secure password
+        document.getElementById('generate-password').addEventListener('click', function() {
+            fetch('{% url "users:generate_password" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: 'length=16'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    passwordInput.value = data.password;
+                    confirmPasswordInput.value = data.password;
+                    checkPasswordStrength(data.password);
+                    checkPasswordMatch();
+                }
+            })
+            .catch(error => {
+                console.error('Error generating password:', error);
+            });
+        });
+
+        // Event listeners
+        passwordInput.addEventListener('input', function() {
+            checkPasswordStrength(this.value);
+            checkPasswordMatch();
+        });
+
+        confirmPasswordInput.addEventListener('input', function() {
+            checkPasswordMatch();
+        });
+
+        // Form submission validation
+        document.getElementById('signup-form').addEventListener('submit', function(e) {
+            const password = passwordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+            
+            if (password !== confirmPassword) {
+                e.preventDefault();
+                alert('رمزهای عبور مطابقت ندارند');
+                return;
+            }
+            
+            if (password.length < 8) {
+                e.preventDefault();
+                alert('رمز عبور باید حداقل 8 کاراکتر باشد');
+                return;
+            }
+        });
+    </script>
+</body>
+</html>
+
+<!-- templates/users/change_password.html -->
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تغییر رمز عبور</title>
+    <style>
+        .password-strength {
+            margin-top: 5px;
+        }
+        .strength-bar {
+            width: 100%;
+            height: 8px;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .strength-fill {
+            height: 100%;
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+        .strength-weak { background-color: #f44336; }
+        .strength-fair { background-color: #ff9800; }
+        .strength-good { background-color: #2196f3; }
+        .strength-strong { background-color: #4caf50; }
+        .suggestions {
+            margin-top: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .alert {
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+        }
+        .alert-success {
+            color: #155724;
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .alert-error {
+            color: #721c24;
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        .password-toggle {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .password-field {
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>تغییر رمز عبور</h2>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+        
+        <form method="post" id="change-password-form">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="current_password">رمز عبور فعلی:</label>
+                <div class="password-field">
+                    <input type="password" id="current_password" name="current_password" 
+                           class="form-control" required>
+                    <button type="button" class="password-toggle" onclick="togglePassword('current_password')">
+                        👁️
+                    </button>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="new_password">رمز عبور جدید:</label>
+                <div class="password-field">
+                    <input type="password" id="new_password" name="new_password" 
+                           class="form-control" required>
+                    <button type="button" class="password-toggle" onclick="togglePassword('new_password')">
+                        👁️
+                    </button>
+                    <button type="button" id="generate-password" class="btn btn-secondary" 
+                            style="position: absolute; left: 40px; top: 5px; padding: 5px 10px; font-size: 12px;">
+                        تولید رمز قوی
+                    </button>
+                </div>
+                
+                <div class="password-strength" id="password-strength" style="display: none;">
+                    <div class="strength-bar">
+                        <div class="strength-fill" id="strength-fill"></div>
+                    </div>
+                    <div id="strength-text"></div>
+                    <div class="suggestions" id="strength-suggestions"></div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="confirm_password">تکرار رمز عبور جدید:</label>
+                <div class="password-field">
+                    <input type="password" id="confirm_password" name="confirm_password" 
+                           class="form-control" required>
+                    <button type="button" class="password-toggle" onclick="togglePassword('confirm_password')">
+                        👁️
+                    </button>
+                </div>
+                <div id="password-match" style="font-size: 12px; margin-top: 5px;"></div>
+            </div>
+            
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary" id="submit-btn">تغییر رمز عبور</button>
+                <a href="{% url 'users:dashboard' %}" class="btn btn-secondary">انصراف</a>
+                <a href="{% url 'users:security_settings' %}" class="btn btn-success">تنظیمات امنیتی</a>
+            </div>
+        </form>
+        
+        <!-- Password Security Tips -->
+        <div style="margin-top: 30px; padding: 15px; background-color: #f8f9fa; border-radius: 4px;">
+            <h4>نکات امنیتی:</h4>
+            <ul>
+                <li>از رمز عبور حداقل 12 کاراکتری استفاده کنید</li>
+                <li>ترکیبی از حروف بزرگ، کوچک، اعداد و نمادها استفاده کنید</li>
+                <li>از کلمات قابل حدس زدن مثل نام و تاریخ تولد استفاده نکنید</li>
+                <li>رمز عبور خود را در چندین سایت تکرار نکنید</li>
+                <li>از مدیر رمز عبور معتبر استفاده کنید</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Password visibility toggle
+        function togglePassword(fieldId) {
+            const field = document.getElementById(fieldId);
+            const type = field.getAttribute('type') === 'password' ? 'text' : 'password';
+            field.setAttribute('type', type);
+        }
+
+        // Password strength checking (same as signup page)
+        const newPasswordInput = document.getElementById('new_password');
+        const strengthContainer = document.getElementById('password-strength');
+        const strengthFill = document.getElementById('strength-fill');
+        const strengthText = document.getElementById('strength-text');
+        const strengthSuggestions = document.getElementById('strength-suggestions');
+        const confirmPasswordInput = document.getElementById('confirm_password');
+        const passwordMatch = document.getElementById('password-match');
+        const submitBtn = document.getElementById('submit-btn');
+
+        function checkPasswordStrength(password) {
+            if (!password) {
+                strengthContainer.style.display = 'none';
+                return;
+            }
+
+            fetch('{% url "users:check_password_strength" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: 'password=' + encodeURIComponent(password)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const strength = data.strength;
+                    strengthContainer.style.display = 'block';
+                    
+                    const percentage = (strength.score / 6) * 100;
+                    strengthFill.style.width = percentage + '%';
+                    
+                    strengthFill.className = 'strength-fill';
+                    if (strength.strength === 'Weak') {
+                        strengthFill.classList.add('strength-weak');
+                    } else if (strength.strength === 'Fair') {
+                        strengthFill.classList.add('strength-fair');
+                    } else if (strength.strength === 'Good') {
+                        strengthFill.classList.add('strength-good');
+                    } else if (strength.strength === 'Strong') {
+                        strengthFill.classList.add('strength-strong');
+                    }
+                    
+                    strengthText.textContent = `قدرت رمز عبور: ${strength.strength} (${strength.score}/6)`;
+                    
+                    if (strength.suggestions && strength.suggestions.length > 0) {
+                        strengthSuggestions.textContent = 'پیشنهادات: ' + strength.suggestions.join(', ');
+                        strengthSuggestions.style.display = 'block';
+                    } else {
+                        strengthSuggestions.style.display = 'none';
+                    }
+                    
+                    submitBtn.disabled = strength.score < 3;
+                }
+            });
+        }
+
+        function checkPasswordMatch() {
+            const newPassword = newPasswordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+            
+            if (!confirmPassword) {
+                passwordMatch.textContent = '';
+                return;
+            }
+            
+            if (newPassword === confirmPassword) {
+                passwordMatch.textContent = '✓ رمزهای عبور مطابقت دارند';
+                passwordMatch.style.color = 'green';
+            } else {
+                passwordMatch.textContent = '✗ رمزهای عبور مطابقت ندارند';
+                passwordMatch.style.color = 'red';
+            }
+        }
+
+        // Generate secure password
+        document.getElementById('generate-password').addEventListener('click', function() {
+            fetch('{% url "users:generate_password" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: 'length=16'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    newPasswordInput.value = data.password;
+                    confirmPasswordInput.value = data.password;
+                    checkPasswordStrength(data.password);
+                    checkPasswordMatch();
+                    
+                    // Show the generated password briefly
+                    newPasswordInput.type = 'text';
+                    setTimeout(() => {
+                        newPasswordInput.type = 'password';
+                    }, 3000);
+                }
+            });
+        });
+
+        // Event listeners
+        newPasswordInput.addEventListener('input', function() {
+            checkPasswordStrength(this.value);
+            checkPasswordMatch();
+        });
+
+        confirmPasswordInput.addEventListener('input', function() {
+            checkPasswordMatch();
+        });
+
+        // Form validation
+        document.getElementById('change-password-form').addEventListener('submit', function(e) {
+            const currentPassword = document.getElementById('current_password').value;
+            const newPassword = newPasswordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+            
+            if (!currentPassword) {
+                e.preventDefault();
+                alert('لطفاً رمز عبور فعلی را وارد کنید');
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                e.preventDefault();
+                alert('رمزهای عبور جدید مطابقت ندارند');
+                return;
+            }
+            
+            if (newPassword.length < 8) {
+                e.preventDefault();
+                alert('رمز عبور جدید باید حداقل 8 کاراکتر باشد');
+                return;
+            }
+
+            if (currentPassword === newPassword) {
+                e.preventDefault();
+                alert('رمز عبور جدید نمی‌تواند مانند رمز عبور فعلی باشد');
+                return;
+            }
+        });
+    </script>
+</body>
+</html>
+
+<!-- templates/users/security_settings.html -->
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تنظیمات امنیتی</title>
+    <style>
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .security-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .security-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .security-item:last-child {
+            border-bottom: none;
+        }
+        .security-info {
+            flex: 1;
+        }
+        .security-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .security-desc {
+            font-size: 14px;
+            color: #666;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+        }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-success { background-color: #28a745; color: white; }
+        .btn-warning { background-color: #ffc107; color: black; }
+        .btn-danger { background-color: #dc3545; color: white; }
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status-good { background-color: #d4edda; color: #155724; }
+        .status-warning { background-color: #fff3cd; color: #856404; }
+        .status-danger { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>تنظیمات امنیتی</h1>
+        
+        <!-- Password Security Section -->
+        <div class="security-section">
+            <h3>امنیت رمز عبور</h3>
+            
+            <div class="security-item">
+                <div class="security-info">
+                    <div class="security-title">رمز عبور</div>
+                    <div class="security-desc">
+                        آخرین تغییر: {{ password_info.last_changed|default:"نامشخص" }}
+                        <span class="status-badge status-good">قوی</span>
+                    </div>
+                </div>
+                <a href="{% url 'users:change_password' %}" class="btn btn-primary">تغییر رمز عبور</a>
+            </div>
+            
+            <div class="security-item">
+                <div class="security-info">
+                    <div class="security-title">تاریخچه رمز عبور</div>
+                    <div class="security-desc">مشاهده تاریخچه تغییرات رمز عبور</div>
+                </div>
+                <a href="{% url 'users:password_history' %}" class="btn btn-success">مشاهده تاریخچه</a>
+            </div>
+        </div>
+        
+        <!-- Account Security Section -->
+        <div class="security-section">
+            <h3>امنیت حساب کاربری</h3>
+            
+            <div class="security-item">
+                <div class="security-info">
+                    <div class="security-title">احراز هویت دو مرحله‌ای</div>
+                    <div class="security-desc">
+                        افزایش امنیت حساب با تایید دومرحله‌ای
+                        <span class="status-badge status-warning">غیرفعال</span>
+                    </div>
+                </div>
+                <button class="btn btn-warning">فعال‌سازی</button>
+            </div>
+            
+            <div class="security-item">
+                <div class="security-info">
+                    <div class="security-title">جلسات فعال</div>
+                    <div class="security-desc">مشاهده و مدیریت دستگاه‌های متصل</div>
+                </div>
+                <button class="btn btn-primary">مدیریت جلسات</button>
+            </div>
+            
+            <div class="security-item">
+                <div class="security-info">
+                    <div class="security-title">اعلان‌های امنیتی</div>
+                    <div class="security-desc">دریافت هشدار در صورت فعالیت مشکوک</div>
+                </div>
+                <button class="btn btn-success">تنظیمات اعلان</button>
+            </div>
+        </div>
+        
+        <!-- Privacy Settings Section -->
+        <div class="security-section">
+            <h3>تنظیمات حریم خصوصی</h3>
+            
+            <div class="security-item">
+                <div class="security-info">
+                    <div class="security-title">دانلود داده‌ها</div>
+                    <div class="security-desc">دانلود کپی از اطلاعات حساب شما</div>
+                </div>
+                <button class="btn btn-primary">درخواست دانلود</button>
+            </div>
+            
+            <div class="security-item">
+                <div class="security-info">
+                    <div class="security-title">حذف حساب</div>
+                    <div class="security-desc">حذف دائمی حساب کاربری و تمام داده‌ها</div>
+                </div>
+                <button class="btn btn-danger">حذف حساب</button>
+            </div>
+        </div>
+        
+        <!-- Security Tips Section -->
+        <div class="security-section">
+            <h3>نکات امنیتی</h3>
+            <ul>
+                <li>همیشه از رمز عبور قوی و منحصر به فرد استفاده کنید</li>
+                <li>رمز عبور خود را به‌روزرسانی کنید</li>
+                <li>احراز هویت دو مرحله‌ای را فعال کنید</li>
+                <li>از شبکه‌های Wi-Fi عمومی برای ورود به حساب استفاده نکنید</li>
+                <li>همیشه خروج از حساب را فراموش نکنید</li>
+                <li>فعالیت‌های حساب خود را بررسی کنید</li>
+            </ul>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="{% url 'users:dashboard' %}" class="btn btn-primary">بازگشت به داشبورد</a>
+        </div>
+    </div>
+</body>
+</html>
