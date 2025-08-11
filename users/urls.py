@@ -66,38 +66,23 @@ urlpatterns = [
     path("edit-password/<int:password_id>/", edit_password, name="edit_password"),
     path("delete-password/<int:password_id>/", delete_password, name="delete_password"),
     path("forgot-password/", forgot_password_view, name="forgot_password"),
-    path(
-        "verify-reset-password/",
-        verify_reset_password_view,
-        name="verify_reset_password",
-    ),
+    path("verify-reset-password/",verify_reset_password_view,name="verify_reset_password" ),
     path("reset-password/", reset_password_view, name="reset_password"),
     path("resend-reset-code/", resend_reset_code_view, name="resend_reset_code"),
     # تست SMS (فقط برای توسعه)
     path("send-sms/", send_sms_view, name="send_sms"),
     # ورود و خروج پیش‌فرض Django
-    path(
-        "auth/login/",
-        auth_views.LoginView.as_view(template_name="users/registration/login.html"),
-        name="auth_login",
-    ),
+    path("auth/login/",auth_views.LoginView.as_view(template_name="users/registration/login.html"),name="auth_login" ),
     path("auth/logout/", auth_views.LogoutView.as_view(), name="auth_logout"),
     # Message admin URLs (restricted access)
+
     path("message_admin/", message_admin_dashboard, name="message_admin_dashboard"),
     path("message_admin/send/", send_message_view, name="send_message"),
     path("message_admin/my-messages/", my_messages_view, name="my_messages"),
-    path(
-        "message_admin/message/<int:message_id>/",
-        message_detail_view,
-        name="message_detail",
-    ),
+    path(  "message_admin/message/<int:message_id>/",message_detail_view,name="message_detail"),
     # API endpoints for superuser admins
     path("api/notifications/", admin_notifications_api, name="admin_notifications_api"),
-    path(
-        "api/mark-read/<int:message_id>/",
-        mark_message_read_api,
-        name="mark_message_read_api",
-    ),
+    path("api/mark-read/<int:message_id>/",  mark_message_read_api, name="mark_message_read_api",),
     # FIXED: Google OAuth URLs (removed 'accounts/' prefix to match .env redirect URI)
     path("login/google/", google_login, name="google_login"),
     path("login/google/callback/", google_callback, name="google_callback"),

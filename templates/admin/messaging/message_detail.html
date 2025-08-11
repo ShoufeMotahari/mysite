@@ -7,7 +7,7 @@
 
 {% block branding %}
 <h1 id="site-name">
-    <a href="{% url 'messaging:message_admin_dashboard' %}">پنل پیام‌رسانی ادمین</a>
+    <a href="{% url 'users:message_admin_dashboard' %}">پنل پیام‌رسانی ادمین</a>
 </h1>
 {% endblock %}
 
@@ -23,21 +23,21 @@
 
     <ul class="sidebar-menu" style="list-style: none; padding: 0; margin: 0;">
         <li style="margin-bottom: 10px;">
-            <a href="{% url 'messaging:message_admin_dashboard' %}"
+            <a href="{% url 'users:message_admin_dashboard' %}"
                style="display: block; color: white; text-decoration: none; padding: 12px 15px; border-radius: 5px; background: transparent;">
                 <i class="fas fa-dashboard" style="margin-left: 10px;"></i>
                 داشبورد
             </a>
         </li>
         <li style="margin-bottom: 10px;">
-            <a href="{% url 'messaging:send_message' %}"
+            <a href="{% url 'users:send_message' %}"
                style="display: block; color: white; text-decoration: none; padding: 12px 15px; border-radius: 5px; background: transparent;">
                 <i class="fas fa-paper-plane" style="margin-left: 10px;"></i>
                 ارسال پیام جدید
             </a>
         </li>
         <li style="margin-bottom: 10px;">
-            <a href="{% url 'messaging:my_messages' %}"
+            <a href="{% url 'users:my_messages' %}"
                style="display: block; color: white; text-decoration: none; padding: 12px 15px; border-radius: 5px; background: transparent;">
                 <i class="fas fa-envelope" style="margin-left: 10px;"></i>
                 پیام‌های ارسالی
@@ -58,9 +58,9 @@
 <div class="main-content" style="margin-right: 250px; padding: 20px; direction: rtl;">
     <!-- Breadcrumb -->
     <nav class="breadcrumb" style="margin-bottom: 20px;">
-        <a href="{% url 'messaging:message_admin_dashboard' %}" style="color: #007bff; text-decoration: none;">داشبورد</a>
+        <a href="{% url 'users:message_admin_dashboard' %}" style="color: #007bff; text-decoration: none;">داشبورد</a>
         <span style="margin: 0 10px; color: #6c757d;">></span>
-        <a href="{% url 'messaging:my_messages' %}" style="color: #007bff; text-decoration: none;">پیام‌های ارسالی</a>
+        <a href="{% url 'users:my_messages' %}" style="color: #007bff; text-decoration: none;">پیام‌های ارسالی</a>
         <span style="margin: 0 10px; color: #6c757d;">></span>
         <span style="color: #6c757d;">جزئیات پیام</span>
     </nav>
@@ -239,14 +239,14 @@
 
     <!-- Action Buttons -->
     <div class="action-buttons" style="margin-top: 30px; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
-        <a href="{% url 'messaging:my_messages' %}"
+        <a href="{% url 'users:my_messages' %}"
            class="btn btn-secondary"
            style="display: inline-flex; align-items: center; padding: 12px 25px; background: #6c757d; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; transition: all 0.3s ease;">
             <i class="fas fa-arrow-right" style="margin-left: 8px;"></i>
             بازگشت به لیست پیام‌ها
         </a>
 
-        <a href="{% url 'messaging:send_message' %}"
+        <a href="{% url 'users:send_message' %}"
            class="btn btn-primary"
            style="display: inline-flex; align-items: center; padding: 12px 25px; background: #007bff; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; transition: all 0.3s ease;">
             <i class="fas fa-plus" style="margin-left: 8px;"></i>
