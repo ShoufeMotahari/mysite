@@ -1,4 +1,4 @@
-# users/forms.py - Improved forms configuration
+# users/forms.py - Updated to match auth_views.py logic
 import logging
 import re
 
@@ -9,68 +9,49 @@ from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import ValidationError
 from django_pwned.validators import PwnedPasswordValidator
 
-# Import models
 from users.models import Comment, EmailTemplate, PasswordEntry
 
-# Setup logging
-logger = logging.getLogger(__name__)
+# Custom password utils from users.utils
+from users.utils.password_utils import get_password_strength, make_password
 
-# Get the User model properly
+logger = logging.getLogger(__name__)
 User = get_user_model()
 
-
+# ------------------------------
 # User Registration and Authentication Forms
+# ------------------------------
+
 class CustomUserCreationForm(UserCreationForm):
-    """Enhanced user creation form with email validation and pwned password checking"""
+    """Enhanced user creation form with email validation, pwned check, and password strength"""
 
     email = forms.EmailField(
         required=True,
-        widget=forms.EmailInput(
-            attrs={"class": "form-control", "placeholder": "Email Address"}
-        ),
+        widget=forms.EmailInput(attrs={"class": "form-control", "placeholder": "Email Address"}),
     )
 
     class Meta:
         model = User
         fields = ("username", "email", "password1", "password2")
         widgets = {
-            "username": forms.TextInput(
-                attrs={"class": "form-control", "placeholder": "Username"}
-            ),
+            "username": forms.TextInput(attrs={"class": "form-control", "placeholder": "Username"}),
         }
 
     def clean_username(self):
         username = self.cleaned_data.get("username")
-        logger.debug(f"Validating username: {username}")
-
         if not username:
             raise ValidationError("Username is required.")
-
         if User.objects.filter(username=username).exists():
-            logger.warning(f"Username already exists: {username}")
             raise ValidationError("Username already exists.")
-
-        # Add username pattern validation
         if not re.match(r"^[a-zA-Z0-9_]+$", username):
-            raise ValidationError(
-                "Username can only contain letters, numbers, and underscores."
-            )
-
-        logger.debug(f"Username validation passed: {username}")
+            raise ValidationError("Username can only contain letters, numbers, and underscores.")
         return username
 
     def clean_email(self):
         email = self.cleaned_data.get("email")
-        logger.debug(f"Validating email: {email}")
-
         if not email:
             raise ValidationError("Email is required.")
-
         if User.objects.filter(email=email).exists():
-            logger.warning(f"Email already exists: {email}")
             raise ValidationError("Email already exists.")
-
-        logger.debug(f"Email validation passed: {email}")
         return email
 
     def clean_password1(self):
@@ -78,78 +59,53 @@ class CustomUserCreationForm(UserCreationForm):
         username = self.cleaned_data.get("username")
 
         if password1:
-            logger.debug(f"Validating password for user: {username}")
+            # Pwned check
             validator = PwnedPasswordValidator()
             try:
                 validator.validate(password1)
-                logger.info(f"Password validation passed for user: {username}")
             except ValidationError:
-                logger.warning(f"Pwned password attempted for user: {username}")
+                raise ValidationError("رمز عبور شما در نشت اطلاعاتی یافت شده است. رمز دیگری انتخاب کنید.")
+
+            # Strength check
+            strength = get_password_strength(password1)
+            if strength["score"] < 3:
                 raise ValidationError(
-                    "رمز عبور شما در نشت اطلاعاتی یافت شده است. رمز دیگری انتخاب کنید."
+                    f"Password is too weak ({strength['strength']}). "
+                    f"Suggestions: {', '.join(strength['suggestions'])}"
                 )
-            except Exception as e:
-                logger.error(f"Password validation error for user {username}: {str(e)}")
-                # Continue with registration even if pwned check fails
 
         return password1
 
     def save(self, commit=True):
-        logger.debug(f"Saving user: {self.cleaned_data.get('username')}")
         user = super().save(commit=False)
         user.email = self.cleaned_data["email"]
-
+        # Use custom password hashing
+        user.password = make_password(self.cleaned_data["password1"])
         if commit:
             user.save()
-            logger.info(
-                f"User created successfully: {user.username}, Email: {user.email}"
-            )
-
         return user
 
 
 class SignupForm(forms.Form):
-    """Simple signup form with username, mobile, and password"""
+    """Signup form with username, mobile, password strength check, and custom hashing"""
 
     username = forms.CharField(
         max_length=150,
-        widget=forms.TextInput(
-            attrs={
-                "class": "form-control",
-                "placeholder": "نام کاربری",
-                "required": True,
-            }
-        ),
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "نام کاربری", "required": True}),
         label="نام کاربری",
     )
-
     mobile = forms.CharField(
         max_length=11,
-        widget=forms.TextInput(
-            attrs={
-                "class": "form-control",
-                "placeholder": "09123456789",
-                "required": True,
-            }
-        ),
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "09123456789", "required": True}),
         label="شماره موبایل",
     )
-
     email = forms.EmailField(
         required=False,
-        widget=forms.EmailInput(
-            attrs={
-                "class": "form-control",
-                "placeholder": "example@domain.com (اختیاری)",
-            }
-        ),
+        widget=forms.EmailInput(attrs={"class": "form-control", "placeholder": "example@domain.com (اختیاری)"}),
         label="ایمیل (اختیاری)",
     )
-
     password = forms.CharField(
-        widget=forms.PasswordInput(
-            attrs={"class": "form-control", "placeholder": "رمز عبور", "required": True}
-        ),
+        widget=forms.PasswordInput(attrs={"class": "form-control", "placeholder": "رمز عبور", "required": True}),
         label="رمز عبور",
     )
 
@@ -157,86 +113,70 @@ class SignupForm(forms.Form):
         username = self.cleaned_data.get("username")
         if not username:
             raise ValidationError("نام کاربری الزامی است.")
-
         if not re.match(r"^[a-zA-Z0-9_]+$", username):
-            raise ValidationError(
-                "نام کاربری فقط می‌تواند شامل حروف، اعداد و خط تیره باشد."
-            )
-
+            raise ValidationError("نام کاربری فقط می‌تواند شامل حروف، اعداد و خط تیره باشد.")
         if User.objects.filter(username=username).exists():
             raise ValidationError("این نام کاربری قبلاً گرفته شده است.")
-
         return username
 
     def clean_mobile(self):
         mobile = self.cleaned_data.get("mobile")
         if not mobile:
             raise ValidationError("شماره موبایل الزامی است.")
-
-        # Remove any non-digit characters
         mobile = re.sub(r"\D", "", mobile)
-
         if not mobile.startswith("09") or len(mobile) != 11:
             raise ValidationError("شماره موبایل باید 11 رقم باشد و با 09 شروع شود.")
-
         if User.objects.filter(mobile=mobile).exists():
             existing_user = User.objects.get(mobile=mobile)
             if existing_user.is_active and existing_user.is_phone_verified:
                 raise ValidationError("این شماره موبایل قبلاً ثبت شده و فعال است.")
-
         return mobile
 
     def clean_email(self):
         email = self.cleaned_data.get("email")
-        if email:
-            if User.objects.filter(email=email).exists():
-                raise ValidationError("این ایمیل قبلاً ثبت شده است.")
+        if email and User.objects.filter(email=email).exists():
+            raise ValidationError("این ایمیل قبلاً ثبت شده است.")
         return email
 
     def clean_password(self):
         password = self.cleaned_data.get("password")
         if not password:
             raise ValidationError("رمز عبور الزامی است.")
-
         if len(password) < 8:
             raise ValidationError("رمز عبور باید حداقل 8 کاراکتر باشد.")
+
+        # Strength check
+        strength = get_password_strength(password)
+        if strength["score"] < 3:
+            raise ValidationError(
+                f"Password is too weak ({strength['strength']}). "
+                f"Suggestions: {', '.join(strength['suggestions'])}"
+            )
 
         return password
 
 
 class LoginForm(forms.Form):
-    """Login form accepting mobile or email"""
-
     identifier = forms.CharField(
         max_length=100,
-        widget=forms.TextInput(
-            attrs={"class": "form-control", "placeholder": "شماره موبایل یا ایمیل"}
-        ),
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "شماره موبایل یا ایمیل"}),
         label="شماره موبایل یا ایمیل",
     )
     password = forms.CharField(
-        widget=forms.PasswordInput(
-            attrs={"class": "form-control", "placeholder": "رمز عبور"}
-        ),
+        widget=forms.PasswordInput(attrs={"class": "form-control", "placeholder": "رمز عبور"}),
         label="رمز عبور",
     )
 
 
 class ForgotPasswordForm(forms.Form):
-    """Password reset form"""
-
     identifier = forms.CharField(
         max_length=100,
-        widget=forms.TextInput(
-            attrs={"class": "form-control", "placeholder": "شماره موبایل یا ایمیل"}
-        ),
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "شماره موبایل یا ایمیل"}),
         label="شماره موبایل یا ایمیل",
     )
 
 
 class VerificationForm(forms.Form):
-    """Form for entering SMS verification code"""
-
     code = forms.CharField(
         max_length=6,
         min_length=6,

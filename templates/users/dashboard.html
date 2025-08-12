@@ -1,9 +1,301 @@
-{% extends 'base.html' %}
-
-{% block title %}داشبورد{% endblock %}
-
-{% block content %}
-  <h2>داشبورد کاربر</h2>
-  <p>سلام {{ user.username }}!</p>
-{#  <a href="{% url 'change-second-password' %}">تغییر رمز دوم</a>#}
-{% endblock %}
+<!-- users/templates/users/dashboard.html -->
+<!DOCTYPE html>
+<html dir="rtl" lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>داشبورد کاربری</title>
+    <style>
+        body {
+            font-family: 'Tahoma', 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            direction: rtl;
+        }
+        
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .dashboard-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .user-info {
+            margin-bottom: 20px;
+        }
+        
+        .user-info h1 {
+            margin: 0 0 10px 0;
+            font-size: 28px;
+        }
+        
+        .user-info p {
+            margin: 5px 0;
+            opacity: 0.9;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background-color: #2196F3;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #1976D2;
+            transform: translateY(-2px);
+        }
+        
+        .btn-warning {
+            background-color: #FF9800;
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background-color: #F57C00;
+            transform: translateY(-2px);
+        }
+        
+        .dashboard-content {
+            padding: 30px;
+        }
+        
+        .messages {
+            margin-bottom: 20px;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+        
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .password-entries {
+            margin-top: 30px;
+        }
+        
+        .password-entries h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        
+        .entries-list {
+            background: #f9f9f9;
+            border-radius: 6px;
+            padding: 20px;
+            min-height: 200px;
+        }
+        
+        .entry-item {
+            background: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-right: 4px solid #667eea;
+        }
+        
+        .entry-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .entry-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .entry-date {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            gap: 10px;
+        }
+        
+        .pagination a, .pagination span {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+        
+        .pagination .current {
+            background-color: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .pagination a:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .no-entries {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 40px 0;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .dashboard-header {
+                padding: 20px;
+            }
+            
+            .user-info h1 {
+                font-size: 24px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 200px;
+                justify-content: center;
+            }
+            
+            .dashboard-content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <div class="user-info">
+                <h1>خوش آمدید {{ user.get_full_name|default:user.username }}</h1>
+                <p>آخرین ورود: {{ user.last_login|date:"Y/m/d H:i" }}</p>
+                <p>تاریخ عضویت: {{ user.date_joined|date:"Y/m/d" }}</p>
+            </div>
+            
+            <div class="action-buttons">
+                <a href="{% url 'users:change_password' %}" class="btn btn-warning">
+                    🔐 تغییر رمز عبور
+                </a>
+                <a href="#" class="btn btn-primary">
+                    ➕ افزودن رمز عبور جدید
+                </a>
+                <a href="#" class="btn btn-secondary">
+                    ⚙️ تنظیمات حساب
+                </a>
+            </div>
+        </div>
+        
+        <div class="dashboard-content">
+            {% if messages %}
+                <div class="messages">
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+            <div class="password-entries">
+                <h2>رمزهای عبور ذخیره شده</h2>
+                
+                <div class="entries-list">
+                    {% if page_obj %}
+                        {% for entry in page_obj %}
+                            <div class="entry-item">
+                                <div class="entry-title">{{ entry.title|default:"بدون عنوان" }}</div>
+                                <div class="entry-date">ایجاد شده در: {{ entry.created_at|date:"Y/m/d H:i" }}</div>
+                            </div>
+                        {% empty %}
+                            <div class="no-entries">
+                                هنوز هیچ رمز عبوری ذخیره نکرده‌اید.
+                            </div>
+                        {% endfor %}
+                        
+                        {% if page_obj.has_other_pages %}
+                            <div class="pagination">
+                                {% if page_obj.has_previous %}
+                                    <a href="?page=1">اول</a>
+                                    <a href="?page={{ page_obj.previous_page_number }}">قبلی</a>
+                                {% endif %}
+                                
+                                <span class="current">
+                                    صفحه {{ page_obj.number }} از {{ page_obj.paginator.num_pages }}
+                                </span>
+                                
+                                {% if page_obj.has_next %}
+                                    <a href="?page={{ page_obj.next_page_number }}">بعدی</a>
+                                    <a href="?page={{ page_obj.paginator.num_pages }}">آخر</a>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="no-entries">
+                            خطا در بارگذاری اطلاعات.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
