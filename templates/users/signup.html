@@ -61,6 +61,22 @@
             border: 1px solid #ddd;
             border-radius: 8px;
         }
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        .spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -102,9 +118,9 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 .google-icon {
-    width: 16px;   /* کوچیک‌تر شد */
-    height: 16px;  /* کوچیک‌تر شد */
-    margin-left: 8px; /* کمی کمتر شد تا تناسب داشته باشه */
+    width: 16px;
+    height: 16px;
+    margin-left: 8px;
 }
 </style>
         
@@ -160,7 +176,10 @@
                 <div id="password-match" style="font-size: 12px; margin-top: 5px;"></div>
             </div>
             
-            <button type="submit" class="btn btn-primary" id="submit-btn">ثبت نام</button>
+            <button type="submit" class="btn btn-primary" id="submit-btn">
+                <span id="submit-text">ثبت نام</span>
+                <span id="submit-spinner" class="spinner" style="display: none; margin-right: 8px;"></span>
+            </button>
         </form>
         
         <div style="margin-top: 20px; text-align: center;">
@@ -178,6 +197,8 @@
         const confirmPasswordInput = document.getElementById('confirm_password');
         const passwordMatch = document.getElementById('password-match');
         const submitBtn = document.getElementById('submit-btn');
+        const submitText = document.getElementById('submit-text');
+        const submitSpinner = document.getElementById('submit-spinner');
 
         function checkPasswordStrength(password) {
             if (!password) {
@@ -288,24 +309,81 @@
             checkPasswordMatch();
         });
 
-        // Form submission validation
+        // Enhanced form submission with AJAX and redirect handling
         document.getElementById('signup-form').addEventListener('submit', function(e) {
+            e.preventDefault(); // Always prevent default to handle with AJAX
+            
             const password = passwordInput.value;
             const confirmPassword = confirmPasswordInput.value;
             
+            // Client-side validation
             if (password !== confirmPassword) {
-                e.preventDefault();
                 alert('رمزهای عبور مطابقت ندارند');
                 return;
             }
             
             if (password.length < 8) {
-                e.preventDefault();
                 alert('رمز عبور باید حداقل 8 کاراکتر باشد');
                 return;
             }
+
+            // Show loading state
+            submitBtn.classList.add('loading');
+            submitText.textContent = 'در حال ثبت نام...';
+            submitSpinner.style.display = 'inline-block';
+            submitBtn.disabled = true;
+
+            // Prepare form data
+            const formData = new FormData(this);
+
+            // Submit with AJAX
+            fetch(window.location.href, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => {
+                if (response.redirected) {
+                    // If server sends redirect, follow it
+                    window.location.href = response.url;
+                    return;
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data && data.success) {
+                    // Success - redirect to verification
+                    if (data.redirect_url) {
+                        window.location.href = data.redirect_url;
+                    } else {
+                        // Fallback redirect
+                        window.location.href = '{% url "users:verify" %}';
+                    }
+                } else if (data && data.errors) {
+                    // Handle errors
+                    let errorMessage = 'خطا در ثبت نام:\n';
+                    for (const [field, errors] of Object.entries(data.errors)) {
+                        errorMessage += `${field}: ${errors.join(', ')}\n`;
+                    }
+                    alert(errorMessage);
+                } else {
+                    alert('خطا در ثبت نام. لطفا دوباره تلاش کنید.');
+                }
+            })
+            .catch(error => {
+                console.error('Error during signup:', error);
+                alert('خطا در ارتباط با سرور. لطفا دوباره تلاش کنید.');
+            })
+            .finally(() => {
+                // Reset loading state
+                submitBtn.classList.remove('loading');
+                submitText.textContent = 'ثبت نام';
+                submitSpinner.style.display = 'none';
+                submitBtn.disabled = false;
+            });
         });
     </script>
 </body>
 </html>
-
