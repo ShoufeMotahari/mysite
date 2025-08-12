@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.utils.html import format_html
 
 from .models import Document, ImageGallery, ImageUpload
 
@@ -13,7 +14,7 @@ class ImageUploadAdmin(admin.ModelAdmin):
         "processing_status",
         "get_original_size_display",
         "get_compression_display",
-        "processed_url",
+        "processed_url_link",
     ]
     list_filter = [
         "created_at",
@@ -92,6 +93,12 @@ class ImageUploadAdmin(admin.ModelAdmin):
 
     actions = ["reprocess_images", "activate_images", "deactivate_images"]
 
+    def processed_url_link(self, obj):
+        if obj.processed_url:
+            return format_html('<a href="{}" target="_blank">{}</a>', obj.processed_url, "View Processed Image")
+        return "-"
+
+    processed_url_link.short_description = "لینک"
     def reprocess_images(self, request, queryset):
         """Reprocess selected images"""
         count = 0
