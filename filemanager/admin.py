@@ -13,6 +13,7 @@ class ImageUploadAdmin(admin.ModelAdmin):
         "processing_status",
         "get_original_size_display",
         "get_compression_display",
+        "processed_url",
     ]
     list_filter = [
         "created_at",
