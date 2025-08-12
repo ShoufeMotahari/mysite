@@ -170,7 +170,7 @@ def signup_view(request):
         form = SignupForm()
         logger.info("Signup page accessed via GET")
 
-    return render(request, "users/dashboard", {"form": form})
+    return render(request, "users/dashboard.html", {"form": form})
 
 
 def login_view(request):
