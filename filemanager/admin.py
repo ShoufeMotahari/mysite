@@ -95,7 +95,7 @@ class ImageUploadAdmin(admin.ModelAdmin):
 
     def processed_url_link(self, obj):
         if obj.processed_url:
-            return format_html('<a href="{}" target="_blank">{}</a>', obj.processed_url, "View Processed Image")
+            return format_html('<a href="{}" target="_blank">{}</a>', obj.processed_url, "لینک")
         return "-"
 
     processed_url_link.short_description = "لینک"
