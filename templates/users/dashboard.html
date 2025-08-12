@@ -63,6 +63,7 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
+            font-size: 14px;
         }
         
         .btn-primary {
@@ -94,6 +95,16 @@
             background-color: #F57C00;
             transform: translateY(-2px);
         }
+
+        .btn-info {
+            background-color: #17a2b8;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background-color: #138496;
+            transform: translateY(-2px);
+        }
         
         .dashboard-content {
             padding: 30px;
@@ -107,6 +118,12 @@
             padding: 15px;
             border-radius: 6px;
             margin-bottom: 10px;
+            animation: slideIn 0.3s ease-in-out;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         
         .alert-success {
@@ -120,7 +137,176 @@
             color: #721c24;
             border: 1px solid #f5c6cb;
         }
-        
+
+        .alert-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        /* Comments Section Styles */
+        .comments-section {
+            margin-top: 30px;
+            border-top: 2px solid #eee;
+            padding-top: 30px;
+        }
+
+        .comments-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .comment-form {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border: 1px solid #dee2e6;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #495057;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea.form-control {
+            min-height: 100px;
+            max-height: 200px;
+        }
+
+        .char-counter {
+            text-align: left;
+            color: #6c757d;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .char-counter.warning {
+            color: #fd7e14;
+        }
+
+        .char-counter.danger {
+            color: #dc3545;
+        }
+
+        /* Comments List */
+        .comments-list {
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+
+        .comment-item {
+            padding: 20px;
+            border-bottom: 1px solid #f1f3f4;
+            transition: background-color 0.2s ease;
+        }
+
+        .comment-item:last-child {
+            border-bottom: none;
+        }
+
+        .comment-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .comment-subject {
+            font-weight: bold;
+            color: #495057;
+            font-size: 16px;
+        }
+
+        .comment-date {
+            color: #6c757d;
+            font-size: 13px;
+        }
+
+        .comment-content {
+            color: #495057;
+            line-height: 1.6;
+            margin-bottom: 10px;
+            white-space: pre-wrap;
+        }
+
+        .comment-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid;
+        }
+
+        .btn-outline-secondary {
+            color: #6c757d;
+            border-color: #6c757d;
+        }
+
+        .btn-outline-secondary:hover {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .no-comments {
+            text-align: center;
+            color: #6c757d;
+            padding: 40px 20px;
+            font-style: italic;
+        }
+
+        /* Password Entries Section */
         .password-entries {
             margin-top: 30px;
         }
@@ -192,6 +378,66 @@
             font-style: italic;
             padding: 40px 0;
         }
+
+        /* Loading States */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Tabs */
+        .dashboard-tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 5px;
+            margin-bottom: 30px;
+            border: 1px solid #dee2e6;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            color: #6c757d;
+        }
+
+        .tab-button.active {
+            background: white;
+            color: #495057;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .tab-button:hover {
+            color: #495057;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
         
         @media (max-width: 768px) {
             body {
@@ -219,6 +465,24 @@
             .dashboard-content {
                 padding: 20px;
             }
+
+            .comment-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
+
+            .comment-actions {
+                justify-content: flex-start;
+            }
+
+            .dashboard-tabs {
+                flex-direction: column;
+            }
+
+            .tab-button {
+                text-align: center;
+            }
         }
     </style>
 </head>
@@ -241,6 +505,9 @@
                 <a href="#" class="btn btn-secondary">
                     ⚙️ تنظیمات حساب
                 </a>
+                <button onclick="showCommentForm()" class="btn btn-info">
+                    💬 نظر جدید
+                </button>
             </div>
         </div>
         
@@ -254,48 +521,351 @@
                     {% endfor %}
                 </div>
             {% endif %}
-            
-            <div class="password-entries">
-                <h2>رمزهای عبور ذخیره شده</h2>
-                
-                <div class="entries-list">
-                    {% if page_obj %}
-                        {% for entry in page_obj %}
-                            <div class="entry-item">
-                                <div class="entry-title">{{ entry.title|default:"بدون عنوان" }}</div>
-                                <div class="entry-date">ایجاد شده در: {{ entry.created_at|date:"Y/m/d H:i" }}</div>
-                            </div>
-                        {% empty %}
+
+            <!-- Dashboard Tabs -->
+            <div class="dashboard-tabs">
+                <button class="tab-button active" onclick="showTab('passwords')">
+                    🔑 رمزهای عبور
+                </button>
+                <button class="tab-button" onclick="showTab('comments')">
+                    💬 نظرات من
+                </button>
+            </div>
+
+            <!-- Password Entries Tab -->
+            <div id="passwords-tab" class="tab-content active">
+                <div class="password-entries">
+                    <h2>رمزهای عبور ذخیره شده</h2>
+                    
+                    <div class="entries-list">
+                        {% if page_obj %}
+                            {% for entry in page_obj %}
+                                <div class="entry-item">
+                                    <div class="entry-title">{{ entry.title|default:"بدون عنوان" }}</div>
+                                    <div class="entry-date">ایجاد شده در: {{ entry.created_at|date:"Y/m/d H:i" }}</div>
+                                </div>
+                            {% empty %}
+                                <div class="no-entries">
+                                    هنوز هیچ رمز عبوری ذخیره نکرده‌اید.
+                                </div>
+                            {% endfor %}
+                            
+                            {% if page_obj.has_other_pages %}
+                                <div class="pagination">
+                                    {% if page_obj.has_previous %}
+                                        <a href="?page=1">اول</a>
+                                        <a href="?page={{ page_obj.previous_page_number }}">قبلی</a>
+                                    {% endif %}
+                                    
+                                    <span class="current">
+                                        صفحه {{ page_obj.number }} از {{ page_obj.paginator.num_pages }}
+                                    </span>
+                                    
+                                    {% if page_obj.has_next %}
+                                        <a href="?page={{ page_obj.next_page_number }}">بعدی</a>
+                                        <a href="?page={{ page_obj.paginator.num_pages }}">آخر</a>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        {% else %}
                             <div class="no-entries">
-                                هنوز هیچ رمز عبوری ذخیره نکرده‌اید.
-                            </div>
-                        {% endfor %}
-                        
-                        {% if page_obj.has_other_pages %}
-                            <div class="pagination">
-                                {% if page_obj.has_previous %}
-                                    <a href="?page=1">اول</a>
-                                    <a href="?page={{ page_obj.previous_page_number }}">قبلی</a>
-                                {% endif %}
-                                
-                                <span class="current">
-                                    صفحه {{ page_obj.number }} از {{ page_obj.paginator.num_pages }}
-                                </span>
-                                
-                                {% if page_obj.has_next %}
-                                    <a href="?page={{ page_obj.next_page_number }}">بعدی</a>
-                                    <a href="?page={{ page_obj.paginator.num_pages }}">آخر</a>
-                                {% endif %}
+                                خطا در بارگذاری اطلاعات.
                             </div>
                         {% endif %}
-                    {% else %}
-                        <div class="no-entries">
-                            خطا در بارگذاری اطلاعات.
-                        </div>
-                    {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comments Tab -->
+            <div id="comments-tab" class="tab-content">
+                <div class="comments-section">
+                    <h2>
+                        💬 نظرات من
+                        <span style="font-size: 14px; color: #6c757d; font-weight: normal;">
+                            ({{ user_comments|length|default:0 }} نظر)
+                        </span>
+                    </h2>
+
+                    <!-- Comment Form -->
+                    <div class="comment-form" id="comment-form" style="display: none;">
+                        <h3 style="margin-top: 0; color: #495057;">💭 نظر جدید</h3>
+                        <form id="new-comment-form" method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="add_comment">
+                            
+                            <div class="form-group">
+                                <label for="comment-subject">موضوع نظر:</label>
+                                <input type="text" id="comment-subject" name="subject" class="form-control" 
+                                       placeholder="موضوع نظر خود را بنویسید..." required maxlength="200">
+                                <div class="char-counter" id="subject-counter">0 / 200</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="comment-content">متن نظر:</label>
+                                <textarea id="comment-content" name="content" class="form-control" 
+                                          placeholder="نظر خود را اینجا بنویسید..." required maxlength="1000"></textarea>
+                                <div class="char-counter" id="content-counter">0 / 1000</div>
+                            </div>
+
+                            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                                <button type="button" onclick="hideCommentForm()" class="btn btn-outline-secondary">
+                                    انصراف
+                                </button>
+                                <button type="submit" class="btn btn-primary" id="submit-comment">
+                                    <span id="submit-text">ارسال نظر</span>
+                                    <span id="submit-spinner" class="spinner" style="display: none;"></span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Comments List -->
+                    <div class="comments-list" id="comments-list">
+                        {% if user_comments %}
+                            {% for comment in user_comments %}
+                                <div class="comment-item" id="comment-{{ comment.id }}">
+                                    <div class="comment-header">
+                                        <div class="comment-subject">{{ comment.subject }}</div>
+                                        <div class="comment-date">{{ comment.created_at|date:"Y/m/d H:i" }}</div>
+                                    </div>
+                                    <div class="comment-content">{{ comment.content|linebreaks }}</div>
+                                    <div class="comment-actions">
+                                        <button onclick="editComment({{ comment.id }})" class="btn btn-outline-secondary btn-sm">
+                                            ✏️ ویرایش
+                                        </button>
+                                        <button onclick="deleteComment({{ comment.id }})" class="btn btn-danger btn-sm">
+                                            🗑️ حذف
+                                        </button>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="no-comments" id="no-comments">
+                                <p>هنوز هیچ نظری ثبت نکرده‌اید.</p>
+                                <button onclick="showCommentForm()" class="btn btn-primary">
+                                    💬 اولین نظر خود را ثبت کنید
+                                </button>
+                            </div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <script>
+        // Tab functionality
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // Comment form functionality
+        function showCommentForm() {
+            document.getElementById('comment-form').style.display = 'block';
+            document.getElementById('comment-subject').focus();
+            
+            // Switch to comments tab if not already active
+            showTab('comments');
+            document.querySelector('[onclick="showTab(\'comments\')"]').classList.add('active');
+        }
+
+        function hideCommentForm() {
+            document.getElementById('comment-form').style.display = 'none';
+            document.getElementById('new-comment-form').reset();
+            updateCharCounters();
+        }
+
+        // Character counters
+        function updateCharCounters() {
+            const subjectInput = document.getElementById('comment-subject');
+            const contentInput = document.getElementById('comment-content');
+            const subjectCounter = document.getElementById('subject-counter');
+            const contentCounter = document.getElementById('content-counter');
+
+            if (subjectInput && subjectCounter) {
+                const subjectLength = subjectInput.value.length;
+                subjectCounter.textContent = `${subjectLength} / 200`;
+                subjectCounter.className = 'char-counter';
+                if (subjectLength > 180) subjectCounter.classList.add('warning');
+                if (subjectLength > 195) subjectCounter.classList.add('danger');
+            }
+
+            if (contentInput && contentCounter) {
+                const contentLength = contentInput.value.length;
+                contentCounter.textContent = `${contentLength} / 1000`;
+                contentCounter.className = 'char-counter';
+                if (contentLength > 900) contentCounter.classList.add('warning');
+                if (contentLength > 950) contentCounter.classList.add('danger');
+            }
+        }
+
+        // Event listeners for character counting
+        document.addEventListener('DOMContentLoaded', function() {
+            const subjectInput = document.getElementById('comment-subject');
+            const contentInput = document.getElementById('comment-content');
+
+            if (subjectInput) {
+                subjectInput.addEventListener('input', updateCharCounters);
+            }
+            if (contentInput) {
+                contentInput.addEventListener('input', updateCharCounters);
+            }
+
+            updateCharCounters();
+        });
+
+        // Form submission
+        document.getElementById('new-comment-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const submitBtn = document.getElementById('submit-comment');
+            const submitText = document.getElementById('submit-text');
+            const submitSpinner = document.getElementById('submit-spinner');
+
+            // Show loading state
+            submitBtn.classList.add('loading');
+            submitText.textContent = 'در حال ارسال...';
+            submitSpinner.style.display = 'inline-block';
+            submitBtn.disabled = true;
+
+            const formData = new FormData(this);
+
+            fetch(window.location.href, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    showMessage('نظر شما با موفقیت ثبت شد!', 'success');
+                    
+                    // Add new comment to list
+                    addCommentToList(data.comment);
+                    
+                    // Hide form and reset
+                    hideCommentForm();
+                    
+                    // Hide "no comments" message if it exists
+                    const noComments = document.getElementById('no-comments');
+                    if (noComments) {
+                        noComments.style.display = 'none';
+                    }
+                } else {
+                    showMessage(data.error || 'خطا در ثبت نظر', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('خطا در ارتباط با سرور', 'error');
+            })
+            .finally(() => {
+                // Reset loading state
+                submitBtn.classList.remove('loading');
+                submitText.textContent = 'ارسال نظر';
+                submitSpinner.style.display = 'none';
+                submitBtn.disabled = false;
+            });
+        });
+
+        function addCommentToList(comment) {
+            const commentsList = document.getElementById('comments-list');
+            const commentHTML = `
+                <div class="comment-item" id="comment-${comment.id}">
+                    <div class="comment-header">
+                        <div class="comment-subject">${comment.subject}</div>
+                        <div class="comment-date">${comment.created_at}</div>
+                    </div>
+                    <div class="comment-content">${comment.content.replace(/\n/g, '<br>')}</div>
+                    <div class="comment-actions">
+                        <button onclick="editComment(${comment.id})" class="btn btn-outline-secondary btn-sm">
+                            ✏️ ویرایش
+                        </button>
+                        <button onclick="deleteComment(${comment.id})" class="btn btn-danger btn-sm">
+                            🗑️ حذف
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            commentsList.insertAdjacentHTML('afterbegin', commentHTML);
+        }
+
+        function deleteComment(commentId) {
+            if (!confirm('آیا از حذف این نظر اطمینان دارید؟')) {
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('action', 'delete_comment');
+            formData.append('comment_id', commentId);
+            formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+            fetch(window.location.href, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById(`comment-${commentId}`).remove();
+                    showMessage('نظر حذف شد', 'success');
+                    
+                    // Check if there are no more comments
+                    if (document.querySelectorAll('.comment-item').length === 0) {
+                        document.getElementById('no-comments').style.display = 'block';
+                    }
+                } else {
+                    showMessage(data.error || 'خطا در حذف نظر', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('خطا در ارتباط با سرور', 'error');
+            });
+        }
+
+        function editComment(commentId) {
+            // This would open an edit form - simplified for now
+            alert('ویرایش نظر - این قابلیت به زودی اضافه خواهد شد');
+        }
+
+        function showMessage(message, type) {
+            const messagesDiv = document.querySelector('.messages') || createMessagesDiv();
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            
+            messagesDiv.appendChild(alertDiv);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        function createMessagesDiv() {
+            const messagesDiv = document.createElement('div');
+            messagesDiv.className = 'messages';
+            document.querySelector('.dashboard-content').insertBefore(
+                messagesDiv, 
+                document.querySelector('.dashboard-tabs')
+            );
+            return messagesDiv;
+        }
+    </script>
 </body>
 </html>

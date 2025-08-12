@@ -329,3 +329,270 @@ class EmailUtils:
 def get_email_service(service_type="django"):
     """Convenience function to get email service instance"""
     return EmailServiceFactory.create_email_service(service_type)
+
+
+# users/services/email_service.py
+import logging
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional
+
+from django.conf import settings
+from django.core.mail import EmailMultiAlternatives, mail_admins
+from django.template.loader import render_to_string
+from django.urls import reverse
+from django.utils import timezone
+
+from users.models import UserComment, PasswordEntry
+
+logger = logging.getLogger('users')
+
+
+class CommentEmailService:
+    """Service for sending comment-related email notifications"""
+
+    @staticmethod
+    def send_comment_notification(comment: UserComment, user_ip: str = None) -> bool:
+        """
+        Send email notification to admins when a new comment is posted
+
+        Args:
+            comment: The UserComment instance
+            user_ip: User's IP address (optional)
+
+        Returns:
+            bool: True if email sent successfully, False otherwise
+        """
+        try:
+            # Check if notifications are enabled
+            if not getattr(settings, 'COMMENT_NOTIFICATION_ENABLED', True):
+                logger.info(f"Comment notifications disabled - skipping for comment {comment.id}")
+                return False
+
+            # Get admin emails
+            admin_emails = CommentEmailService._get_admin_emails()
+            if not admin_emails:
+                logger.warning("No admin emails configured for comment notifications")
+                return False
+
+            # Prepare email context
+            context = CommentEmailService._prepare_email_context(comment, user_ip)
+
+            # Render email templates
+            subject = CommentEmailService._get_email_subject(comment)
+            html_content = render_to_string('emails/comment_notification.html', context)
+            text_content = render_to_string('emails/comment_notification.txt', context)
+
+            # Send email
+            success = CommentEmailService._send_email(
+                subject=subject,
+                html_content=html_content,
+                text_content=text_content,
+                recipient_emails=admin_emails
+            )
+
+            if success:
+                logger.info(f"Comment notification sent successfully - Comment ID: {comment.id}")
+            else:
+                logger.error(f"Failed to send comment notification - Comment ID: {comment.id}")
+
+            return success
+
+        except Exception as e:
+            logger.error(f"Error sending comment notification - Comment ID: {comment.id}, Error: {str(e)}")
+            return False
+
+    @staticmethod
+    def _get_admin_emails() -> List[str]:
+        """Get list of admin email addresses"""
+        admin_emails = []
+
+        # Get from ADMINS setting
+        admins = getattr(settings, 'ADMINS', [])
+        for name, email in admins:
+            if email:
+                admin_emails.append(email)
+
+        # Get from MANAGERS setting if no admins
+        if not admin_emails:
+            managers = getattr(settings, 'MANAGERS', [])
+            for name, email in managers:
+                if email:
+                    admin_emails.append(email)
+
+        # Fallback to a default admin email if configured
+        if not admin_emails:
+            default_admin = getattr(settings, 'DEFAULT_ADMIN_EMAIL', None)
+            if default_admin:
+                admin_emails.append(default_admin)
+
+        return list(set(admin_emails))  # Remove duplicates
+
+    @staticmethod
+    def _prepare_email_context(comment: UserComment, user_ip: str = None) -> Dict:
+        """Prepare context data for email templates"""
+        user = comment.user
+
+        # Calculate user statistics
+        user_stats = {
+            'total_comments': UserComment.objects.filter(user=user, is_active=True).count(),
+            'total_passwords': PasswordEntry.objects.filter(user=user).count(),
+            'days_since_joined': (timezone.now() - user.date_joined).days,
+        }
+
+        # Prepare URLs (you may need to adjust these based on your URL structure)
+        try:
+            admin_panel_url = settings.SITE_URL + reverse('admin:users_usercomment_change', args=[comment.id])
+        except:
+            admin_panel_url = None
+
+        try:
+            user_profile_url = settings.SITE_URL + reverse('admin:auth_user_change', args=[user.id])
+        except:
+            user_profile_url = None
+
+        context = {
+            'comment': comment,
+            'user': user,
+            'user_ip': user_ip,
+            'user_stats': user_stats,
+            'current_time': timezone.now(),
+            'admin_panel_url': admin_panel_url,
+            'user_profile_url': user_profile_url,
+            'site_name': getattr(settings, 'SITE_NAME', 'Your Site'),
+            'site_url': getattr(settings, 'SITE_URL', ''),
+        }
+
+        return context
+
+    @staticmethod
+    def _get_email_subject(comment: UserComment) -> str:
+        """Generate email subject"""
+        prefix = getattr(settings, 'COMMENT_NOTIFICATION_SUBJECT_PREFIX', '[Site] ')
+        user = comment.user
+        subject = f"{prefix}نظر جدید از {user.username} - {comment.subject[:50]}"
+
+        if len(comment.subject) > 50:
+            subject += "..."
+
+        return subject
+
+    @staticmethod
+    def _send_email(subject: str, html_content: str, text_content: str, recipient_emails: List[str]) -> bool:
+        """Send the actual email"""
+        try:
+            from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@example.com')
+
+            # Create email message
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=text_content,
+                from_email=from_email,
+                to=recipient_emails
+            )
+
+            # Attach HTML version
+            email.attach_alternative(html_content, "text/html")
+
+            # Send email
+            email.send()
+
+            logger.info(f"Email sent successfully to {len(recipient_emails)} recipients")
+            return True
+
+        except Exception as e:
+            logger.error(f"Error sending email: {str(e)}")
+            return False
+
+    @staticmethod
+    def send_bulk_comment_notification(comments: List[UserComment]) -> bool:
+        """Send bulk notification for multiple comments"""
+        try:
+            admin_emails = CommentEmailService._get_admin_emails()
+            if not admin_emails or not comments:
+                return False
+
+            # Prepare bulk context
+            context = {
+                'comments': comments,
+                'total_comments': len(comments),
+                'current_time': timezone.now(),
+                'site_name': getattr(settings, 'SITE_NAME', 'Your Site'),
+            }
+
+            subject = f"[Bulk] {len(comments)} نظر جدید ثبت شده"
+
+            # You would need to create bulk email templates
+            # html_content = render_to_string('emails/bulk_comment_notification.html', context)
+            # text_content = render_to_string('emails/bulk_comment_notification.txt', context)
+
+            # For now, send individual notifications
+            success_count = 0
+            for comment in comments:
+                if CommentEmailService.send_comment_notification(comment):
+                    success_count += 1
+
+            logger.info(f"Bulk notification: {success_count}/{len(comments)} emails sent successfully")
+            return success_count > 0
+
+        except Exception as e:
+            logger.error(f"Error sending bulk notification: {str(e)}")
+            return False
+
+
+class EmailTestService:
+    """Service for testing email configuration"""
+
+    @staticmethod
+    def test_email_configuration() -> Dict[str, any]:
+        """Test email configuration and send a test email"""
+        try:
+            from django.core.mail import send_mail
+
+            # Test email settings
+            test_result = {
+                'success': False,
+                'message': '',
+                'details': {}
+            }
+
+            # Check email backend
+            backend = getattr(settings, 'EMAIL_BACKEND', 'Not configured')
+            test_result['details']['backend'] = backend
+
+            # Check SMTP settings
+            host = getattr(settings, 'EMAIL_HOST', 'Not configured')
+            port = getattr(settings, 'EMAIL_PORT', 'Not configured')
+            test_result['details']['host'] = f"{host}:{port}"
+
+            # Check authentication
+            user = getattr(settings, 'EMAIL_HOST_USER', 'Not configured')
+            test_result['details']['user'] = user
+
+            # Get admin emails
+            admin_emails = CommentEmailService._get_admin_emails()
+            test_result['details']['admin_emails'] = admin_emails
+
+            if not admin_emails:
+                test_result['message'] = 'No admin emails configured'
+                return test_result
+
+            # Send test email
+            send_mail(
+                subject='Test Email - Comment Notification System',
+                message='This is a test email to verify the comment notification system is working correctly.',
+                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'test@example.com'),
+                recipient_list=admin_emails,
+                fail_silently=False
+            )
+
+            test_result['success'] = True
+            test_result['message'] = f'Test email sent successfully to {len(admin_emails)} recipients'
+
+            return test_result
+
+        except Exception as e:
+            return {
+                'success': False,
+                'message': f'Email test failed: {str(e)}',
+                'details': {'error': str(e)}
+            }

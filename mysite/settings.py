@@ -212,7 +212,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "comments",
+    # "comments",
     "core",
     "sections",
     "dashboard",
@@ -421,6 +421,26 @@ EMAIL_USE_LOCALTIME = True
 EMAIL_USE_UTF8 = True
 EMAIL_CHARSET = "utf-8"
 import os
+#==============================================
+# Admin and Server Email Settings
+SERVER_EMAIL = env("SERVER_EMAIL", default=DEFAULT_FROM_EMAIL)
+EMAIL_SUBJECT_PREFIX = env("EMAIL_SUBJECT_PREFIX", default="[Django Site] ")
+
+# Admin email addresses
+ADMIN_EMAIL = env("ADMIN_EMAIL", default=EMAIL_HOST_USER)
+ADMINS = [
+    ('Site Admin', ADMIN_EMAIL),
+]
+
+# Manager email addresses (receives broken link notifications)
+MANAGERS = ADMINS
+EMAIL_TIMEOUT = 60
+
+# Comment notifications (if applicable)
+COMMENT_NOTIFICATION_ENABLED = True
+COMMENT_NOTIFICATION_SUBJECT_PREFIX = env("EMAIL_SUBJECT_PREFIX", default="[Site Comments] ")
+#============================================
+
 
 
 def get_site_url():

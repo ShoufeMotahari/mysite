@@ -405,11 +405,10 @@ class VerificationToken(models.Model):
 
 class Comment(models.Model):
     """Model for user comments"""
-
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="comments",
+        related_name="generic_comments",
         verbose_name="کاربر",
     )
     content = models.TextField(verbose_name="متن نظر")
@@ -611,3 +610,19 @@ class AdminMessageReply(models.Model):
 
     def __str__(self):
         return f"پاسخ به: {self.original_message.subject}"
+
+class UserComment(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_comments')
+    subject = models.CharField(max_length=200, verbose_name='موضوع')
+    content = models.TextField(max_length=1000, verbose_name='محتوا')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'نظر کاربر'
+        verbose_name_plural = 'نظرات کاربران'
+
+    def __str__(self):
+        return f'{self.user.username} - {self.subject[:50]}'

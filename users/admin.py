@@ -2046,6 +2046,32 @@ class AdminMessageReplyAdmin(admin.ModelAdmin):
         return request.user.is_superuser
 
 
+from django.contrib import admin
+from .models import UserComment
+
+
+@admin.register(UserComment)
+class UserCommentAdmin(admin.ModelAdmin):
+    list_display = ('user', 'subject', 'created_at', 'is_active')
+    list_filter = ('is_active', 'created_at', 'updated_at')
+    search_fields = ('user__username', 'subject', 'content')
+    ordering = ('-created_at',)
+    readonly_fields = ('created_at', 'updated_at')
+
+    fieldsets = (
+        (None, {
+            'fields': ('user', 'subject', 'content')
+        }),
+        ('Status', {
+            'fields': ('is_active',)
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+
 # Customize admin site
 admin.site.site_header = "پنل مدیریت"
 admin.site.site_title = "پنل مدیریت"

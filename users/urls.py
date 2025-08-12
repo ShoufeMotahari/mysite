@@ -2,6 +2,7 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path
 
+from .views import dashboard_views
 # Import views from different modules
 from .views.auth_views import (
     activate_account_view,
@@ -108,6 +109,9 @@ urlpatterns = [
     # Default Django auth views (keeping as fallback)
     path("auth/login/", auth_views.LoginView.as_view(template_name="users/registration/login.html"), name="auth_login"),
     path("auth/logout/", auth_views.LogoutView.as_view(), name="auth_logout"),
+    path('comments/', dashboard_views.user_comments, name='user_comments'),
+    path('comments/bulk-delete/', dashboard_views.bulk_delete_comments, name='bulk_delete_comments'),
+    path('comments/stats/', dashboard_views.comment_statistics, name='comment_stats'),
 ]
 
 # ========== URL MAPPING REFERENCE ==========

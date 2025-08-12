@@ -1,0 +1,246 @@
+<!-- templates/emails/comment_notification.html -->
+<!DOCTYPE html>
+<html dir="rtl" lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظر جدید کاربر</title>
+    <style>
+        body {
+            font-family: 'Tahoma', 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            direction: rtl;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .email-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .email-header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .email-body {
+            padding: 30px;
+        }
+
+        .user-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-right: 4px solid #667eea;
+        }
+
+        .user-info h3 {
+            margin: 0 0 10px 0;
+            color: #495057;
+        }
+
+        .user-info p {
+            margin: 5px 0;
+            color: #6c757d;
+        }
+
+        .comment-content {
+            background: #ffffff;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .comment-subject {
+            font-size: 18px;
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .comment-text {
+            color: #495057;
+            line-height: 1.8;
+            white-space: pre-wrap;
+        }
+
+        .comment-meta {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #6c757d;
+            border-top: 1px solid #e9ecef;
+            padding-top: 15px;
+        }
+
+        .action-buttons {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            margin: 0 10px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background-color: #667eea;
+            color: white;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .email-footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            color: #6c757d;
+            font-size: 14px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .stats-box {
+            display: inline-block;
+            background: #e3f2fd;
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin: 5px;
+            min-width: 120px;
+            text-align: center;
+        }
+
+        .stats-number {
+            font-size: 20px;
+            font-weight: bold;
+            color: #1976d2;
+        }
+
+        .stats-label {
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="email-header">
+            <h1>💬 نظر جدید کاربر</h1>
+            <p>یک نظر جدید در سیستم ثبت شده است</p>
+        </div>
+
+        <div class="email-body">
+            <div class="user-info">
+                <h3>👤 اطلاعات کاربر</h3>
+                <p><strong>نام کاربری:</strong> {{ user.username }}</p>
+                <p><strong>نام و نام خانوادگی:</strong> {{ user.get_full_name|default:"تعریف نشده" }}</p>
+                <p><strong>ایمیل:</strong> {{ user.email|default:"تعریف نشده" }}</p>
+                <p><strong>شماره موبایل:</strong> {{ user.mobile|default:"تعریف نشده" }}</p>
+                <p><strong>تاریخ عضویت:</strong> {{ user.date_joined|date:"Y/m/d H:i" }}</p>
+                <p><strong>آخرین ورود:</strong> {{ user.last_login|date:"Y/m/d H:i"|default:"هنوز وارد نشده" }}</p>
+            </div>
+
+            <div class="comment-content">
+                <div class="comment-subject">
+                    📝 {{ comment.subject }}
+                </div>
+                <div class="comment-text">{{ comment.content }}</div>
+                <div class="comment-meta">
+                    <strong>تاریخ ثبت:</strong> {{ comment.created_at|date:"Y/m/d H:i" }}<br>
+                    <strong>IP آدرس:</strong> {{ user_ip|default:"نامشخص" }}
+                </div>
+            </div>
+
+            {% if user_stats %}
+            <div style="text-align: center; margin: 20px 0;">
+                <h4>📊 آمار کاربر</h4>
+                <div class="stats-box">
+                    <div class="stats-number">{{ user_stats.total_comments }}</div>
+                    <div class="stats-label">کل نظرات</div>
+                </div>
+                <div class="stats-box">
+                    <div class="stats-number">{{ user_stats.total_passwords }}</div>
+                    <div class="stats-label">کل رمزها</div>
+                </div>
+                <div class="stats-box">
+                    <div class="stats-number">{{ user_stats.days_since_joined }}</div>
+                    <div class="stats-label">روز عضویت</div>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="action-buttons">
+                {% if admin_panel_url %}
+                <a href="{{ admin_panel_url }}" class="btn btn-primary">
+                    🔧 مشاهده در پنل ادمین
+                </a>
+                {% endif %}
+                {% if user_profile_url %}
+                <a href="{{ user_profile_url }}" class="btn btn-secondary">
+                    👤 پروفایل کاربر
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="email-footer">
+            <p>این ایمیل به صورت خودکار از سیستم ارسال شده است.</p>
+            <p>زمان ارسال: {{ current_time|date:"Y/m/d H:i:s" }}</p>
+        </div>
+    </div>
+</body>
+</html>
+
+<!-- templates/emails/comment_notification.txt - Plain text version -->
+نظر جدید کاربر
+================
+
+اطلاعات کاربر:
+- نام کاربری: {{ user.username }}
+- نام کامل: {{ user.get_full_name|default:"تعریف نشده" }}
+- ایمیل: {{ user.email|default:"تعریف نشده" }}
+- موبایل: {{ user.mobile|default:"تعریف نشده" }}
+- تاریخ عضویت: {{ user.date_joined|date:"Y/m/d H:i" }}
+- آخرین ورود: {{ user.last_login|date:"Y/m/d H:i"|default:"هنوز وارد نشده" }}
+
+محتوای نظر:
+موضوع: {{ comment.subject }}
+
+{{ comment.content }}
+
+تاریخ ثبت: {{ comment.created_at|date:"Y/m/d H:i" }}
+IP آدرس: {{ user_ip|default:"نامشخص" }}
+
+{% if user_stats %}
+آمار کاربر:
+- کل نظرات: {{ user_stats.total_comments }}
+- کل رمزها: {{ user_stats.total_passwords }}
+- روزهای عضویت: {{ user_stats.days_since_joined }}
+{% endif %}
+
+این ایمیل به صورت خودکار از سیستم ارسال شده است.
+زمان ارسال: {{ current_time|date:"Y/m/d H:i:s" }}
