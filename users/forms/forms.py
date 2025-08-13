@@ -411,10 +411,8 @@ class CommentForm(forms.ModelForm):
 
 # Email Management Forms
 class EmailForm(forms.Form):
-    """Enhanced email form for admin email sending functionality"""
-
     template = forms.ModelChoiceField(
-        queryset=EmailTemplate.objects.filter(is_active=True),
+        queryset=EmailTemplate.objects.none(),
         widget=forms.Select(attrs={"class": "form-control"}),
         label="قالب ایمیل",
         empty_label="انتخاب قالب ایمیل...",
@@ -422,9 +420,7 @@ class EmailForm(forms.Form):
     )
 
     recipients = forms.ModelMultipleChoiceField(
-        queryset=User.objects.filter(is_active=True, email__isnull=False).exclude(
-            email=""
-        ),
+        queryset=User.objects.none(),
         widget=forms.CheckboxSelectMultiple(),
         label="گیرندگان",
         required=False,
@@ -443,13 +439,19 @@ class EmailForm(forms.Form):
         widget=CKEditorWidget(), label="محتوا (اختیاری)", required=False
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['template'].queryset = EmailTemplate.objects.filter(is_active=True)
+        self.fields['recipients'].queryset = (
+            User.objects.filter(is_active=True, email__isnull=False).exclude(email="")
+        )
+
     def clean(self):
         cleaned_data = super().clean()
         template = cleaned_data.get("template")
         subject = cleaned_data.get("subject")
         content = cleaned_data.get("content")
 
-        # At least template or custom subject/content must be provided
         if not template and not (subject or content):
             raise ValidationError(
                 "حداقل یک قالب یا موضوع/محتوای سفارشی باید انتخاب شود."
