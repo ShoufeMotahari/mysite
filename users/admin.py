@@ -1678,14 +1678,39 @@ class UserAdmin(BaseUserAdmin):
 
 @admin.register(Comment)
 class CommentAdmin(admin.ModelAdmin):
-    """Enhanced Comment admin"""
+    """Enhanced Comment admin for all comment types"""
 
-    list_display = ["user", "content_preview", "is_approved", "is_active", "created_at"]
+    list_display = [
+        "user",
+        "subject",
+        "content_preview",
+        "is_approved",
+        "is_active",
+        "created_at"
+    ]
     list_editable = ["is_approved", "is_active"]
-    list_filter = ["is_approved", "is_active", ("created_at", JDateFieldListFilter)]
-    search_fields = ["user__username", "user__email", "content"]
+    list_filter = [
+        "is_approved",
+        "is_active",
+        ("created_at", JDateFieldListFilter)
+    ]
+    search_fields = ["user__username", "user__email", "subject", "content"]
     ordering = ["-created_at"]
     list_per_page = 50
+    readonly_fields = ("created_at", "updated_at")
+
+    fieldsets = (
+        (None, {
+            "fields": ("user", "subject", "content")
+        }),
+        ("Status", {
+            "fields": ("is_approved", "is_active")
+        }),
+        ("Timestamps", {
+            "fields": ("created_at", "updated_at"),
+            "classes": ("collapse",)
+        }),
+    )
 
     actions = [
         "approve_comments",
@@ -1707,25 +1732,18 @@ class CommentAdmin(admin.ModelAdmin):
         updated = queryset.update(is_approved=True)
         self.message_user(request, f"{updated} نظر تایید شد.", level=messages.SUCCESS)
 
-    approve_comments.short_description = "تایید نظرات انتخاب شده"
-
     def reject_comments(self, request, queryset):
         updated = queryset.update(is_approved=False)
         self.message_user(request, f"{updated} نظر رد شد.", level=messages.WARNING)
-
-    reject_comments.short_description = "رد نظرات انتخاب شده"
 
     def activate_comments(self, request, queryset):
         updated = queryset.update(is_active=True)
         self.message_user(request, f"{updated} نظر فعال شد.", level=messages.SUCCESS)
 
-    activate_comments.short_description = "فعال کردن نظرات انتخاب شده"
-
     def deactivate_comments(self, request, queryset):
         updated = queryset.update(is_active=False)
         self.message_user(request, f"{updated} نظر غیرفعال شد.", level=messages.WARNING)
 
-    deactivate_comments.short_description = "غیرفعال کردن نظرات انتخاب شده"
 
 
 
@@ -2044,33 +2062,6 @@ class AdminMessageReplyAdmin(admin.ModelAdmin):
     def has_module_permission(self, request):
         """Only superusers can access this module"""
         return request.user.is_superuser
-
-
-from django.contrib import admin
-from .models import UserComment
-
-
-@admin.register(UserComment)
-class UserCommentAdmin(admin.ModelAdmin):
-    list_display = ('user', 'subject', 'created_at', 'is_active')
-    list_filter = ('is_active', 'created_at', 'updated_at')
-    search_fields = ('user__username', 'subject', 'content')
-    ordering = ('-created_at',)
-    readonly_fields = ('created_at', 'updated_at')
-
-    fieldsets = (
-        (None, {
-            'fields': ('user', 'subject', 'content')
-        }),
-        ('Status', {
-            'fields': ('is_active',)
-        }),
-        ('Timestamps', {
-            'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',)
-        }),
-    )
-
 
 # Customize admin site
 admin.site.site_header = "پنل مدیریت"

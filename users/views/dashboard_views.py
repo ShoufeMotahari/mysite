@@ -11,7 +11,7 @@ from django.shortcuts import render, get_object_or_404
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 
-from users.models import PasswordEntry, User, UserComment
+from users.models import PasswordEntry, User, Comment
 from users.services.email_service import CommentEmailService
 
 logger = logging.getLogger("users")

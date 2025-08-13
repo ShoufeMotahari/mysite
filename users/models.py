@@ -7,6 +7,8 @@ from ckeditor.fields import RichTextField
 from cryptography.fernet import Fernet
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
@@ -402,26 +404,58 @@ class VerificationToken(models.Model):
         verbose_name_plural = "کدهای تایید"
         ordering = ["-created_at"]
 
-
 class Comment(models.Model):
-    """Model for user comments"""
+    """یک مدل چندمنظوره برای مدیریت انواع نظرها"""
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="generic_comments",
+        related_name="comments",
         verbose_name="کاربر",
     )
-    content = models.TextField(verbose_name="متن نظر")
-    is_approved = models.BooleanField(default=False, verbose_name="تایید شده")
-    is_active = models.BooleanField(default=True, verbose_name="فعال")
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاریخ ایجاد")
-    updated_at = models.DateTimeField(auto_now=True, verbose_name="تاریخ بروزرسانی")
 
-    # Generic foreign key for commenting on different models
-    content_type = models.ForeignKey(
-        "contenttypes.ContentType", on_delete=models.CASCADE, null=True, blank=True
+    subject = models.CharField(
+        max_length=200,
+        verbose_name="موضوع",
+        blank=True,
+        null=True
     )
-    object_id = models.PositiveIntegerField(null=True, blank=True)
+
+    content = models.TextField(
+        max_length=1000,
+        verbose_name="متن نظر"
+    )
+
+    is_approved = models.BooleanField(
+        default=False,
+        verbose_name="تایید شده"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="فعال"
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="تاریخ ایجاد"
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name="تاریخ بروزرسانی"
+    )
+
+    # Generic relation (اختیاری)
+    content_type = models.ForeignKey(
+        ContentType,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
+    object_id = models.PositiveIntegerField(
+        null=True,
+        blank=True
+    )
+    content_object = GenericForeignKey('content_type', 'object_id')
 
     class Meta:
         verbose_name = "نظر"
@@ -433,12 +467,11 @@ class Comment(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.user} - {self.content[:50]}..."
+        subject_part = f" - {self.subject[:50]}" if self.subject else ""
+        return f"{self.user}{subject_part} - {self.content[:50]}..."
 
     def get_absolute_url(self):
-        """Get URL for this comment"""
         return f"/comments/{self.id}/"
-
 
 class PasswordEntry(models.Model):
     """Password storage model"""
@@ -611,18 +644,3 @@ class AdminMessageReply(models.Model):
     def __str__(self):
         return f"پاسخ به: {self.original_message.subject}"
 
-class UserComment(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_comments')
-    subject = models.CharField(max_length=200, verbose_name='موضوع')
-    content = models.TextField(max_length=1000, verbose_name='محتوا')
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    is_active = models.BooleanField(default=True)
-
-    class Meta:
-        ordering = ['-created_at']
-        verbose_name = 'نظر کاربر'
-        verbose_name_plural = 'نظرات کاربران'
-
-    def __str__(self):
-        return f'{self.user.username} - {self.subject[:50]}'

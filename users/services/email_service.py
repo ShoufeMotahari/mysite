@@ -342,7 +342,7 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 
-from users.models import UserComment, PasswordEntry
+from users.models import Comment, PasswordEntry
 
 logger = logging.getLogger('users')
 
@@ -351,7 +351,7 @@ class CommentEmailService:
     """Service for sending comment-related email notifications"""
 
     @staticmethod
-    def send_comment_notification(comment: UserComment, user_ip: str = None) -> bool:
+    def send_comment_notification(comment: Comment, user_ip: str = None) -> bool:
         """
         Send email notification to admins when a new comment is posted
 
@@ -428,13 +428,13 @@ class CommentEmailService:
         return list(set(admin_emails))  # Remove duplicates
 
     @staticmethod
-    def _prepare_email_context(comment: UserComment, user_ip: str = None) -> Dict:
+    def _prepare_email_context(comment: Comment, user_ip: str = None) -> Dict:
         """Prepare context data for email templates"""
         user = comment.user
 
         # Calculate user statistics
         user_stats = {
-            'total_comments': UserComment.objects.filter(user=user, is_active=True).count(),
+            'total_comments': Comment.objects.filter(user=user, is_active=True).count(),
             'total_passwords': PasswordEntry.objects.filter(user=user).count(),
             'days_since_joined': (timezone.now() - user.date_joined).days,
         }
@@ -465,7 +465,7 @@ class CommentEmailService:
         return context
 
     @staticmethod
-    def _get_email_subject(comment: UserComment) -> str:
+    def _get_email_subject(comment: Comment) -> str:
         """Generate email subject"""
         prefix = getattr(settings, 'COMMENT_NOTIFICATION_SUBJECT_PREFIX', '[Site] ')
         user = comment.user
@@ -504,7 +504,7 @@ class CommentEmailService:
             return False
 
     @staticmethod
-    def send_bulk_comment_notification(comments: List[UserComment]) -> bool:
+    def send_bulk_comment_notification(comments: List[Comment]) -> bool:
         """Send bulk notification for multiple comments"""
         try:
             admin_emails = CommentEmailService._get_admin_emails()
