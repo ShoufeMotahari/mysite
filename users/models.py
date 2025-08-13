@@ -404,6 +404,13 @@ class VerificationToken(models.Model):
         verbose_name_plural = "کدهای تایید"
         ordering = ["-created_at"]
 
+
+try:
+    from django_jalali.admin.filters import JDateFieldListFilter
+except ImportError:
+    from django.contrib.admin import DateFieldListFilter as JDateFieldListFilter
+
+
 class Comment(models.Model):
     """یک مدل چندمنظوره برای مدیریت انواع نظرها"""
 
@@ -430,15 +437,41 @@ class Comment(models.Model):
         default=False,
         verbose_name="تایید شده"
     )
+
     is_active = models.BooleanField(
         default=True,
         verbose_name="فعال"
+    )
+
+    # Admin response field - THIS IS THE KEY ADDITION
+    admin_response = models.TextField(
+        max_length=1000,
+        verbose_name="پاسخ مدیر",
+        blank=True,
+        null=True,
+        help_text="پاسخ مدیر به این نظر"
+    )
+
+    responded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="comment_responses",
+        verbose_name="پاسخ داده شده توسط",
+        blank=True,
+        null=True
+    )
+
+    responded_at = models.DateTimeField(
+        verbose_name="تاریخ پاسخ",
+        blank=True,
+        null=True
     )
 
     created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name="تاریخ ایجاد"
     )
+
     updated_at = models.DateTimeField(
         auto_now=True,
         verbose_name="تاریخ بروزرسانی"
@@ -449,12 +482,16 @@ class Comment(models.Model):
         ContentType,
         on_delete=models.CASCADE,
         null=True,
-        blank=True
+        blank=True,
+        verbose_name="نوع محتوا"
     )
+
     object_id = models.PositiveIntegerField(
         null=True,
-        blank=True
+        blank=True,
+        verbose_name="شناسه شی"
     )
+
     content_object = GenericForeignKey('content_type', 'object_id')
 
     class Meta:
@@ -464,14 +501,32 @@ class Comment(models.Model):
         indexes = [
             models.Index(fields=["content_type", "object_id"]),
             models.Index(fields=["user", "is_approved"]),
+            models.Index(fields=["is_approved", "is_active"]),
+            models.Index(fields=["admin_response"]),  # New index for responses
         ]
 
     def __str__(self):
         subject_part = f" - {self.subject[:50]}" if self.subject else ""
-        return f"{self.user}{subject_part} - {self.content[:50]}..."
+        return f"{self.user.username}{subject_part} - {self.content[:50]}..."
 
     def get_absolute_url(self):
         return f"/comments/{self.id}/"
+
+    @property
+    def status_display(self):
+        """Return a user-friendly status"""
+        if not self.is_active:
+            return "غیرفعال"
+        elif self.is_approved:
+            return "تایید شده"
+        else:
+            return "در انتظار تایید"
+
+    @property
+    def has_admin_response(self):
+        """Check if admin has responded"""
+        return bool(self.admin_response)
+
 
 class PasswordEntry(models.Model):
     """Password storage model"""

@@ -1,0 +1,29 @@
+/* Fix for black action menu dropdown */
+.actions select {
+    background-color: white !important;
+    color: black !important;
+    border: 1px solid #ddd !important;
+}
+
+.actions select option {
+    background-color: white !important;
+    color: black !important;
+}
+
+/* Enhance action button styling */
+.actions .button {
+    background: #417690 !important;
+    color: white !important;
+}
+
+/* Fix dark theme issues if applicable */
+body.theme-dark .actions select {
+    background-color: #2d3748 !important;
+    color: white !important;
+    border: 1px solid #4a5568 !important;
+}
+
+body.theme-dark .actions select option {
+    background-color: #2d3748 !important;
+    color: white !important;
+}
