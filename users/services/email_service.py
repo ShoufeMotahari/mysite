@@ -351,16 +351,9 @@ class CommentEmailService:
     """Service for sending comment-related email notifications"""
 
     @staticmethod
-    def send_comment_notification(comment: Comment, user_ip: str = None) -> bool:
+    def send_comment_notification(comment, user_ip: str = None) -> bool:
         """
         Send email notification to admins when a new comment is posted
-
-        Args:
-            comment: The UserComment instance
-            user_ip: User's IP address (optional)
-
-        Returns:
-            bool: True if email sent successfully, False otherwise
         """
         try:
             # Check if notifications are enabled
@@ -379,8 +372,15 @@ class CommentEmailService:
 
             # Render email templates
             subject = CommentEmailService._get_email_subject(comment)
-            html_content = render_to_string('emails/comment_notification.html', context)
-            text_content = render_to_string('emails/comment_notification.txt', context)
+
+            # Use simple text content if templates don't exist
+            try:
+                html_content = render_to_string('emails/comment_notification.html', context)
+                text_content = render_to_string('emails/comment_notification.txt', context)
+            except:
+                # Fallback to simple text if templates don't exist
+                html_content = CommentEmailService._get_fallback_html_content(comment, context)
+                text_content = CommentEmailService._get_fallback_text_content(comment, context)
 
             # Send email
             success = CommentEmailService._send_email(
@@ -402,141 +402,50 @@ class CommentEmailService:
             return False
 
     @staticmethod
-    def _get_admin_emails() -> List[str]:
-        """Get list of admin email addresses"""
-        admin_emails = []
-
-        # Get from ADMINS setting
-        admins = getattr(settings, 'ADMINS', [])
-        for name, email in admins:
-            if email:
-                admin_emails.append(email)
-
-        # Get from MANAGERS setting if no admins
-        if not admin_emails:
-            managers = getattr(settings, 'MANAGERS', [])
-            for name, email in managers:
-                if email:
-                    admin_emails.append(email)
-
-        # Fallback to a default admin email if configured
-        if not admin_emails:
-            default_admin = getattr(settings, 'DEFAULT_ADMIN_EMAIL', None)
-            if default_admin:
-                admin_emails.append(default_admin)
-
-        return list(set(admin_emails))  # Remove duplicates
-
-    @staticmethod
-    def _prepare_email_context(comment: Comment, user_ip: str = None) -> Dict:
-        """Prepare context data for email templates"""
-        user = comment.user
-
-        # Calculate user statistics
-        user_stats = {
-            'total_comments': Comment.objects.filter(user=user, is_active=True).count(),
-            'total_passwords': PasswordEntry.objects.filter(user=user).count(),
-            'days_since_joined': (timezone.now() - user.date_joined).days,
-        }
-
-        # Prepare URLs (you may need to adjust these based on your URL structure)
-        try:
-            admin_panel_url = settings.SITE_URL + reverse('admin:users_usercomment_change', args=[comment.id])
-        except:
-            admin_panel_url = None
-
-        try:
-            user_profile_url = settings.SITE_URL + reverse('admin:auth_user_change', args=[user.id])
-        except:
-            user_profile_url = None
-
-        context = {
-            'comment': comment,
-            'user': user,
-            'user_ip': user_ip,
-            'user_stats': user_stats,
-            'current_time': timezone.now(),
-            'admin_panel_url': admin_panel_url,
-            'user_profile_url': user_profile_url,
-            'site_name': getattr(settings, 'SITE_NAME', 'Your Site'),
-            'site_url': getattr(settings, 'SITE_URL', ''),
-        }
-
-        return context
-
-    @staticmethod
-    def _get_email_subject(comment: Comment) -> str:
-        """Generate email subject"""
+    def _get_email_subject(comment) -> str:
+        """Generate email subject with safe handling of optional subject field"""
         prefix = getattr(settings, 'COMMENT_NOTIFICATION_SUBJECT_PREFIX', '[Site] ')
         user = comment.user
-        subject = f"{prefix}نظر جدید از {user.username} - {comment.subject[:50]}"
 
-        if len(comment.subject) > 50:
-            subject += "..."
+        # Safe handling of optional subject field
+        if comment.subject and comment.subject.strip():
+            subject_text = comment.subject.strip()[:50]
+            if len(comment.subject) > 50:
+                subject_text += "..."
+        else:
+            # Use first part of content if no subject
+            subject_text = comment.content[:50] + "..." if len(comment.content) > 50 else comment.content
 
+        subject = f"{prefix}نظر جدید از {user.username} - {subject_text}"
         return subject
 
     @staticmethod
-    def _send_email(subject: str, html_content: str, text_content: str, recipient_emails: List[str]) -> bool:
-        """Send the actual email"""
-        try:
-            from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@example.com')
-
-            # Create email message
-            email = EmailMultiAlternatives(
-                subject=subject,
-                body=text_content,
-                from_email=from_email,
-                to=recipient_emails
-            )
-
-            # Attach HTML version
-            email.attach_alternative(html_content, "text/html")
-
-            # Send email
-            email.send()
-
-            logger.info(f"Email sent successfully to {len(recipient_emails)} recipients")
-            return True
-
-        except Exception as e:
-            logger.error(f"Error sending email: {str(e)}")
-            return False
+    def _get_fallback_html_content(comment, context):
+        """Generate fallback HTML content if template doesn't exist"""
+        return f"""
+        <html>
+        <body>
+            <h2>نظر جدید</h2>
+            <p><strong>کاربر:</strong> {comment.user.username}</p>
+            <p><strong>موضوع:</strong> {getattr(comment, 'subject', 'نظر جدید')}</p>
+            <p><strong>متن:</strong></p>
+            <p>{comment.content}</p>
+            <p><strong>تاریخ:</strong> {comment.created_at}</p>
+        </body>
+        </html>
+        """
 
     @staticmethod
-    def send_bulk_comment_notification(comments: List[Comment]) -> bool:
-        """Send bulk notification for multiple comments"""
-        try:
-            admin_emails = CommentEmailService._get_admin_emails()
-            if not admin_emails or not comments:
-                return False
+    def _get_fallback_text_content(comment, context):
+        """Generate fallback text content if template doesn't exist"""
+        return f"""
+نظر جدید
 
-            # Prepare bulk context
-            context = {
-                'comments': comments,
-                'total_comments': len(comments),
-                'current_time': timezone.now(),
-                'site_name': getattr(settings, 'SITE_NAME', 'Your Site'),
-            }
-
-            subject = f"[Bulk] {len(comments)} نظر جدید ثبت شده"
-
-            # You would need to create bulk email templates
-            # html_content = render_to_string('emails/bulk_comment_notification.html', context)
-            # text_content = render_to_string('emails/bulk_comment_notification.txt', context)
-
-            # For now, send individual notifications
-            success_count = 0
-            for comment in comments:
-                if CommentEmailService.send_comment_notification(comment):
-                    success_count += 1
-
-            logger.info(f"Bulk notification: {success_count}/{len(comments)} emails sent successfully")
-            return success_count > 0
-
-        except Exception as e:
-            logger.error(f"Error sending bulk notification: {str(e)}")
-            return False
+کاربر: {comment.user.username}
+موضوع: {getattr(comment, 'subject', 'نظر جدید')}
+متن: {comment.content}
+تاریخ: {comment.created_at}
+        """
 
 
 class EmailTestService:

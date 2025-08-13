@@ -381,14 +381,19 @@ class PasswordEntryForm(forms.ModelForm):
         return cleaned_data
 
 
-# Comment Forms
 class CommentForm(forms.ModelForm):
     """Form for user comments"""
 
     class Meta:
         model = Comment
-        fields = ["content"]
+        fields = ["subject", "content"]  # Include both fields
         widgets = {
+            "subject": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "موضوع نظر (اختیاری)...",
+                }
+            ),
             "content": forms.Textarea(
                 attrs={
                     "class": "form-control",
@@ -398,12 +403,22 @@ class CommentForm(forms.ModelForm):
             )
         }
 
+    def clean_subject(self):
+        subject = self.cleaned_data.get("subject")
+        # Since subject is optional, allow empty values
+        if subject:
+            subject = subject.strip()
+            if len(subject) < 3:
+                raise ValidationError("موضوع باید حداقل 3 کاراکتر باشد.")
+            return subject
+        return subject  # Can be None or empty
+
     def clean_content(self):
         content = self.cleaned_data.get("content")
         if not content or not content.strip():
             raise ValidationError("محتوای نظر نمی‌تواند خالی باشد.")
 
-        if len(content) < 10:
+        if len(content.strip()) < 10:
             raise ValidationError("نظر باید حداقل 10 کاراکتر باشد.")
 
         return content.strip()
