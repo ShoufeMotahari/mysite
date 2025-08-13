@@ -24,11 +24,19 @@ logging.basicConfig(level=logging.DEBUG)
 BASE_DIR = Path(__file__).resolve().parent.parent
 LOGS_DIR = BASE_DIR / "logs"
 LOGS_DIR.mkdir(exist_ok=True)
-# خواندن فایل env
+
 env = environ.Env()
-env_path = os.path.join(BASE_DIR, ".env")
-if os.path.exists(env_path):
-    environ.Env.read_env(env_file=env_path)
+
+# اول مسیر پیش‌فرض کنار settings.py
+env_path = BASE_DIR / ".env"
+
+# اگر وجود نداشت، مسیر هاست رو هم امتحان کن
+if not env_path.exists():
+    alt_path = Path("/home/fhmmeuob/public_html/shoku.erfann31dev.ir/.env")
+    if alt_path.exists():
+        env_path = alt_path
+
+env.read_env(env_file=str(env_path))
 # Arvan Cloud S3 Configuration
 AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY")
