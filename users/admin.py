@@ -1716,7 +1716,7 @@ class CommentAdmin(admin.ModelAdmin):
 
     ordering = ["-created_at"]
     list_per_page = 20
-    date_hierarchy = "created_at"
+    # date_hierarchy = "created_at"
 
     readonly_fields = (
         "user", "subject", "content", "content_object",  # User content is read-only
