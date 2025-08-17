@@ -2157,12 +2157,13 @@ class AdminMessageAdmin(admin.ModelAdmin):
     )
 
     def get_queryset(self, request):
-        """Add annotations for efficient queries"""
-        return (
-            super()
-            .get_queryset(request)
-            .annotate(read_count_num=Count("read_by", distinct=True))
-            .select_related("sender")
+        qs = super().get_queryset(request).select_related(
+            'user', 'content_type', 'responded_by'
+        ).prefetch_related('content_object')
+        # Optional: truncate microseconds
+        return qs.annotate(
+            created_at_no_microseconds=Func(F('created_at'), function='DATE_FORMAT',
+                                            template="%(function)s(%(expressions)s,'%%Y-%%m-%%d %%H:%%i:%%s')")
         )
 
     def sender_display(self, obj):

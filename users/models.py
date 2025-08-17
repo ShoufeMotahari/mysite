@@ -464,7 +464,8 @@ class Comment(models.Model):
     responded_at = models.DateTimeField(
         verbose_name="تاریخ پاسخ",
         blank=True,
-        null=True
+        null=True,
+        default=None
     )
 
     created_at = models.DateTimeField(
