@@ -1734,12 +1734,12 @@ class CommentAdmin(admin.ModelAdmin):
             "classes": ("wide",),
         }),
         ("پاسخ مدیر", {
-            "fields": ("admin_response"),
+            "fields": ("admin_response",),
             "classes": ("wide",),
             "description": "در صورت نیاز می‌توانید به این نظر پاسخ دهید"
         }),
         ("ارتباط با محتوا", {
-            "fields": ("content_type", "object_id", "content_object_link"),
+            "fields": ("content_type", "object_id", "content_object_link",),
             "classes": ("collapse",)
         }),
         ("زمان‌ها", {
