@@ -18,7 +18,7 @@ from .views.auth_views import (
     generate_password_view,
     check_password_strength_view,
 )
-from .views.dashboard_views import dashboard_view
+from .views.dashboard_views import dashboard_view, dashboard
 from .views.logout_view import message_admin_logout_view, smart_logout_view
 from .views.messaging_views import (
     admin_notifications_api,
@@ -84,7 +84,7 @@ urlpatterns = [
     path("api/mark-read/<int:message_id>/", mark_message_read_api, name="mark_message_read_api"),
 
     # ========== DASHBOARD AND PROFILE URLS ==========
-    path("dashboard/", dashboard_view, name="dashboard"),
+    path("dashboard/", dashboard, name="dashboard"),
     path("profile/edit/", profile_edit, name="profile_edit"),
     path("profile/<slug:slug>/", user_profile, name="user_profile"),
 
