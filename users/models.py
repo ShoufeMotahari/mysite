@@ -502,7 +502,6 @@ class Comment(models.Model):
             models.Index(fields=["content_type", "object_id"]),
             models.Index(fields=["user", "is_approved"]),
             models.Index(fields=["is_approved", "is_active"]),
-            models.Index(fields=["admin_response"]),  # New index for responses
         ]
 
     def __str__(self):
