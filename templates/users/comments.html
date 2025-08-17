@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-3">نظرات من</h2>
+
+    <!-- Search Form -->
+    <form method="get" class="mb-3 d-flex">
+        <input type="text" name="search" class="form-control me-2"
+               placeholder="جستجو در نظرات..."
+               value="{{ search_query }}">
+        <button type="submit" class="btn btn-primary">جستجو</button>
+    </form>
+
+    <!-- Total Comments -->
+    <p>تعداد کل نظرات: <strong>{{ total_comments }}</strong></p>
+
+    {% if page_obj and page_obj.object_list %}
+        <!-- Comments List -->
+        <ul class="list-group mb-3">
+            {% for comment in page_obj %}
+                <li class="list-group-item">
+                    <h5 class="mb-1">{{ comment.subject }}</h5>
+                    <p class="mb-1">{{ comment.content }}</p>
+                    <small class="text-muted">
+                        {{ comment.created_at|date:"Y/m/d H:i" }}
+                    </small>
+                </li>
+            {% endfor %}
+        </ul>
+
+        <!-- Pagination -->
+        <nav aria-label="صفحه‌بندی">
+            <ul class="pagination">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}&search={{ search_query }}">قبلی</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">قبلی</span></li>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% else %}
+                        <li class="page-item"><a class="page-link" href="?page={{ num }}&search={{ search_query }}">{{ num }}</a></li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}&search={{ search_query }}">بعدی</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">بعدی</span></li>
+                {% endif %}
+            </ul>
+        </nav>
+
+    {% else %}
+        <div class="alert alert-info">هیچ نظری یافت نشد.</div>
+    {% endif %}
+</div>
+{% endblock %}

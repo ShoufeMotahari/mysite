@@ -53,7 +53,7 @@ def dashboard(request):
         page_obj = paginator.get_page(page_number)
 
         # Get user comments
-        user_comments = UserComment.objects.filter(
+        user_comments = Comment.objects.filter(
             user=request.user,
             is_active=True
         ).order_by('-created_at')
@@ -132,7 +132,7 @@ def add_comment(request):
             })
 
         # Create comment
-        comment = UserComment.objects.create(
+        comment = Comment.objects.create(
             user=request.user,
             subject=subject,
             content=content
@@ -189,7 +189,7 @@ def delete_comment(request):
             })
 
         comment = get_object_or_404(
-            UserComment,
+            Comment,
             id=comment_id,
             user=request.user,
             is_active=True
@@ -206,7 +206,7 @@ def delete_comment(request):
             'message': 'نظر حذف شد'
         })
 
-    except UserComment.DoesNotExist:
+    except Comment.DoesNotExist:
         return JsonResponse({
             'success': False,
             'error': 'نظر یافت نشد'
@@ -239,7 +239,7 @@ def edit_comment(request):
             })
 
         comment = get_object_or_404(
-            UserComment,
+            Comment,
             id=comment_id,
             user=request.user,
             is_active=True
@@ -277,7 +277,7 @@ def edit_comment(request):
             }
         })
 
-    except UserComment.DoesNotExist:
+    except Comment.DoesNotExist:
         return JsonResponse({
             'success': False,
             'error': 'نظر یافت نشد'
@@ -301,7 +301,7 @@ def user_comments(request):
 
     try:
         # Get user comments with pagination
-        comments = UserComment.objects.filter(
+        comments = Comment.objects.filter(
             user=request.user,
             is_active=True
         ).order_by('-created_at')
@@ -323,7 +323,7 @@ def user_comments(request):
         context = {
             'page_obj': page_obj,
             'search_query': search_query,
-            'total_comments': UserComment.objects.filter(user=request.user, is_active=True).count()
+            'total_comments': Comment.objects.filter(user=request.user, is_active=True).count()
         }
 
         return render(request, 'users/comments.html', context)
@@ -348,7 +348,7 @@ def bulk_delete_comments(request):
             })
 
         # Update selected comments
-        deleted_count = UserComment.objects.filter(
+        deleted_count = Comment.objects.filter(
             id__in=comment_ids,
             user=request.user,
             is_active=True
@@ -375,8 +375,8 @@ def comment_statistics(request):
     """Get comment statistics for dashboard"""
     try:
         stats = {
-            'total_comments': UserComment.objects.filter(user=request.user, is_active=True).count(),
-            'comments_this_month': UserComment.objects.filter(
+            'total_comments': Comment.objects.filter(user=request.user, is_active=True).count(),
+            'comments_this_month': Comment.objects.filter(
                 user=request.user,
                 is_active=True,
                 created_at__month=timezone.now().month,
@@ -385,7 +385,7 @@ def comment_statistics(request):
             'latest_comment': None
         }
 
-        latest = UserComment.objects.filter(user=request.user, is_active=True).first()
+        latest = Comment.objects.filter(user=request.user, is_active=True).first()
         if latest:
             stats['latest_comment'] = {
                 'subject': latest.subject,
