@@ -452,21 +452,21 @@ class Comment(models.Model):
         help_text="پاسخ مدیر به این نظر"
     )
 
-    responded_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        related_name="comment_responses",
-        verbose_name="پاسخ داده شده توسط",
-        blank=True,
-        null=True
-    )
-
-    responded_at = models.DateTimeField(
-        verbose_name="تاریخ پاسخ",
-        blank=True,
-        null=True,
-        default=None
-    )
+    # responded_by = models.ForeignKey(
+    #     settings.AUTH_USER_MODEL,
+    #     on_delete=models.SET_NULL,
+    #     related_name="comment_responses",
+    #     verbose_name="پاسخ داده شده توسط",
+    #     blank=True,
+    #     null=True
+    # )
+    #
+    # responded_at = models.DateTimeField(
+    #     verbose_name="تاریخ پاسخ",
+    #     blank=True,
+    #     null=True,
+    #     default=None
+    # )
 
     created_at = models.DateTimeField(
         auto_now_add=True,

@@ -1700,7 +1700,7 @@ class CommentAdmin(admin.ModelAdmin):
         ("created_at", JDateFieldListFilter),
         "content_type",
         ("admin_response", admin.EmptyFieldListFilter),  # Filter by response status
-        "responded_by",
+        # "responded_by",
         "user",  # Added user filter for better user management
     ]
 
@@ -1734,7 +1734,7 @@ class CommentAdmin(admin.ModelAdmin):
             "classes": ("wide",),
         }),
         ("پاسخ مدیر", {
-            "fields": ("admin_response", "responded_by", "responded_at"),
+            "fields": ("admin_response"),
             "classes": ("wide",),
             "description": "در صورت نیاز می‌توانید به این نظر پاسخ دهید"
         }),
@@ -1768,7 +1768,7 @@ class CommentAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         """Optimize queries"""
         return super().get_queryset(request).select_related(
-            'user', 'content_type', 'responded_by'
+            'user', 'content_type'
         ).prefetch_related('content_object')
 
     def has_add_permission(self, request):
@@ -1777,10 +1777,10 @@ class CommentAdmin(admin.ModelAdmin):
 
     def save_model(self, request, obj, form, change):
         """Auto-set response metadata when admin responds"""
-        if change and 'admin_response' in form.changed_data and obj.admin_response:
-            if not obj.responded_by:
-                obj.responded_by = request.user
-                obj.responded_at = timezone.now()
+        # if change and 'admin_response' in form.changed_data and obj.admin_response:
+            # if not obj.responded_by:
+            #     obj.responded_by = request.user
+            #     obj.responded_at = timezone.now()
         super().save_model(request, obj, form, change)
 
     def user_info(self, obj):
@@ -1848,7 +1848,7 @@ class CommentAdmin(admin.ModelAdmin):
         if obj.admin_response:
             return format_html(
                 '<span style="background: #17a2b8; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;" title="پاسخ داده شده توسط: {}">پاسخ داده شده</span>',
-                obj.responded_by.username if obj.responded_by else 'نامشخص'
+                 'نامشخص'
             )
         else:
             return format_html(
@@ -1944,11 +1944,11 @@ class CommentAdmin(admin.ModelAdmin):
         """Mark comments as responded (without adding actual response)"""
         count = 0
         for comment in queryset:
-            if not comment.responded_at:
-                comment.responded_by = request.user
-                comment.responded_at = timezone.now()
-                comment.save()
-                count += 1
+            # if not comment.responded_at:
+            #     comment.responded_by = request.user
+            #     comment.responded_at = timezone.now()
+            comment.save()
+            count += 1
 
         self.message_user(
             request,
@@ -2158,7 +2158,7 @@ class AdminMessageAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request).select_related(
-            'user', 'content_type', 'responded_by'
+            'user', 'content_type'
         ).prefetch_related('content_object')
         # Optional: truncate microseconds
         return qs.annotate(
