@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.mail import EmailMultiAlternatives
+from django.core.mail import EmailMultiAlternatives, send_mail
 from django.core.validators import validate_email
 
 logger = logging.getLogger("email_service")
@@ -348,104 +348,91 @@ logger = logging.getLogger('users')
 
 
 class CommentEmailService:
-    """Service for sending comment-related email notifications"""
-
     @staticmethod
-    def send_comment_notification(comment, user_ip: str = None) -> bool:
+    def send_comment_notification(comment, client_ip=None):
         """
-        Send email notification to admins when a new comment is posted
+        Send email notification to admins when a new comment is created
+        Production-ready version with error handling
         """
         try:
-            # Check if notifications are enabled
-            if not getattr(settings, 'COMMENT_NOTIFICATION_ENABLED', True):
-                logger.info(f"Comment notifications disabled - skipping for comment {comment.id}")
-                return False
+            # Get admin email from settings
+            admin_email = getattr(settings, 'ADMIN_EMAIL', settings.DEFAULT_FROM_EMAIL)
+            subject_prefix = getattr(settings, 'EMAIL_SUBJECT_PREFIX', '[Site] ')
 
-            # Get admin emails
-            admin_emails = CommentEmailService._get_admin_emails()
-            if not admin_emails:
-                logger.warning("No admin emails configured for comment notifications")
-                return False
+            # Create subject
+            subject = f"{subject_prefix}New Comment from {comment.user.username}"
 
-            # Prepare email context
-            context = CommentEmailService._prepare_email_context(comment, user_ip)
+            # Create detailed message content
+            message_lines = [
+                "A new comment has been submitted on your website.",
+                "",
+                f"User: {comment.user.username}",
+                f"Email: {comment.user.email}",
+                f"Subject: {comment.subject}",
+                f"IP Address: {client_ip or 'Unknown'}",
+                f"Submitted: {comment.created_at.strftime('%Y-%m-%d %H:%M:%S')}",
+                "",
+                "Content:",
+                "-" * 40,
+                comment.content,
+                "-" * 40,
+                "",
+                f"Comment ID: {comment.id}",
+                "You can manage comments in the admin panel.",
+            ]
 
-            # Render email templates
-            subject = CommentEmailService._get_email_subject(comment)
+            message = "\n".join(message_lines)
 
-            # Use simple text content if templates don't exist
+            # Log attempt
+            logger.info(f"Attempting to send comment notification email for comment {comment.id}")
+            logger.debug(f"Email backend: {settings.EMAIL_BACKEND}")
+            logger.debug(f"Sending to: {admin_email}")
+
+            # Try using Django's mail_admins first (preferred for admin notifications)
             try:
-                html_content = render_to_string('emails/comment_notification.html', context)
-                text_content = render_to_string('emails/comment_notification.txt', context)
-            except:
-                # Fallback to simple text if templates don't exist
-                html_content = CommentEmailService._get_fallback_html_content(comment, context)
-                text_content = CommentEmailService._get_fallback_text_content(comment, context)
+                mail_admins(
+                    subject=f"New Comment from {comment.user.username}",
+                    message=message,
+                    fail_silently=False
+                )
+                logger.info(f"Admin notification sent successfully using mail_admins for comment {comment.id}")
+                return True
 
-            # Send email
-            success = CommentEmailService._send_email(
-                subject=subject,
-                html_content=html_content,
-                text_content=text_content,
-                recipient_emails=admin_emails
-            )
+            except Exception as admin_mail_error:
+                logger.warning(f"mail_admins failed, trying send_mail: {str(admin_mail_error)}")
 
-            if success:
-                logger.info(f"Comment notification sent successfully - Comment ID: {comment.id}")
-            else:
-                logger.error(f"Failed to send comment notification - Comment ID: {comment.id}")
+                # Fallback to send_mail
+                result = send_mail(
+                    subject=subject,
+                    message=message,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[admin_email],
+                    fail_silently=False,
+                )
 
-            return success
+                if result:
+                    logger.info(
+                        f"Comment notification email sent successfully using send_mail for comment {comment.id}")
+                    return True
+                else:
+                    logger.error(f"send_mail returned 0 for comment {comment.id}")
+                    return False
 
         except Exception as e:
-            logger.error(f"Error sending comment notification - Comment ID: {comment.id}, Error: {str(e)}")
+            # Log the full error for debugging
+            logger.error(
+                f"Failed to send comment notification email for comment {comment.id}: {type(e).__name__}: {str(e)}")
+
+            # In production, you might want to try alternative notification methods
+            try:
+                # Alternative: Log to a special file for manual review
+                error_logger = logging.getLogger('email_failures')
+                error_logger.critical(
+                    f"FAILED EMAIL NOTIFICATION - Comment ID: {comment.id}, User: {comment.user.username}, Subject: {comment.subject}")
+            except:
+                pass
+
             return False
-
-    @staticmethod
-    def _get_email_subject(comment) -> str:
-        """Generate email subject with safe handling of optional subject field"""
-        prefix = getattr(settings, 'COMMENT_NOTIFICATION_SUBJECT_PREFIX', '[Site] ')
-        user = comment.user
-
-        # Safe handling of optional subject field
-        if comment.subject and comment.subject.strip():
-            subject_text = comment.subject.strip()[:50]
-            if len(comment.subject) > 50:
-                subject_text += "..."
-        else:
-            # Use first part of content if no subject
-            subject_text = comment.content[:50] + "..." if len(comment.content) > 50 else comment.content
-
-        subject = f"{prefix}نظر جدید از {user.username} - {subject_text}"
-        return subject
-
-    @staticmethod
-    def _get_fallback_html_content(comment, context):
-        """Generate fallback HTML content if template doesn't exist"""
-        return f"""
-        <html>
-        <body>
-            <h2>نظر جدید</h2>
-            <p><strong>کاربر:</strong> {comment.user.username}</p>
-            <p><strong>موضوع:</strong> {getattr(comment, 'subject', 'نظر جدید')}</p>
-            <p><strong>متن:</strong></p>
-            <p>{comment.content}</p>
-            <p><strong>تاریخ:</strong> {comment.created_at}</p>
-        </body>
-        </html>
-        """
-
-    @staticmethod
-    def _get_fallback_text_content(comment, context):
-        """Generate fallback text content if template doesn't exist"""
-        return f"""
-نظر جدید
-
-کاربر: {comment.user.username}
-موضوع: {getattr(comment, 'subject', 'نظر جدید')}
-متن: {comment.content}
-تاریخ: {comment.created_at}
-        """
 
 
 class EmailTestService:

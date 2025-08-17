@@ -369,7 +369,7 @@ if not os.path.exists(LOG_DIR):
 
 # Email Configuration
 ENV_TYPE = env("ENV_TYPE", default="production")
-EMAIL_MODE = env("EMAIL_MODE", default="auto")  # auto, console, real, file
+EMAIL_MODE = env("EMAIL_MODE", default="real")  # auto, console, real, file
 
 
 # Determine email backend based on configuration
@@ -401,16 +401,13 @@ def get_email_backend():
 EMAIL_BACKEND = get_email_backend()
 
 # SMTP settings (always load these, even if using console backend)
-EMAIL_HOST = env("EMAIL_HOST", default="")
-EMAIL_PORT = env("EMAIL_PORT", default=587, cast=int)
-EMAIL_USE_TLS = env("EMAIL_USE_TLS", default=True, cast=bool)
-EMAIL_USE_SSL = env("EMAIL_USE_SSL", default=False, cast=bool)
-EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+EMAIL_HOST = env("EMAIL_HOST", default="mail.erfann31dev.ir")
+EMAIL_PORT = env("EMAIL_PORT", default=465, cast=int)
+EMAIL_USE_TLS = env("EMAIL_USE_TLS", default=False, cast=bool)
+EMAIL_USE_SSL = env("EMAIL_USE_SSL", default=True, cast=bool)
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="shoku@erfann31dev.ir")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
-DEFAULT_FROM_EMAIL = env(
-    "DEFAULT_FROM_EMAIL",
-    default=EMAIL_HOST_USER if EMAIL_HOST_USER else "webmaster@localhost",
-)
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="shoku@erfann31dev.ir")
 
 # File backend settings (if using file backend)
 EMAIL_FILE_PATH = BASE_DIR / "sent_emails"
@@ -431,17 +428,16 @@ import os
 #==============================================
 # Admin and Server Email Settings
 SERVER_EMAIL = env("SERVER_EMAIL", default=DEFAULT_FROM_EMAIL)
-EMAIL_SUBJECT_PREFIX = env("EMAIL_SUBJECT_PREFIX", default="[Django Site] ")
+EMAIL_SUBJECT_PREFIX = env("EMAIL_SUBJECT_PREFIX", default="[Shoku Site] ")
 
 # Admin email addresses
-ADMIN_EMAIL = env("ADMIN_EMAIL", default=EMAIL_HOST_USER)
+ADMIN_EMAIL = env("ADMIN_EMAIL", default="shoku@erfann31dev.ir")
 ADMINS = [
     ('Site Admin', ADMIN_EMAIL),
 ]
-
 # Manager email addresses (receives broken link notifications)
 MANAGERS = ADMINS
-EMAIL_TIMEOUT = 60
+EMAIL_TIMEOUT = 30
 
 # Comment notifications (if applicable)
 COMMENT_NOTIFICATION_ENABLED = True
