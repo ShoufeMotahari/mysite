@@ -3,6 +3,7 @@ import logging
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 
 from users.forms.forms import (
@@ -10,6 +11,7 @@ from users.forms.forms import (
     UserUpdateForm, CommentForm, SignupForm,
 )
 from users.models import User
+from users.managers.email_manager import EmailManager, SendEmailCommand
 
 logger = logging.getLogger("users")
 User = get_user_model()
@@ -72,32 +74,67 @@ def register_view(request):
     else:
         form = SignupForm()
 
-    return render(request, 'registration/signup.html', {'form': form})
+    return render(request, 'users/signup.html', {'form': form})
 
 
-# Separate view for comments
+@csrf_protect
 def submit_comment_view(request):
-    """Separate view for handling comments"""
+    """Handle comment submission with better error handling"""
     if not request.user.is_authenticated:
+        messages.error(request, 'برای ثبت نظر باید وارد شوید.')
         return redirect('login')
 
     if request.method == 'POST':
         form = CommentForm(request.POST)
         if form.is_valid():
-            comment = form.save(commit=False)
-            comment.user = request.user
-            comment.save()
-
-            # Send notification email
             try:
-                from users.services.email_service import CommentEmailService
-                CommentEmailService.send_comment_notification(comment)
-            except Exception as e:
-                logger.error(f"Failed to send comment notification: {e}")
+                # Use transaction to ensure data integrity
+                with transaction.atomic():
+                    comment = form.save(commit=False)
+                    comment.user = request.user
+                    comment.save()
 
-            messages.success(request, 'نظر شما با موفقیت ثبت شد.')
-            return redirect('comments_list')  # or wherever
+                    logger.info(f"Comment saved successfully - ID: {comment.id}, User: {request.user.username}")
+
+                    # Get user's IP address for email notification
+                    user_ip = get_client_ip(request)
+
+                    # Send notification email in a separate try-catch
+                    try:
+                        from users.services.email_service import CommentEmailService
+                        email_sent = CommentEmailService.send_comment_notification(comment, user_ip)
+
+                        if email_sent:
+                            logger.info(f"Email notification sent for comment {comment.id}")
+                        else:
+                            logger.warning(f"Email notification failed for comment {comment.id}")
+
+                    except Exception as email_error:
+                        logger.error(f"Email notification error for comment {comment.id}: {email_error}")
+                        # Don't fail the comment submission if email fails
+
+                    messages.success(request, 'نظر شما با موفقیت ثبت شد.')
+
+                    # Redirect to prevent form resubmission
+                    return redirect('comments_list')
+
+            except Exception as e:
+                logger.error(f"Comment submission error: {e}")
+                messages.error(request, 'خطایی در ثبت نظر رخ داد. لطفا دوباره تلاش کنید.')
+        else:
+            logger.warning(f"Comment form validation failed: {form.errors}")
+            messages.error(request, 'لطفا اطلاعات را به درستی وارد کنید.')
     else:
         form = CommentForm()
 
-    return render(request, 'comments/submit.html', {'form': form})
+    return render(request, 'users/submit.html', {'form': form})
+
+
+def get_client_ip(request):
+    """Get client IP address"""
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip

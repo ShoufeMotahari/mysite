@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-3">ثبت نظر</h2>
+
+    <!-- نمایش پیام‌های موفقیت/خطا -->
+    {% if messages %}
+        <div>
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- فرم ثبت نظر -->
+    <form method="post" class="card p-3 shadow-sm">
+        {% csrf_token %}
+        {{ form.as_p }}
+
+        <button type="submit" class="btn btn-primary mt-2">ارسال نظر</button>
+        <a href="{% url 'comments_list' %}" class="btn btn-secondary mt-2">بازگشت</a>
+    </form>
+</div>
+{% endblock %}
