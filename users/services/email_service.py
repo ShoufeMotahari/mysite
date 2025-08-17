@@ -2,11 +2,13 @@
 import logging
 import re
 from abc import ABC, abstractmethod
+from typing import Dict, List, Optional
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.mail import EmailMultiAlternatives, send_mail
 from django.core.validators import validate_email
+from django.template.loader import render_to_string
 
 logger = logging.getLogger("email_service")
 
@@ -84,13 +86,13 @@ class DjangoEmailStrategy(EmailStrategy):
             valid_users, invalid_users = EmailValidator.validate_users(recipients)
 
             # Log validation results
-            logger.info(f"📊 User validation results:")
-            logger.info(f"  ✅ Valid users: {len(valid_users)}")
-            logger.info(f"  ❌ Invalid users: {len(invalid_users)}")
+            logger.info(f"User validation results:")
+            logger.info(f"  Valid users: {len(valid_users)}")
+            logger.info(f"  Invalid users: {len(invalid_users)}")
 
             # Log invalid users details
             if invalid_users:
-                logger.warning(f"⚠️ Invalid users found ({len(invalid_users)}):")
+                logger.warning(f"Invalid users found ({len(invalid_users)}):")
                 for invalid_user in invalid_users:
                     user = invalid_user["user"]
                     issues = invalid_user["issues"]
@@ -104,7 +106,7 @@ class DjangoEmailStrategy(EmailStrategy):
             # If no valid users, return early
             if not valid_users:
                 error_msg = "No valid users found to send email to"
-                logger.error(f"❌ {error_msg}")
+                logger.error(f"{error_msg}")
                 return (
                     False,
                     error_msg,
@@ -117,15 +119,15 @@ class DjangoEmailStrategy(EmailStrategy):
                 )
 
             # Prepare email for valid users
-            from_email = settings.DEFAULT_FROM_EMAIL
+            from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@example.com')
             recipient_emails = [user.email for user in valid_users]
 
-            logger.info(f"📧 Preparing email for {len(valid_users)} valid users:")
+            logger.info(f"Preparing email for {len(valid_users)} valid users:")
             for user in valid_users:
-                logger.info(f"  ✅ {user.username} ({user.email})")
+                logger.info(f"  {user.username} ({user.email})")
 
             logger.info(
-                f"📨 Sending email: '{subject}' to {len(recipient_emails)} recipients"
+                f"Sending email: '{subject}' to {len(recipient_emails)} recipients"
             )
 
             # Create email message
@@ -147,15 +149,15 @@ class DjangoEmailStrategy(EmailStrategy):
                 success_msg = (
                     f"Email sent successfully to {len(recipient_emails)} valid users"
                 )
-                logger.info(f"✅ {success_msg}")
+                logger.info(f"{success_msg}")
 
                 # Log summary
-                logger.info(f"📈 Email sending summary:")
-                logger.info(f"  📧 Subject: '{subject}'")
-                logger.info(f"  👤 Sender: {sender_info}")
-                logger.info(f"  📊 Total requested: {len(recipients)}")
-                logger.info(f"  ✅ Successfully sent: {len(recipient_emails)}")
-                logger.info(f"  ❌ Invalid/skipped: {len(invalid_users)}")
+                logger.info(f"Email sending summary:")
+                logger.info(f"  Subject: '{subject}'")
+                logger.info(f"  Sender: {sender_info}")
+                logger.info(f"  Total requested: {len(recipients)}")
+                logger.info(f"  Successfully sent: {len(recipient_emails)}")
+                logger.info(f"  Invalid/skipped: {len(invalid_users)}")
 
                 return (
                     True,
@@ -169,7 +171,7 @@ class DjangoEmailStrategy(EmailStrategy):
                 )
             else:
                 error_msg = "Email sending failed - Django mail returned 0"
-                logger.error(f"❌ {error_msg}")
+                logger.error(f"{error_msg}")
                 return (
                     False,
                     error_msg,
@@ -183,7 +185,7 @@ class DjangoEmailStrategy(EmailStrategy):
 
         except Exception as e:
             error_msg = f"Exception occurred while sending email '{subject}': {str(e)}"
-            logger.error(f"❌ {error_msg}")
+            logger.error(f"{error_msg}")
             logger.exception("Full exception details:")
             return (
                 False,
@@ -197,242 +199,212 @@ class DjangoEmailStrategy(EmailStrategy):
             )
 
 
-class SMTPEmailStrategy(EmailStrategy):
-    """Alternative SMTP email strategy for future use"""
-
-    def __init__(self, smtp_config=None):
-        self.smtp_config = smtp_config or {}
-
-    def send_email(self, recipients, subject, content, sender_info):
-        # Implementation for SMTP strategy
-        # This can be implemented later if needed
-        logger.info("SMTP email strategy not implemented yet")
-        return False, "SMTP strategy not implemented", {}
-
-
 class EmailService:
-    def __init__(self, strategy: EmailStrategy):
-        self._strategy = strategy
+    def __init__(self, strategy: EmailStrategy = None):
+        self._strategy = strategy or DjangoEmailStrategy()
         self.logger = logging.getLogger("email_service")
 
     def set_strategy(self, strategy: EmailStrategy):
         """Change email sending strategy"""
         self._strategy = strategy
-        self.logger.info(f"🔄 Email strategy changed to: {strategy.__class__.__name__}")
+        self.logger.info(f"Email strategy changed to: {strategy.__class__.__name__}")
 
-    def send_email(self, recipients, subject, content, sender_info):
+    def send_email(self, recipients, subject, content, sender_info="System"):
         """Send email using the current strategy"""
-        self.logger.info(f"🚀 Email service initiated for: '{subject}'")
-        self.logger.info(f"📋 Processing {len(recipients)} recipients")
+        self.logger.info(f"Email service initiated for: '{subject}'")
+        self.logger.info(f"Processing {len(recipients)} recipients")
 
         # Validate inputs
         if not recipients:
             error_msg = "No recipients provided"
-            self.logger.error(f"❌ {error_msg}")
+            self.logger.error(f"{error_msg}")
             return False, error_msg, {}
 
         if not subject:
             error_msg = "No subject provided"
-            self.logger.error(f"❌ {error_msg}")
+            self.logger.error(f"{error_msg}")
             return False, error_msg, {}
 
         if not content:
             error_msg = "No content provided"
-            self.logger.error(f"❌ {error_msg}")
+            self.logger.error(f"{error_msg}")
             return False, error_msg, {}
 
         return self._strategy.send_email(recipients, subject, content, sender_info)
 
-    def get_current_strategy(self):
-        """Get the current email strategy"""
-        return self._strategy.__class__.__name__
-
-
-# Factory Pattern for Email Service
-class EmailServiceFactory:
-    _services = {
-        "django": DjangoEmailStrategy,
-        "smtp": SMTPEmailStrategy,
-    }
-
-    @staticmethod
-    def create_email_service(service_type="django", **kwargs):
-        """Create email service with specified strategy"""
-        logger.info(f"🏭 Creating email service of type: {service_type}")
-
-        if service_type not in EmailServiceFactory._services:
-            available_types = ", ".join(EmailServiceFactory._services.keys())
-            error_msg = f"Unknown email service type: {service_type}. Available types: {available_types}"
-            logger.error(f"❌ {error_msg}")
-            raise ValueError(error_msg)
-
-        strategy_class = EmailServiceFactory._services[service_type]
-        strategy = strategy_class(**kwargs)
-
-        return EmailService(strategy)
-
-    @staticmethod
-    def get_available_services():
-        """Get list of available email service types"""
-        return list(EmailServiceFactory._services.keys())
-
-
-# Utility functions for email processing
-class EmailUtils:
-    @staticmethod
-    def sanitize_subject(subject):
-        """Sanitize email subject line"""
-        if not subject:
-            return "No Subject"
-
-        # Remove potentially harmful characters
-        sanitized = re.sub(r'[^\w\s\-_.,!?()[\]{}:;@#$%^&*+=|\\/<>"`~]', "", subject)
-
-        # Limit length
-        if len(sanitized) > 200:
-            sanitized = sanitized[:197] + "..."
-
-        return sanitized.strip()
-
-    @staticmethod
-    def sanitize_content(content):
-        """Basic content sanitization"""
-        if not content:
-            return ""
-
-        # Remove null bytes and other control characters
-        sanitized = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]", "", content)
-
-        return sanitized.strip()
-
-    @staticmethod
-    def extract_plain_text(html_content):
-        """Extract plain text from HTML content"""
-        if not html_content:
-            return ""
-
-        # Simple HTML tag removal
-        plain_text = re.sub(r"<[^>]+>", "", html_content)
-
-        # Decode HTML entities
-        plain_text = plain_text.replace("&nbsp;", " ")
-        plain_text = plain_text.replace("&amp;", "&")
-        plain_text = plain_text.replace("&lt;", "<")
-        plain_text = plain_text.replace("&gt;", ">")
-        plain_text = plain_text.replace("&quot;", '"')
-        plain_text = plain_text.replace("&#39;", "'")
-
-        return plain_text.strip()
-
-
-# Email service instance factory
-def get_email_service(service_type="django"):
-    """Convenience function to get email service instance"""
-    return EmailServiceFactory.create_email_service(service_type)
-
-
-# users/services/email_service.py
-import logging
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional
-
-from django.conf import settings
-from django.core.mail import EmailMultiAlternatives, mail_admins
-from django.template.loader import render_to_string
-from django.urls import reverse
-from django.utils import timezone
-
-from users.models import Comment, PasswordEntry
-
-logger = logging.getLogger('users')
-
 
 class CommentEmailService:
+    """Service for sending comment-related email notifications"""
+
     @staticmethod
-    def send_comment_notification(comment, client_ip=None):
-        """
-        Send email notification to admins when a new comment is created
-        Production-ready version with error handling
-        """
+    def _get_admin_emails() -> List[str]:
+        """Get admin email addresses from settings"""
         try:
-            # Get admin email from settings
-            admin_email = getattr(settings, 'ADMIN_EMAIL', settings.DEFAULT_FROM_EMAIL)
-            subject_prefix = getattr(settings, 'EMAIL_SUBJECT_PREFIX', '[Site] ')
+            # Try to get from ADMINS setting
+            admins = getattr(settings, 'ADMINS', [])
+            admin_emails = [admin[1] for admin in admins if len(admin) > 1]
 
-            # Create subject
-            subject = f"{subject_prefix}New Comment from {comment.user.username}"
+            # Fallback to a specific setting
+            if not admin_emails:
+                notification_emails = getattr(settings, 'COMMENT_NOTIFICATION_EMAILS', [])
+                if isinstance(notification_emails, (list, tuple)):
+                    admin_emails = list(notification_emails)
+                elif isinstance(notification_emails, str):
+                    admin_emails = [notification_emails]
 
-            # Create detailed message content
-            message_lines = [
-                "A new comment has been submitted on your website.",
-                "",
-                f"User: {comment.user.username}",
-                f"Email: {comment.user.email}",
-                f"Subject: {comment.subject}",
-                f"IP Address: {client_ip or 'Unknown'}",
-                f"Submitted: {comment.created_at.strftime('%Y-%m-%d %H:%M:%S')}",
-                "",
-                "Content:",
-                "-" * 40,
-                comment.content,
-                "-" * 40,
-                "",
-                f"Comment ID: {comment.id}",
-                "You can manage comments in the admin panel.",
-            ]
+            # Final fallback to DEFAULT_FROM_EMAIL if configured
+            if not admin_emails:
+                default_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None)
+                if default_email and EmailValidator.is_valid_email(default_email):
+                    admin_emails = [default_email]
 
-            message = "\n".join(message_lines)
-
-            # Log attempt
-            logger.info(f"Attempting to send comment notification email for comment {comment.id}")
-            logger.debug(f"Email backend: {settings.EMAIL_BACKEND}")
-            logger.debug(f"Sending to: {admin_email}")
-
-            # Try using Django's mail_admins first (preferred for admin notifications)
-            try:
-                mail_admins(
-                    subject=f"New Comment from {comment.user.username}",
-                    message=message,
-                    fail_silently=False
-                )
-                logger.info(f"Admin notification sent successfully using mail_admins for comment {comment.id}")
-                return True
-
-            except Exception as admin_mail_error:
-                logger.warning(f"mail_admins failed, trying send_mail: {str(admin_mail_error)}")
-
-                # Fallback to send_mail
-                result = send_mail(
-                    subject=subject,
-                    message=message,
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[admin_email],
-                    fail_silently=False,
-                )
-
-                if result:
-                    logger.info(
-                        f"Comment notification email sent successfully using send_mail for comment {comment.id}")
-                    return True
+            # Validate all emails
+            valid_emails = []
+            for email in admin_emails:
+                if EmailValidator.is_valid_email(email):
+                    valid_emails.append(email)
                 else:
-                    logger.error(f"send_mail returned 0 for comment {comment.id}")
-                    return False
+                    logger.warning(f"Invalid admin email found: {email}")
+
+            return valid_emails
 
         except Exception as e:
-            # Log the full error for debugging
-            logger.error(
-                f"Failed to send comment notification email for comment {comment.id}: {type(e).__name__}: {str(e)}")
+            logger.error(f"Error getting admin emails: {str(e)}")
+            return []
 
-            # In production, you might want to try alternative notification methods
-            try:
-                # Alternative: Log to a special file for manual review
-                error_logger = logging.getLogger('email_failures')
-                error_logger.critical(
-                    f"FAILED EMAIL NOTIFICATION - Comment ID: {comment.id}, User: {comment.user.username}, Subject: {comment.subject}")
-            except:
-                pass
+    @staticmethod
+    def _prepare_email_context(comment, user_ip: str = None) -> Dict:
+        """Prepare context for email templates"""
+        return {
+            'comment': comment,
+            'user': comment.user,
+            'user_ip': user_ip,
+            'site_name': getattr(settings, 'SITE_NAME', 'Website'),
+            'domain': getattr(settings, 'SITE_DOMAIN', 'example.com'),
+        }
 
+    @staticmethod
+    def _send_email(subject: str, html_content: str, text_content: str,
+                    recipient_emails: List[str]) -> bool:
+        """Send email with both HTML and text content"""
+        try:
+            from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@example.com')
+
+            msg = EmailMultiAlternatives(
+                subject=subject,
+                body=text_content,
+                from_email=from_email,
+                to=recipient_emails,
+            )
+
+            if html_content:
+                msg.attach_alternative(html_content, "text/html")
+
+            result = msg.send()
+            return result > 0
+
+        except Exception as e:
+            logger.error(f"Error sending email: {str(e)}")
             return False
+
+    @staticmethod
+    def send_comment_notification(comment, user_ip: str = None) -> bool:
+        """Send email notification to admins when a new comment is posted"""
+        try:
+            # Check if notifications are enabled
+            if not getattr(settings, 'COMMENT_NOTIFICATION_ENABLED', True):
+                logger.info(f"Comment notifications disabled - skipping for comment {comment.id}")
+                return False
+
+            # Get admin emails
+            admin_emails = CommentEmailService._get_admin_emails()
+            if not admin_emails:
+                logger.warning("No admin emails configured for comment notifications")
+                return False
+
+            # Prepare email context
+            context = CommentEmailService._prepare_email_context(comment, user_ip)
+
+            # Generate subject
+            subject = CommentEmailService._get_email_subject(comment)
+
+            # Try to render templates, fallback to simple content
+            try:
+                html_content = render_to_string('emails/comment_notification.html', context)
+                text_content = render_to_string('emails/comment_notification.txt', context)
+            except Exception as template_error:
+                logger.warning(f"Template rendering failed, using fallback: {template_error}")
+                html_content = CommentEmailService._get_fallback_html_content(comment, context)
+                text_content = CommentEmailService._get_fallback_text_content(comment, context)
+
+            # Send email
+            success = CommentEmailService._send_email(
+                subject=subject,
+                html_content=html_content,
+                text_content=text_content,
+                recipient_emails=admin_emails
+            )
+
+            if success:
+                logger.info(f"Comment notification sent successfully - Comment ID: {comment.id}")
+            else:
+                logger.error(f"Failed to send comment notification - Comment ID: {comment.id}")
+
+            return success
+
+        except Exception as e:
+            logger.error(f"Error sending comment notification - Comment ID: {comment.id}, Error: {str(e)}")
+            return False
+
+    @staticmethod
+    def _get_email_subject(comment) -> str:
+        """Generate email subject with safe handling"""
+        prefix = getattr(settings, 'COMMENT_NOTIFICATION_SUBJECT_PREFIX', '[Site] ')
+        user = comment.user
+
+        # Safe handling of optional subject field
+        if hasattr(comment, 'subject') and comment.subject and comment.subject.strip():
+            subject_text = comment.subject.strip()[:50]
+            if len(comment.subject) > 50:
+                subject_text += "..."
+        else:
+            # Use first part of content if no subject
+            subject_text = comment.content[:50] + "..." if len(comment.content) > 50 else comment.content
+
+        subject = f"{prefix}New comment from {user.username} - {subject_text}"
+        return subject
+
+    @staticmethod
+    def _get_fallback_html_content(comment, context):
+        """Generate fallback HTML content if template doesn't exist"""
+        return f"""
+        <html>
+        <body>
+            <h2>New Comment</h2>
+            <p><strong>User:</strong> {comment.user.username}</p>
+            <p><strong>Subject:</strong> {getattr(comment, 'subject', 'New Comment')}</p>
+            <p><strong>Content:</strong></p>
+            <p>{comment.content}</p>
+            <p><strong>Date:</strong> {comment.created_at}</p>
+            {f'<p><strong>IP:</strong> {context.get("user_ip", "Unknown")}</p>' if context.get("user_ip") else ''}
+        </body>
+        </html>
+        """
+
+    @staticmethod
+    def _get_fallback_text_content(comment, context):
+        """Generate fallback text content if template doesn't exist"""
+        ip_info = f"IP: {context.get('user_ip', 'Unknown')}" if context.get('user_ip') else ""
+
+        return f"""
+New Comment
+
+User: {comment.user.username}
+Subject: {getattr(comment, 'subject', 'New Comment')}
+Content: {comment.content}
+Date: {comment.created_at}
+{ip_info}
+        """
 
 
 class EmailTestService:
@@ -442,8 +414,6 @@ class EmailTestService:
     def test_email_configuration() -> Dict[str, any]:
         """Test email configuration and send a test email"""
         try:
-            from django.core.mail import send_mail
-
             # Test email settings
             test_result = {
                 'success': False,
@@ -492,3 +462,9 @@ class EmailTestService:
                 'message': f'Email test failed: {str(e)}',
                 'details': {'error': str(e)}
             }
+
+
+# Convenience function
+def get_email_service():
+    """Get a default email service instance"""
+    return EmailService()

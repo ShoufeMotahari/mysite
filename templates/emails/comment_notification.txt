@@ -1,0 +1,34 @@
+NEW COMMENT NOTIFICATION
+========================
+
+A new comment has been posted on {{ site_name|default:"your website" }}.
+
+COMMENT DETAILS:
+---------------
+User: {{ comment.user.username }}{% if comment.user.first_name or comment.user.last_name %} ({{ comment.user.first_name }} {{ comment.user.last_name }}){% endif %}
+
+{% if comment.user.email %}Email: {{ comment.user.email }}
+{% endif %}
+{% if comment.subject %}Subject: {{ comment.subject }}
+{% endif %}
+Date: {{ comment.created_at|date:"F j, Y, g:i A" }}
+{% if user_ip %}IP Address: {{ user_ip }}
+{% endif %}
+
+COMMENT CONTENT:
+---------------
+{{ comment.content }}
+
+{% if comment.id %}ADMIN ACTIONS:
+-------------
+To view this comment in the admin panel, visit:
+http{% if request.is_secure %}s{% endif %}://{{ domain }}/admin/users/comment/{{ comment.id }}/change/
+
+{% endif %}SITE INFORMATION:
+----------------
+Site: {{ site_name|default:"Your Website" }}
+Domain: {{ domain|default:"example.com" }}
+
+---
+This is an automated notification from {{ site_name|default:"your website" }}.
+You received this email because you are configured as an administrator.
