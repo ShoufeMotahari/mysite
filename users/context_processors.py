@@ -19,7 +19,7 @@ def admin_notifications(request):
     try:
         # Only run for staff users to avoid unnecessary queries
         if hasattr(request, 'user') and request.user.is_authenticated and request.user.is_staff:
-            from users.models import Comment
+            from users.models import comment
 
             # Get unread comments count (only approved ones)
             context['unread_comments_count'] = Comment.objects.filter(

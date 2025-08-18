@@ -5,7 +5,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 
-from .models import EmailLog  # الان این مدل داخل users/models.py خواهد بود
+from .models import emailLog  # الان این مدل داخل users/models.py خواهد بود
 
 logger = logging.getLogger("emails")
 

@@ -15,7 +15,7 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.db.models import Count, Q
 
-from users.models import UserType
+from users.models import userType
 
 logger = logging.getLogger(__name__)
 User = get_user_model()

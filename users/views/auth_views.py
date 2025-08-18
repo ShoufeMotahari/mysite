@@ -17,8 +17,6 @@ from users.forms.forms import (
     SignupForm,
     VerificationForm, ForgotPasswordForm,
 )
-from users.models import User, VerificationToken
-
 # Import our custom password functions instead of Django's
 from users.utils.password_utils import make_password, check_password, get_password_strength, generate_secure_password
 

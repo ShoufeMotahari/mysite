@@ -6,7 +6,7 @@ from django.contrib.auth import login
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect
 
-from users.models import User
+from users.models import user
 
 
 def google_login(request):

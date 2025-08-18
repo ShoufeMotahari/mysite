@@ -1,7 +1,7 @@
 # messaging/forms.py
 from django import forms
 
-from users.models import AdminMessage, AdminMessageReply
+from users.models import adminMessage, AdminMessageReply
 
 
 class AdminMessageForm(forms.ModelForm):

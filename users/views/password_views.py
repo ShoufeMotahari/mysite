@@ -1,7 +1,5 @@
-import logging
-import random
-import uuid
 import json
+import logging
 import secrets
 import string
 
@@ -21,8 +19,6 @@ from users.forms.forms import (
     PasswordEntryForm,
     VerificationForm,
 )
-from users.models import PasswordEntry, RegisterToken, User, VerificationToken
-
 # Import our custom password functions
 from users.utils.password_utils import make_password, check_password, get_password_strength
 

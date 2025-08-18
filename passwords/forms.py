@@ -6,8 +6,6 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django_pwned.validators import PwnedPasswordValidator
 
-from users.models import PasswordEntry
-
 logger = logging.getLogger(__name__)
 
 

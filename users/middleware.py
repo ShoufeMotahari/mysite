@@ -6,7 +6,7 @@ from django.shortcuts import redirect
 from django.utils.deprecation import MiddlewareMixin
 
 # Add this import
-from users.models import AdminMessage
+from users.models import adminMessage
 
 logger = logging.getLogger(__name__)
 

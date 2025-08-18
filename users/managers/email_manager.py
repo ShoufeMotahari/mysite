@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 
-from users.models import EmailTemplate
+from users.models import emailTemplate
 from users.services.email_service import get_email_service
 
 logger = logging.getLogger("email_manager")

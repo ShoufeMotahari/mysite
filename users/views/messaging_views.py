@@ -10,7 +10,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
 from users.forms.messaging_forms import AdminMessageForm
-from users.models import AdminMessage
+from users.models import adminMessage
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -19,11 +19,11 @@ User = get_user_model()
 def is_message_admin(user):
     """Check if user is a message admin (staff but not superuser)"""
     return (
-        user.is_authenticated
-        and user.is_staff
-        and not user.is_superuser
-        and user.user_type
-        and user.user_type.slug == "message_admin"
+            user.is_authenticated
+            and user.is_staff
+            and not user.is_superuser
+            and user.user_type
+            and user.user_type.slug == "message_admin"
     )
 
 

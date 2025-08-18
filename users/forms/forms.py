@@ -9,8 +9,6 @@ from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import ValidationError
 from django_pwned.validators import PwnedPasswordValidator
 
-from users.models import Comment, EmailTemplate, PasswordEntry
-
 # Custom password utils from users.utils
 from users.utils.password_utils import get_password_strength, make_password
 

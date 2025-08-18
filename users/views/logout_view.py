@@ -26,10 +26,10 @@ def smart_logout_view(request):
         logout_message = "مدیر ارشد با موفقیت خارج شد."
 
     elif (
-        request.user.is_staff
-        and hasattr(request.user, "user_type")
-        and request.user.user_type
-        and request.user.user_type.slug == "message_admin"
+            request.user.is_staff
+            and hasattr(request.user, "user_type")
+            and request.user.user_type
+            and request.user.user_type.slug == "message_admin"
     ):
         # Message admin - redirect to admin login
         user_type = "message_admin"
@@ -70,11 +70,11 @@ def message_admin_logout_view(request):
 
     # Verify this is actually a message admin
     if not (
-        request.user.is_staff
-        and not request.user.is_superuser
-        and hasattr(request.user, "user_type")
-        and request.user.user_type
-        and request.user.user_type.slug == "message_admin"
+            request.user.is_staff
+            and not request.user.is_superuser
+            and hasattr(request.user, "user_type")
+            and request.user.user_type
+            and request.user.user_type.slug == "message_admin"
     ):
         # If not a message admin, use regular logout
         return smart_logout_view(request)
@@ -120,10 +120,10 @@ class SmartLogoutView(LogoutView):
         if self.request.user.is_superuser:
             return "/admin/login/"
         elif (
-            self.request.user.is_staff
-            and hasattr(self.request.user, "user_type")
-            and self.request.user.user_type
-            and self.request.user.user_type.slug == "message_admin"
+                self.request.user.is_staff
+                and hasattr(self.request.user, "user_type")
+                and self.request.user.user_type
+                and self.request.user.user_type.slug == "message_admin"
         ):
             return "/admin/login/"
         elif self.request.user.is_staff:
@@ -138,10 +138,10 @@ class SmartLogoutView(LogoutView):
             if request.user.is_superuser:
                 user_type = "superuser"
             elif (
-                request.user.is_staff
-                and hasattr(request.user, "user_type")
-                and request.user.user_type
-                and request.user.user_type.slug == "message_admin"
+                    request.user.is_staff
+                    and hasattr(request.user, "user_type")
+                    and request.user.user_type
+                    and request.user.user_type.slug == "message_admin"
             ):
                 user_type = "message_admin"
             elif request.user.is_staff:

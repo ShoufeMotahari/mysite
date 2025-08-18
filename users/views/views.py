@@ -11,8 +11,7 @@ from users.forms.forms import (
     ProfileUpdateForm,
     UserUpdateForm, CommentForm, SignupForm,
 )
-from users.models import User
-from users.managers.email_manager import EmailManager, SendEmailCommand
+from users.models import user
 
 logger = logging.getLogger("users")
 User = get_user_model()

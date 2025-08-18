@@ -1,6 +1,4 @@
-import json
 import logging
-from datetime import datetime
 
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -8,10 +6,9 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
-from django.views.decorators.http import require_POST
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
-from users.models import PasswordEntry, User, Comment
 from users.services.email_service import CommentEmailService
 
 logger = logging.getLogger("users")

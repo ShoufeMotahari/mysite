@@ -6,6 +6,9 @@ from django.conf import settings
 from django.core.mail import send_mail
 from smsir import SmsIr
 
+from filemanager.forms import User
+from users.models.token.verificationToken import VerificationToken
+
 logger = logging.getLogger("users")
 
 
@@ -143,7 +146,6 @@ class AuthenticationService:
 
     def register_user(self, mobile=None, email=None, password=None):
         """Register user with SMS or Email verification"""
-        from .models import User, VerificationToken
 
         try:
             # Create user
@@ -174,7 +176,6 @@ class AuthenticationService:
 
     def verify_user(self, token_value, token_type="sms"):
         """Verify user with SMS code or Email link"""
-        from .models import VerificationToken
 
         try:
             if token_type == "sms":
@@ -207,7 +208,6 @@ class AuthenticationService:
 
     def initiate_password_reset(self, mobile=None, email=None):
         """Initiate password reset process"""
-        from .models import User, VerificationToken
 
         try:
             if mobile:
@@ -236,7 +236,6 @@ class AuthenticationService:
 
     def reset_password(self, token_value, new_password, token_type="sms"):
         """Reset user password"""
-        from .models import VerificationToken
 
         try:
             if token_type == "sms":
