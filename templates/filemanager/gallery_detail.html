@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>جزئیات گالری | {{ gallery.name }}</title>
+  <style>
+    body {font-family: sans-serif; margin: 16px; background:#f8f9fa;}
+    .container {max-width: 1100px; margin: 0 auto;}
+    .header {display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; flex-wrap:wrap;}
+    .breadcrumbs {font-size:14px; color:#666;}
+    .btn {display:inline-block; padding:8px 12px; border-radius:10px; border:1px solid #ddd; background:#fff; text-decoration:none;}
+    .btn-primary {background:#0d6efd; border-color:#0d6efd; color:#fff;}
+    .panel {background:#fff; border:1px solid #eee; border-radius:12px; padding:14px; margin-bottom:14px;}
+    .grid {display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px;}
+    .item {border:1px solid #eee; border-radius:10px; overflow:hidden; background:#fff;}
+    .thumb {width:100%; height:160px; object-fit:cover; background:#e9ecef;}
+    .caption {padding:8px; font-size:14px;}
+    .messages {margin-bottom: 12px;}
+    .msg {padding:10px 12px; border-radius:10px; margin:6px 0; font-size:14px;}
+    .msg-success {background:#e8f5e9; border:1px solid #c8e6c9;}
+    .msg-error {background:#ffebee; border:1px solid #ffcdd2;}
+    .pagination {display:flex; gap:6px; flex-wrap:wrap; margin-top:16px; align-items:center;}
+    .page-link {padding:6px 10px; border:1px solid #ddd; border-radius:8px; text-decoration:none; color:#333; background:#fff;}
+    .page-link.active, .page-link:hover {background:#0d6efd; color:#fff; border-color:#0d6efd;}
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div>
+      <div class="breadcrumbs">
+        <a class="btn" href="{% url 'filemanager:gallery_list' %}">بازگشت به گالری‌ها</a>
+      </div>
+      <h1 style="margin:8px 0 0 0;">{{ gallery.name }}</h1>
+      {% if gallery.description %}
+        <div style="color:#444; margin-top:6px;">{{ gallery.description }}</div>
+      {% endif %}
+      <div style="color:#666; font-size:13px; margin-top:6px;">
+        ایجاد: {{ gallery.created_at|date:"Y-m-d H:i" }}
+      </div>
+    </div>
+    <div>
+      <a class="btn" href="{% url 'filemanager:gallery_edit' pk=gallery.pk %}">ویرایش گالری</a>
+    </div>
+  </div>
+
+  <!-- پیام‌ها -->
+  <div class="messages">
+    {% if messages %}
+      {% for message in messages %}
+        <div class="msg {% if message.tags %}msg-{{ message.tags }}{% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+
+  <div class="panel">
+    {% if page_obj.object_list %}
+      <div class="grid">
+        {% for img in page_obj.object_list %}
+          <div class="item">
+            {% if img.file %}
+              <img class="thumb" src="{{ img.file.url }}" alt="{{ img.title|default:'تصویر' }}">
+            {% else %}
+              <div class="thumb"></div>
+            {% endif %}
+            <div class="caption">
+              <div style="display:flex; justify-content:space-between; gap:8px; align-items:center;">
+                <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                  {{ img.title|default:'بدون عنوان' }}
+                </div>
+                <div style="font-size:12px; color:#666;">
+                  {{ img.created_at|date:"Y-m-d" }}
+                </div>
+              </div>
+              {% if img.description %}
+                <div style="color:#555; font-size:13px; margin-top:4px;">{{ img.description|truncatechars:100 }}</div>
+              {% endif %}
+              {% if img.file %}
+                <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">
+                  <a class="btn" href="{{ img.file.url }}" download>دانلود</a>
+                  <a class="btn" href="{{ img.file.url }}" target="_blank" rel="noopener">مشاهده</a>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <!-- pagination -->
+      <div class="pagination">
+        {% if page_obj.has_previous %}
+          <a class="page-link" href="?page=1">اول</a>
+          <a class="page-link" href="?page={{ page_obj.previous_page_number }}">قبلی</a>
+        {% endif %}
+
+        <span class="page-link active">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+
+        {% if page_obj.has_next %}
+          <a class="page-link" href="?page={{ page_obj.next_page_number }}">بعدی</a>
+          <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">آخر</a>
+        {% endif %}
+      </div>
+    {% else %}
+      <div style="text-align:center; color:#666;">
+        تصویری برای نمایش وجود ندارد.
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,4 +1,4 @@
-# messaging/forms.py
+
 from django import forms
 
 from users.models import adminMessage, AdminMessageReply

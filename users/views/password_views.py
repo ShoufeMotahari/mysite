@@ -13,7 +13,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from core.email import send_password_reset_email
-from core.sms import send_verification_sms
+from core.services.sms_service import send_verification_sms
 from users.forms.forms import (
     ForgotPasswordForm,
     PasswordEntryForm,

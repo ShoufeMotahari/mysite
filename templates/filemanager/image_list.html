@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>لیست تصاویر</title>
+  <style>
+    body {font-family: sans-serif; margin:16px; background:#f8f9fa;}
+    .container {max-width:1200px; margin:auto;}
+    .header {display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;}
+    .btn {padding:8px 12px; border:1px solid #ddd; border-radius:10px; text-decoration:none; background:#fff;}
+    .btn-primary {background:#0d6efd; color:#fff; border-color:#0d6efd;}
+    .grid {display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px;}
+    .card {background:#fff; border:1px solid #eee; border-radius:12px; overflow:hidden;}
+    .thumb {width:100%; height:160px; object-fit:cover; background:#e9ecef;}
+    .card-body {padding:8px;}
+    .pagination {display:flex; gap:6px; margin-top:16px; justify-content:center;}
+    .page-link {padding:6px 10px; border:1px solid #ddd; border-radius:8px; text-decoration:none;}
+    .page-link.active {background:#0d6efd; color:#fff;}
+    .messages {margin:12px 0;}
+    .msg {padding:10px; border-radius:10px; margin:6px 0;}
+    .msg-success {background:#e8f5e9;}
+    .msg-error {background:#ffebee;}
+    form.search-form {background:#fff; padding:12px; border-radius:12px; border:1px solid #eee; margin-bottom:16px;}
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>تصاویر من</h1>
+    <div>
+      <a href="{% url 'filemanager:image_upload' %}" class="btn btn-primary">+ آپلود تصویر</a>
+      <a href="{% url 'filemanager:bulk_image_process' %}" class="btn">پردازش دسته‌ای</a>
+    </div>
+  </div>
+
+  <!-- پیام‌ها -->
+  <div class="messages">
+    {% for message in messages %}
+      <div class="msg msg-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+  </div>
+
+  <!-- فرم جستجو و فیلتر -->
+  <form method="get" class="search-form">
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">جستجو</button>
+  </form>
+
+  {% if page_obj.object_list %}
+    <div class="grid">
+      {% for img in page_obj.object_list %}
+        <div class="card">
+          {% if img.file %}
+            <img src="{{ img.file.url }}" alt="{{ img.title }}" class="thumb">
+          {% else %}
+            <div class="thumb"></div>
+          {% endif %}
+          <div class="card-body">
+            <h3 style="margin:0 0 8px 0; font-size:15px;">{{ img.title }}</h3>
+            <p style="font-size:13px; color:#555;">{{ img.description|truncatechars:80 }}</p>
+            <a href="{% url 'filemanager:image_detail' pk=img.pk %}" class="btn">جزئیات</a>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- pagination -->
+    <div class="pagination">
+      {% if page_obj.has_previous %}
+        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">قبلی</a>
+      {% endif %}
+      <span class="page-link active">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}
+        <a class="page-link" href="?page={{ page_obj.next_page_number }}">بعدی</a>
+      {% endif %}
+    </div>
+  {% else %}
+    <div style="text-align:center; color:#666; margin-top:40px;">هیچ تصویری یافت نشد.</div>
+  {% endif %}
+
+</div>
+</body>
+</html>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8"/>
+  <title>پردازش دسته‌ای تصاویر</title>
+</head>
+<body>
+  <h1>پردازش دسته‌ای</h1>
+
+  {% for message in messages %}
+    <div>{{ message }}</div>
+  {% endfor %}
+
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">شروع پردازش</button>
+  </form>
+
+  <a href="{% url 'filemanager:image_list' %}">بازگشت</a>
+</body>
+</html>

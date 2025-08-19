@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ایجاد گالری</title>
+  <style>
+    body {font-family: sans-serif; margin: 16px; background:#f8f9fa;}
+    .container {max-width: 800px; margin: 0 auto;}
+    .card {background:#fff; border:1px solid #eee; border-radius:12px; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+    .header {display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;}
+    .btn {display:inline-block; padding:8px 12px; border-radius:10px; border:1px solid #ddd; background:#fff; text-decoration:none;}
+    .btn-primary {background:#0d6efd; border-color:#0d6efd; color:#fff;}
+    form p {margin: 0 0 12px 0;}
+    .messages {margin: 12px 0;}
+    .msg {padding:10px 12px; border-radius:10px; margin:6px 0; font-size:14px;}
+    .msg-success {background:#e8f5e9; border:1px solid #c8e6c9;}
+    .msg-error {background:#ffebee; border:1px solid #ffcdd2;}
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1 style="margin:0;">ایجاد گالری جدید</h1>
+    <a class="btn" href="{% url 'filemanager:gallery_list' %}">بازگشت</a>
+  </div>
+
+  <!-- پیام‌ها -->
+  <div class="messages">
+    {% if messages %}
+      {% for message in messages %}
+        <div class="msg {% if message.tags %}msg-{{ message.tags }}{% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <div style="display:flex; gap:8px; margin-top:8px;">
+        <button type="submit" class="btn btn-primary">ثبت گالری</button>
+        <a class="btn" href="{% url 'filemanager:gallery_list' %}">انصراف</a>
+      </div>
+    </form>
+  </div>
+
+</div>
+</body>
+</html>

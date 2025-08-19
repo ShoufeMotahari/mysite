@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>لیست گالری‌ها</title>
+  <style>
+    body {font-family: sans-serif; margin: 16px; background:#f8f9fa;}
+    .container {max-width: 1100px; margin: 0 auto;}
+    .header {display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;}
+    .grid {display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px;}
+    .card {background:#fff; border:1px solid #eee; border-radius:12px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+    .thumb {width:100%; height:160px; object-fit:cover; background:#e9ecef;}
+    .card-body {padding:12px;}
+    .title {margin:0 0 8px 0; font-size:16px;}
+    .meta {color:#666; font-size:12px;}
+    .btn {display:inline-block; padding:8px 12px; border-radius:10px; border:1px solid #ddd; background:#fff; text-decoration:none;}
+    .btn-primary {background:#0d6efd; border-color:#0d6efd; color:#fff;}
+    .messages {margin-bottom: 12px;}
+    .msg {padding:10px 12px; border-radius:10px; margin:6px 0; font-size:14px;}
+    .msg-success {background:#e8f5e9; border:1px solid #c8e6c9;}
+    .msg-error {background:#ffebee; border:1px solid #ffcdd2;}
+    .pagination {display:flex; gap:6px; flex-wrap:wrap; margin-top:16px; align-items:center;}
+    .page-link {padding:6px 10px; border:1px solid #ddd; border-radius:8px; text-decoration:none; color:#333; background:#fff;}
+    .page-link.active, .page-link:hover {background:#0d6efd; color:#fff; border-color:#0d6efd;}
+    .empty {text-align:center; padding:40px; color:#666; background:#fff; border:1px dashed #ddd; border-radius:12px;}
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1 style="margin:0;">گالری‌های من</h1>
+    <a class="btn btn-primary" href="{% url 'filemanager:gallery_create' %}">+ ساخت گالری جدید</a>
+  </div>
+
+  <!-- پیام‌ها -->
+  <div class="messages">
+    {% if messages %}
+      {% for message in messages %}
+        <div class="msg {% if message.tags %}msg-{{ message.tags }}{% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+
+  {% if page_obj.object_list %}
+    <div class="grid">
+      {% for g in page_obj.object_list %}
+        <div class="card">
+          {% with first_img=g.images.first %}
+            {% if first_img and first_img.file %}
+              <img class="thumb" src="{{ first_img.file.url }}" alt="{{ g.name|default:'گالری' }}">
+            {% else %}
+              <div class="thumb"></div>
+            {% endif %}
+          {% endwith %}
+          <div class="card-body">
+            <h3 class="title">{{ g.name }}</h3>
+            {% if g.description %}
+              <p style="margin:0 0 8px 0; color:#444; font-size:14px;">{{ g.description|truncatechars:90 }}</p>
+            {% endif %}
+            <div class="meta">
+              ایجاد: {{ g.created_at|date:"Y-m-d H:i" }}
+            </div>
+            <div style="margin-top:10px;">
+              <a class="btn" href="{% url 'filemanager:gallery_detail' pk=g.pk %}">مشاهده</a>
+              <a class="btn" href="{% url 'filemanager:gallery_edit' pk=g.pk %}">ویرایش</a>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- pagination -->
+    <div class="pagination">
+      {% if page_obj.has_previous %}
+        <a class="page-link" href="?page=1">اول</a>
+        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">قبلی</a>
+      {% endif %}
+
+      <span class="page-link active">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+
+      {% if page_obj.has_next %}
+        <a class="page-link" href="?page={{ page_obj.next_page_number }}">بعدی</a>
+        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">آخر</a>
+      {% endif %}
+    </div>
+  {% else %}
+    <div class="empty">
+      هنوز گالری‌ای ایجاد نکرده‌اید.
+      <div style="margin-top:12px;">
+        <a class="btn btn-primary" href="{% url 'filemanager:gallery_create' %}">+ ساخت گالری</a>
+      </div>
+    </div>
+  {% endif %}
+
+</div>
+</body>
+</html>

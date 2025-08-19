@@ -1,4 +1,3 @@
-# arvan_integration/admin.py
 from django.contrib import admin
 from django.utils.html import format_html
 
@@ -31,8 +30,6 @@ def get_file_link(file_field, link_text="Download"):
         )
     return "No file"
 
-
-# Example usage in your model admin:
 class YourModelAdmin(admin.ModelAdmin):
     list_display = ["title", "image_preview", "file_link"]
     readonly_fields = ["image_preview", "file_link"]

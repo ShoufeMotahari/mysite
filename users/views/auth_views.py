@@ -10,13 +10,14 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 
 from core.email import send_activation_email
-from core.sms import send_verification_sms
+from core.services.sms_service import send_verification_sms
 from users.forms.forms import (
     CustomUserCreationForm,
     LoginForm,
     SignupForm,
-    VerificationForm, ForgotPasswordForm,
+    VerificationForm, ForgotPasswordForm, User,
 )
+from users.models.token.verificationToken import VerificationToken
 # Import our custom password functions instead of Django's
 from users.utils.password_utils import make_password, check_password, get_password_strength, generate_secure_password
 

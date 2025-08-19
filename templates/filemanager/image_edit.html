@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8"/>
+  <title>ویرایش تصویر</title>
+</head>
+<body>
+  <h1>ویرایش {{ image.title }}</h1>
+
+  {% for message in messages %}
+    <div>{{ message }}</div>
+  {% endfor %}
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">ذخیره تغییرات</button>
+  </form>
+
+  <a href="{% url 'filemanager:image_detail' pk=image.pk %}">بازگشت</a>
+</body>
+</html>

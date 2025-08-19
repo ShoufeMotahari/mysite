@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8"/>
+  <title>{{ image.title }}</title>
+  <style>
+    body {font-family:sans-serif; margin:16px;}
+    .container {max-width:900px; margin:auto;}
+    .btn {padding:8px 12px; border:1px solid #ddd; border-radius:10px; text-decoration:none;}
+    .btn-danger {background:#dc3545; color:#fff; border-color:#dc3545;}
+    .btn-primary {background:#0d6efd; color:#fff;}
+    .panel {background:#fff; border:1px solid #eee; border-radius:12px; padding:16px; margin-bottom:16px;}
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <h1>{{ image.title }}</h1>
+
+  {% if image.file %}
+    <img src="{{ image.file.url }}" style="max-width:100%; border-radius:12px;">
+  {% endif %}
+
+  <div class="panel">
+    <p><strong>توضیحات:</strong> {{ image.description }}</p>
+    <p><strong>وضعیت پردازش:</strong> {{ image.get_processing_status_display }}</p>
+    <p><strong>آپلود شده در:</strong> {{ image.created_at|date:"Y-m-d H:i" }}</p>
+  </div>
+
+  <div class="panel">
+    <h3>گالری‌ها</h3>
+    {% if galleries %}
+      <ul>
+        {% for g in galleries %}
+          <li><a href="{% url 'filemanager:gallery_detail' pk=g.pk %}">{{ g.name }}</a></li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>این تصویر در هیچ گالری‌ای نیست.</p>
+    {% endif %}
+  </div>
+
+  <div style="display:flex; gap:8px;">
+    <a href="{% url 'filemanager:image_edit' pk=image.pk %}" class="btn btn-primary">ویرایش</a>
+    <form action="{% url 'filemanager:image_delete' pk=image.pk %}" method="post" style="display:inline;">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger">حذف</button>
+    </form>
+    <form action="{% url 'filemanager:image_reprocess' pk=image.pk %}" method="post" style="display:inline;">
+      {% csrf_token %}
+      <button type="submit" class="btn">پردازش مجدد</button>
+    </form>
+  </div>
+
+</div>
+</body>
+</html>
