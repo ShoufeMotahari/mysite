@@ -8,7 +8,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.core.exceptions import ValidationError
 from django.db.models import Count
 from django.db.models import Q
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.http import HttpResponseRedirect
 from django.shortcuts import redirect, render
 from django.urls import path
@@ -25,13 +25,12 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-from core.managers.email_manager import SendEmailCommand, EmailManager
-from core.services.email_service.email_service import EmailValidator
+from core.services.email_service.email_service import EmailValidator, EmailService
 from filemanager.models import User
 from users.admin.filter.email_status_filter import EmailStatusFilter
 from users.admin.filter.user_type_filter import UserTypeFilter
 from users.admin.comment_admin import HasCommentsFilter, CommentInline
-from users.forms.email_form import EmailForm
+from users.forms.email_form import EmailForm, QuickEmailTemplateForm
 from users.models.admin_message.admin_message import AdminMessage
 from users.models.user.user_type import UserType
 
@@ -675,7 +674,7 @@ class UserAdmin(BaseUserAdmin):
             logger.info(
                 f"   🔤 Font used: {registered_font_name}, Persian support: {persian_font_available}"
             )
-            logger.info(f"   🔄 BIDI support: {bidi_available}")
+            logger.info(f"   📄 BIDI support: {bidi_available}")
 
             success_msg = f"فایل PDF شامل {queryset.count()} کاربر با موفقیت ایجاد شد."
             if not persian_font_available:
@@ -1184,7 +1183,7 @@ class UserAdmin(BaseUserAdmin):
         return HttpResponseRedirect(reverse("admin:send_email"))
 
     def send_email_view(self, request):
-        """Enhanced send email view with better error handling"""
+        """Enhanced send email view with direct composition"""
         if request.method == "POST":
             return self._handle_email_post(request)
         else:
@@ -1193,6 +1192,19 @@ class UserAdmin(BaseUserAdmin):
     def _handle_email_post(self, request):
         """Handle POST request for email sending"""
         form = EmailForm(request.POST)
+
+        # Handle quick template loading via AJAX
+        if request.POST.get('action') == 'load_template':
+            template_type = request.POST.get('template_type')
+            if template_type and template_type != 'custom':
+                template_content = QuickEmailTemplateForm.get_template_content(template_type)
+                return JsonResponse({
+                    'success': True,
+                    'subject': template_content['subject'],
+                    'content': template_content['content']
+                })
+            return JsonResponse({'success': False})
+
         if not form.is_valid():
             logger.warning(f"⚠️ Invalid form submission by {request.user.username}")
             logger.debug(f"Form errors: {form.errors}")
@@ -1215,24 +1227,22 @@ class UserAdmin(BaseUserAdmin):
             )
             logger.info(f"Selected users count: {len(selected_users)}")
             logger.info(f"Email all users: {is_email_all}")
-            logger.info(f"Template: {form.cleaned_data['template'].name}")
-            logger.info(f"Custom subject: {form.cleaned_data.get('subject', 'None')}")
+            logger.info(f"Subject: {form.cleaned_data.get('subject', 'None')}")
 
-            # Create and execute command
-            command = SendEmailCommand(
-                template_id=form.cleaned_data["template"].id,
-                user_ids=selected_users,
-                sender=request.user,
-                custom_subject=form.cleaned_data.get("subject"),
-                custom_content=form.cleaned_data.get("content"),
+            # Get recipient users
+            users = User.objects.filter(id__in=selected_users)
+
+            # Use EmailService directly
+            email_service = EmailService()
+            success, message, details = email_service.send_email(
+                recipients=users,
+                subject=form.cleaned_data['subject'],
+                content=form.cleaned_data['content'],
+                sender_info=f"Admin: {request.user.username}"
             )
 
-            manager = EmailManager()
-            manager.add_command(command)
-            results = manager.execute_commands()
-
             # Process results
-            self._process_email_results(request, results, is_email_all)
+            self._process_email_results(request, [(success, message, details)], is_email_all)
 
             # Clear session
             if "selected_users" in request.session:
@@ -1254,10 +1264,11 @@ class UserAdmin(BaseUserAdmin):
     def _handle_email_get(self, request):
         """Handle GET request for email form display"""
         form = EmailForm()
+        template_form = QuickEmailTemplateForm()
         logger.info(f"📋 Email form displayed to admin {request.user.username}")
-        return self._render_email_form(request, form)
+        return self._render_email_form(request, form, template_form)
 
-    def _render_email_form(self, request, form):
+    def _render_email_form(self, request, form, template_form=None):
         """Render the email form with validation info"""
         selected_users = request.session.get("selected_users", [])
         is_email_all = request.session.get("email_all_users", False)
@@ -1272,6 +1283,7 @@ class UserAdmin(BaseUserAdmin):
 
         context = {
             "form": form,
+            "template_form": template_form or QuickEmailTemplateForm(),
             "users": users,
             "valid_users": valid_users,
             "invalid_users": invalid_users,
@@ -1291,60 +1303,3 @@ class UserAdmin(BaseUserAdmin):
             total_users = details.get("total_users", 0)
             valid_users = details.get("valid_users", 0)
             invalid_users = details.get("invalid_users", 0)
-
-            if is_email_all:
-                if invalid_users > 0:
-                    success_msg = f"ایمیل با موفقیت به {valid_users} کاربر از {total_users} کاربر موجود ارسال شد. ({invalid_users} کاربر نامعتبر نادیده گرفته شد)"
-                    messages.success(request, success_msg)
-                    self._add_invalid_user_warnings(request, details)
-                else:
-                    success_msg = (
-                        f"ایمیل با موفقیت به تمام {valid_users} کاربر سیستم ارسال شد."
-                    )
-                    messages.success(request, success_msg)
-            else:
-                if invalid_users > 0:
-                    success_msg = f"ایمیل با موفقیت به {valid_users} کاربر از {total_users} کاربر انتخاب شده ارسال شد. ({invalid_users} کاربر نامعتبر نادیده گرفته شد)"
-                    messages.success(request, success_msg)
-                    self._add_invalid_user_warnings(request, details)
-                else:
-                    success_msg = f"ایمیل با موفقیت به تمام {valid_users} کاربر انتخاب شده ارسال شد."
-                    messages.success(request, success_msg)
-
-            logger.info(
-                f"✅ Email successfully processed by admin {request.user.username}"
-            )
-            logger.info(
-                f"  📊 Results: {valid_users}/{total_users} users, {invalid_users} invalid"
-            )
-
-        else:
-            error_msg = results[0][1] if results else "خطای نامشخص"
-            messages.error(request, f"خطا در ارسال ایمیل: {error_msg}")
-            logger.error(
-                f"❌ Email sending failed by admin {request.user.username}: {error_msg}"
-            )
-
-    def _add_invalid_user_warnings(self, request, details):
-        """Add warning messages for invalid users"""
-        invalid_details = details.get("invalid_details", [])
-        if invalid_details:
-            warning_msg = "کاربران نامعتبر: "
-            invalid_reasons = []
-            for invalid_user in invalid_details:
-                user = invalid_user["user"]
-                issues = invalid_user["issues"]
-                reason = []
-                if "inactive_user" in issues:
-                    reason.append("غیرفعال")
-                if "invalid_email" in issues:
-                    reason.append("ایمیل نامعتبر")
-                invalid_reasons.append(f"{user.username} ({', '.join(reason)})")
-
-            warning_msg += ", ".join(invalid_reasons)
-            messages.warning(request, warning_msg)
-
-# Customize admin site
-admin.site.site_header = "پنل مدیریت"
-admin.site.site_title = "پنل مدیریت"
-admin.site.index_title = "خوش آمدید به پنل مدیریت"

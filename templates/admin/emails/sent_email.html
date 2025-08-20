@@ -1,0 +1,402 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_list %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<script src="{% static 'ckeditor/ckeditor-init.js' %}"></script>
+<script src="{% static 'ckeditor/ckeditor/ckeditor.js' %}"></script>
+<style>
+    .email-form-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .form-row {
+        margin-bottom: 20px;
+    }
+    
+    .form-row label {
+        font-weight: bold;
+        display: block;
+        margin-bottom: 5px;
+        color: #333;
+    }
+    
+    .form-row .help {
+        font-size: 11px;
+        color: #666;
+        margin-top: 5px;
+    }
+    
+    .users-summary {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        padding: 15px;
+        margin-bottom: 20px;
+        direction: rtl;
+    }
+    
+    .users-summary h3 {
+        margin-top: 0;
+        color: #366092;
+    }
+    
+    .valid-users {
+        color: #28a745;
+        font-weight: bold;
+    }
+    
+    .invalid-users {
+        color: #dc3545;
+        font-weight: bold;
+    }
+    
+    .quick-templates {
+        background: #e9ecef;
+        border-radius: 5px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .quick-templates h3 {
+        margin-top: 0;
+        color: #495057;
+    }
+    
+    .template-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    
+    .template-btn {
+        padding: 8px 16px;
+        border: 1px solid #6c757d;
+        background: #f8f9fa;
+        color: #495057;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .template-btn:hover {
+        background: #e9ecef;
+        border-color: #495057;
+    }
+    
+    .submit-actions {
+        text-align: center;
+        padding: 20px 0;
+        border-top: 1px solid #dee2e6;
+        margin-top: 30px;
+    }
+    
+    .btn-primary {
+        background-color: #366092;
+        border-color: #366092;
+        padding: 12px 30px;
+        font-size: 16px;
+    }
+    
+    .btn-secondary {
+        margin-left: 10px;
+        padding: 12px 30px;
+        font-size: 16px;
+    }
+    
+    .errorlist {
+        color: #dc3545;
+        list-style: none;
+        padding: 0;
+        margin: 5px 0;
+    }
+    
+    .errorlist li {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        border-radius: 4px;
+        padding: 8px 12px;
+        margin-bottom: 5px;
+    }
+    
+    .ckeditor-container {
+        margin-top: 10px;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    
+    .form-control:focus {
+        border-color: #366092;
+        box-shadow: 0 0 0 0.2rem rgba(54, 96, 146, 0.25);
+        outline: 0;
+    }
+    
+    .checkbox-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .invalid-users-details {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 4px;
+        padding: 10px;
+        margin-top: 10px;
+        font-size: 12px;
+    }
+    
+    .invalid-users-details ul {
+        margin: 5px 0;
+        padding-right: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="email-form-container">
+    <h1>{{ title }}</h1>
+    
+    <!-- Users Summary -->
+    <div class="users-summary">
+        <h3>خلاصه گیرندگان</h3>
+        <p>
+            <strong>تعداد کل کاربران انتخاب شده:</strong> {{ total_users }}
+        </p>
+        <p>
+            <span class="valid-users">کاربران معتبر: {{ valid_users|length }}</span> |
+            <span class="invalid-users">کاربران نامعتبر: {{ invalid_users|length }}</span>
+        </p>
+        
+        {% if invalid_users %}
+        <div class="invalid-users-details">
+            <strong>کاربران نامعتبر (ایمیل ارسال نخواهد شد):</strong>
+            <ul>
+                {% for invalid_user in invalid_users %}
+                <li>
+                    {{ invalid_user.user.username }}
+                    {% if "inactive_user" in invalid_user.issues %}(غیرفعال){% endif %}
+                    {% if "invalid_email" in invalid_user.issues %}(ایمیل نامعتبر){% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+
+    <form method="post" id="email-form">
+        {% csrf_token %}
+        
+        <!-- Quick Templates -->
+        <div class="quick-templates">
+            <h3>قالب‌های آماده</h3>
+            <p>برای شروع سریع، می‌توانید از یکی از قالب‌های آماده استفاده کنید:</p>
+            <div class="template-buttons">
+                <button type="button" class="template-btn" data-template="welcome">خوش‌آمدگویی</button>
+                <button type="button" class="template-btn" data-template="announcement">اطلاع‌رسانی</button>
+                <button type="button" class="template-btn" data-template="maintenance">تعمیرات سیستم</button>
+                <button type="button" class="template-btn" data-template="newsletter">خبرنامه</button>
+                <button type="button" class="template-btn" data-template="custom">شروع خالی</button>
+            </div>
+        </div>
+
+        <!-- Subject Field -->
+        <div class="form-row">
+            <label for="id_subject">{{ form.subject.label }}:</label>
+            {{ form.subject.errors }}
+            {{ form.subject }}
+            {% if form.subject.help_text %}
+                <div class="help">{{ form.subject.help_text }}</div>
+            {% endif %}
+        </div>
+
+        <!-- Content Field -->
+        <div class="form-row">
+            <label for="id_content">{{ form.content.label }}:</label>
+            {{ form.content.errors }}
+            <div class="ckeditor-container">
+                {{ form.content }}
+            </div>
+            {% if form.content.help_text %}
+                <div class="help">{{ form.content.help_text }}</div>
+            {% endif %}
+        </div>
+
+        <!-- Send as HTML -->
+        <div class="form-row">
+            <div class="checkbox-wrapper">
+                {{ form.send_as_html }}
+                <label for="id_send_as_html">{{ form.send_as_html.label }}</label>
+            </div>
+            {% if form.send_as_html.help_text %}
+                <div class="help">{{ form.send_as_html.help_text }}</div>
+            {% endif %}
+        </div>
+
+        <!-- Submit Actions -->
+        <div class="submit-actions">
+            <button type="submit" class="btn btn-primary">
+                📧 ارسال ایمیل به {{ valid_users|length }} کاربر
+            </button>
+            <a href="{% url 'admin:users_user_changelist' %}" class="btn btn-secondary">
+                انصراف
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Quick template functionality
+    const templateButtons = document.querySelectorAll('.template-btn');
+    const subjectField = document.getElementById('id_subject');
+    const contentField = document.getElementById('id_content');
+    
+    // Template content
+    const templates = {
+        'welcome': {
+            'subject': 'خوش آمدید به وب‌سایت ما!',
+            'content': `
+                <div style="font-family: Tahoma, Arial, sans-serif; direction: rtl; text-align: right;">
+                    <h2 style="color: #366092;">خوش آمدید!</h2>
+                    <p>کاربر گرامی،</p>
+                    <p>از شما بابت عضویت در وب‌سایت ما متشکریم. امیدواریم تجربه خوبی داشته باشید.</p>
+                    <p>با تشکر،<br>تیم پشتیبانی</p>
+                </div>
+            `
+        },
+        'announcement': {
+            'subject': 'اطلاع‌رسانی مهم',
+            'content': `
+                <div style="font-family: Tahoma, Arial, sans-serif; direction: rtl; text-align: right;">
+                    <h2 style="color: #366092;">اطلاع‌رسانی</h2>
+                    <p>کاربران گرامی،</p>
+                    <p>[متن اطلاع‌رسانی خود را اینجا وارد کنید]</p>
+                    <p>با تشکر،<br>تیم مدیریت</p>
+                </div>
+            `
+        },
+        'maintenance': {
+            'subject': 'اطلاع‌رسانی تعمیرات سیستم',
+            'content': `
+                <div style="font-family: Tahoma, Arial, sans-serif; direction: rtl; text-align: right;">
+                    <h2 style="color: #ff6b35;">تعمیرات سیستم</h2>
+                    <p>کاربران گرامی،</p>
+                    <p>به اطلاع می‌رساند که سیستم برای تعمیرات برنامه‌ریزی شده موقتاً غیرفعال خواهد شد.</p>
+                    <p><strong>زمان تعمیرات:</strong> [زمان را مشخص کنید]</p>
+                    <p>از صبر و شکیبایی شما متشکریم.</p>
+                    <p>با تشکر،<br>تیم فنی</p>
+                </div>
+            `
+        },
+        'newsletter': {
+            'subject': 'خبرنامه هفتگی',
+            'content': `
+                <div style="font-family: Tahoma, Arial, sans-serif; direction: rtl; text-align: right;">
+                    <h2 style="color: #366092;">خبرنامه</h2>
+                    <p>کاربران گرامی،</p>
+                    <p>در ادامه آخرین اخبار و به‌روزرسانی‌های سایت را مطالعه کنید:</p>
+                    <ul>
+                        <li>[خبر اول]</li>
+                        <li>[خبر دوم]</li>
+                        <li>[خبر سوم]</li>
+                    </ul>
+                    <p>با تشکر،<br>تیم محتوا</p>
+                </div>
+            `
+        },
+        'custom': {
+            'subject': '',
+            'content': `
+                <div style="font-family: Tahoma, Arial, sans-serif; direction: rtl; text-align: right;">
+                    <p>محتوای ایمیل خود را اینجا بنویسید...</p>
+                </div>
+            `
+        }
+    };
+    
+    templateButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const templateType = this.getAttribute('data-template');
+            const template = templates[templateType];
+            
+            if (template) {
+                subjectField.value = template.subject;
+                
+                // Update CKEditor content
+                if (window.CKEDITOR && window.CKEDITOR.instances['id_content']) {
+                    window.CKEDITOR.instances['id_content'].setData(template.content);
+                } else {
+                    contentField.value = template.content;
+                }
+                
+                // Highlight selected button
+                templateButtons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+            }
+        });
+    });
+    
+    // Form validation
+    const form = document.getElementById('email-form');
+    form.addEventListener('submit', function(e) {
+        const subject = subjectField.value.trim();
+        let content = '';
+        
+        // Get content from CKEditor or textarea
+        if (window.CKEDITOR && window.CKEDITOR.instances['id_content']) {
+            content = window.CKEDITOR.instances['id_content'].getData().trim();
+        } else {
+            content = contentField.value.trim();
+        }
+        
+        if (!subject) {
+            alert('لطفاً موضوع ایمیل را وارد کنید.');
+            e.preventDefault();
+            return false;
+        }
+        
+        if (!content) {
+            alert('لطفاً محتوای ایمیل را وارد کنید.');
+            e.preventDefault();
+            return false;
+        }
+        
+        // Confirm sending
+        const validUsersCount = {{ valid_users|length }};
+        if (!confirm(`آیا مطمئن هستید که می‌خواهید این ایمیل را به ${validUsersCount} کاربر ارسال کنید؟`)) {
+            e.preventDefault();
+            return false;
+        }
+        
+        // Show loading state
+        const submitBtn = form.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '🔄 در حال ارسال...';
+    });
+});
+
+// Add active style for template buttons
+document.head.insertAdjacentHTML('beforeend', `
+<style>
+.template-btn.active {
+    background: #366092 !important;
+    color: white !important;
+    border-color: #366092 !important;
+}
+</style>
+`);
+</script>
+
+{% endblock %}

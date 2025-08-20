@@ -191,9 +191,6 @@ STORAGES = {
 }
 # STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / "static"
-
-# CKEditor configuration
-CKEDITOR_UPLOAD_PATH = "uploads/"
 CKEDITOR_BASEPATH = "/static/ckeditor/ckeditor/"
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
@@ -223,7 +220,6 @@ INSTALLED_APPS = [
     # "comments",
     "core",
     "sections",
-    "dashboard",
     "users.apps.UsersConfig",
     "ckeditor_uploader",
     "filemanager",
@@ -232,29 +228,141 @@ INSTALLED_APPS = [
     "django_pwned",
     "django_jalali",
 ]
+# CKEditor Configuration for Email Composition
 CKEDITOR_CONFIGS = {
-    "default": {
-        "toolbar": "full",
-        "height": 300,
-        "width": "100%",
-        "extraPlugins": ",".join(
-            [
-                "uploadimage",
-                "div",
-                "autolink",
-                "autoembed",
-                "embedsemantic",
-                "autogrow",
-                "widget",
-                "lineutils",
-                "clipboard",
-                "dialog",
-                "dialogui",
-                "elementspath",
-            ]
-        ),
+    'default': {
+        'toolbar': 'full',
+        'height': 300,
+        'width': '100%',
+        'language': 'fa',
+        'contentsLangDirection': 'rtl',
+        'forcePasteAsPlainText': False,
+        'allowedContent': True,
+        'extraPlugins': ','.join([
+            'uploadimage',
+            'div',
+            'autolink',
+            'autoembed',
+            'embedsemantic',
+            'autogrow',
+            'widget',
+            'lineutils',
+            'clipboard',
+            'dialog',
+            'dialogui',
+            'elementspath'
+        ]),
     },
+    'email_editor': {
+        'toolbar': [
+            ['Bold', 'Italic', 'Underline', 'Strike'],
+            ['TextColor', 'BGColor'],
+            ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent'],
+            ['JustifyLeft', 'JustifyCenter', 'JustifyRight', 'JustifyBlock'],
+            ['Link', 'Unlink'],
+            ['Font', 'FontSize'],
+            ['Cut', 'Copy', 'Paste', 'PasteText', 'PasteFromWord'],
+            ['Undo', 'Redo'],
+            ['Source', 'Preview'],
+            ['Table', 'HorizontalRule', 'SpecialChar'],
+            ['Image', 'Flash'],
+            ['Styles', 'Format'],
+            ['RemoveFormat'],
+            ['Maximize'],
+        ],
+        'height': 400,
+        'width': '100%',
+        'language': 'fa',
+        'contentsLangDirection': 'rtl',
+        'forcePasteAsPlainText': False,
+        'allowedContent': True,
+        'removeDialogTabs': 'image:advanced;link:advanced',
+        'extraPlugins': ','.join([
+            'uploadimage',
+            'div',
+            'autolink',
+            'autoembed',
+            'embedsemantic',
+            'autogrow',
+            'widget',
+            'lineutils',
+            'clipboard',
+            'dialog',
+            'dialogui',
+            'elementspath',
+            'font',
+            'colorbutton',
+            'colordialog',
+            'justify',
+            'table',
+            'tableresize',
+            'tabletools',
+            'image',
+            'flash',
+            'horizontalrule',
+            'specialchar',
+            'preview',
+            'maximize'
+        ]),
+        'removePlugins': 'resize',
+        'font_names': 'Tahoma/Tahoma;Arial/Arial;Times New Roman/Times New Roman;Courier New/Courier New;Verdana/Verdana;Georgia/Georgia;Trebuchet MS/Trebuchet MS;Comic Sans MS/Comic Sans MS;Impact/Impact;Lucida Console/Lucida Console',
+        'fontSize_sizes': '8/8px;9/9px;10/10px;11/11px;12/12px;14/14px;16/16px;18/18px;20/20px;22/22px;24/24px;26/26px;28/28px;36/36px;48/48px;72/72px',
+        'contentsCss': [
+            'body { font-family: Tahoma, Arial, sans-serif; font-size: 14px; direction: rtl; }',
+            'p { margin: 0 0 10px 0; }',
+            'h1, h2, h3, h4, h5, h6 { font-weight: bold; margin: 15px 0 10px 0; }',
+            'ul, ol { margin: 10px 0 10px 25px; }',
+            'table { border-collapse: collapse; width: 100%; }',
+            'table td, table th { border: 1px solid #ccc; padding: 5px; }',
+            'a { color: #366092; text-decoration: underline; }',
+            'blockquote { margin: 10px 0; padding: 10px 20px; background: #f5f5f5; border-right: 3px solid #ccc; }',
+        ],
+        'stylesSet': [
+            {'name': 'Paragraph', 'element': 'p'},
+            {'name': 'Heading 1', 'element': 'h1'},
+            {'name': 'Heading 2', 'element': 'h2'},
+            {'name': 'Heading 3', 'element': 'h3'},
+            {'name': 'Preformatted Text', 'element': 'pre'},
+            {'name': 'Address', 'element': 'address'},
+            {'name': 'Blue Title', 'element': 'h2', 'styles': {'color': '#366092'}},
+            {'name': 'Red Text', 'element': 'span', 'styles': {'color': 'Red'}},
+            {'name': 'Green Text', 'element': 'span', 'styles': {'color': 'Green'}},
+            {'name': 'Yellow Marker', 'element': 'span', 'styles': {'background-color': 'Yellow'}},
+            {'name': 'Big', 'element': 'big'},
+            {'name': 'Small', 'element': 'small'},
+            {'name': 'Computer Code', 'element': 'code'},
+            {'name': 'Keyboard Phrase', 'element': 'kbd'},
+            {'name': 'Sample Text', 'element': 'samp'},
+            {'name': 'Variable', 'element': 'var'},
+            {'name': 'Deleted Text', 'element': 'del'},
+            {'name': 'Inserted Text', 'element': 'ins'},
+            {'name': 'Cited Work', 'element': 'cite'},
+            {'name': 'Inline Quotation', 'element': 'q'},
+        ],
+        'format_tags': 'p;h1;h2;h3;h4;h5;h6;pre;address;div',
+        'colorButton_colors': '000,800000,8B4513,2F4F4F,008080,000080,4B0082,696969,' +
+                              'B22222,A52A2A,DAA520,006400,40E0D0,0000CD,800080,808080,' +
+                              'F00,FF8C00,FFD700,008000,0FF,00F,EE82EE,A9A9A9,' +
+                              'FFA07A,FFA500,FFFF00,00FF00,AFEEEE,ADD8E6,DDA0DD,D3D3D3,' +
+                              'FFF0F5,FAEBD7,FFFFE0,F0FFF0,F0FFFF,F0F8FF,E6E6FA,FFF',
+        'colorButton_enableMore': True,
+        'image_previewText': ' ',
+    }
 }
+
+# Upload path for CKEditor images
+CKEDITOR_UPLOAD_PATH = "uploads/"
+CKEDITOR_IMAGE_BACKEND = "pillow"
+CKEDITOR_JQUERY_URL = 'https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js'
+
+# Restrict image upload size and formats for email safety
+CKEDITOR_RESTRICT_BY_USER = True
+CKEDITOR_BROWSE_SHOW_DIRS = True
+CKEDITOR_RESTRICT_BY_DATE = True
+
+# Email specific settings
+EMAIL_MAX_IMAGE_SIZE = 2 * 1024 * 1024  # 2MB max for email images
+EMAIL_ALLOWED_IMAGE_FORMATS = ['jpg', 'jpeg', 'png', 'gif']
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

@@ -1,6 +1,6 @@
 # users/urls.py
 from django.contrib.auth import views as auth_views
-from django.urls import path
+from django.urls import path, include
 
 from .views import dashboard_views
 # Import views from different modules
@@ -112,6 +112,7 @@ urlpatterns = [
     path('comments/', dashboard_views.user_comments, name='user_comments'),
     path('comments/bulk-delete/', dashboard_views.bulk_delete_comments, name='bulk_delete_comments'),
     path('comments/stats/', dashboard_views.comment_statistics, name='comment_stats'),
+    path('ckeditor/', include('ckeditor_uploader.urls')),
 ]
 
 # ========== URL MAPPING REFERENCE ==========
