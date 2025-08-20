@@ -713,6 +713,22 @@ CKEDITOR_CONFIGS = {
             ["Maximize", "ShowBlocks", "-", "About"],
         ],
     },
+
+    # 👇 کانفیگ ساده‌تر برای ایمیل
+    "email_editor": {
+        "toolbar": "Custom",
+        "toolbar_Custom": [
+            ["Bold", "Italic", "Underline"],
+            ["NumberedList", "BulletedList"],
+            ["Link", "Unlink"],
+            ["TextColor", "BGColor"],
+            ["RemoveFormat", "Source"],
+        ],
+        "height": 200,
+        "width": "100%",
+        "removePlugins": "stylesheetparser",
+        "allowedContent": True,
+    },
 }
 
 LOGGING = {
