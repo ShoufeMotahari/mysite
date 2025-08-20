@@ -2,7 +2,7 @@ import logging
 from django.contrib import admin
 from django_jalali.admin.filters import JDateFieldListFilter
 
-from users.models.emailTemplate import EmailTemplate
+from users.models.email_template import EmailTemplate
 
 logger = logging.getLogger(__name__)
 

@@ -24,12 +24,16 @@ from reportlab.lib.units import inch
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+from core.managers.email_manager import SendEmailCommand, EmailManager
+from core.services.email_service.email_service import EmailValidator
+from filemanager.models import User
 from users.admin.filter.email_status_filter import EmailStatusFilter
 from users.admin.filter.user_type_filter import UserTypeFilter
 from users.admin.comment_admin import HasCommentsFilter, CommentInline
-from users.forms.forms import EmailForm, User
-from users.managers.email_manager import EmailManager, SendEmailCommand
-from users.services.email_service import EmailValidator
+from users.forms.email_form import EmailForm
+from users.models.admin_message.admin_message import AdminMessage
+from users.models.user.user_type import UserType
 
 logger = logging.getLogger(__name__)
 

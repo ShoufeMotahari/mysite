@@ -4,7 +4,7 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from users.models.admin_message.AdminMessageReadStatus import AdminMessageReadStatus
+from users.models.admin_message.admin_message_read_status import AdminMessageReadStatus
 
 logger = logging.getLogger(__name__)
 

@@ -4,10 +4,9 @@ from celery import shared_task
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
+from users.models.email_log import EmailLog
 
-from .models import emailLog  # الان این مدل داخل users/models.py خواهد بود
-
-logger = logging.getLogger("emails")
+logger = logging.getLogger(__name__)
 
 
 @shared_task

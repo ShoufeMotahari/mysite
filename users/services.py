@@ -7,7 +7,7 @@ from django.core.mail import send_mail
 from smsir import SmsIr
 
 from filemanager.forms import User
-from users.models.token.verificationToken import VerificationToken
+from users.models.token.verification_token import VerificationToken
 
 logger = logging.getLogger("users")
 

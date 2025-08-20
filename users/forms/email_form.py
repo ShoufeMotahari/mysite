@@ -5,7 +5,7 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 
-from users.models.emailTemplate import EmailTemplate
+from users.models.email_template import EmailTemplate
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
