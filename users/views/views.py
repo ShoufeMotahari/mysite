@@ -7,10 +7,10 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.csrf import csrf_protect
 
-from users.forms.forms import (
-    ProfileUpdateForm,
-    UserUpdateForm, CommentForm, SignupForm,
-)
+
+from users.forms.comment_form import CommentForm
+from users.forms.signup_form import SignupForm
+from users.forms.update_form import UserUpdateForm, ProfileUpdateForm
 from users.models import user
 
 logger = logging.getLogger("users")
@@ -101,7 +101,7 @@ def submit_comment_view(request):
 
                     # Send notification email in a separate try-catch
                     try:
-                        from users.services.email_service import CommentEmailService
+                        from core.services.email_service.email_service import CommentEmailService
                         email_sent = CommentEmailService.send_comment_notification(comment, user_ip)
 
                         if email_sent:

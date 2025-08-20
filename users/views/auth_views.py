@@ -9,14 +9,14 @@ from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 
-from core.email import send_activation_email
+from core.services.email_service.email_service import send_activation_email
 from core.services.sms_service import send_verification_sms
-from users.forms.forms import (
-    CustomUserCreationForm,
-    LoginForm,
-    SignupForm,
-    VerificationForm, ForgotPasswordForm, User,
-)
+from users.forms.custom_user_creation_form import CustomUserCreationForm
+from users.forms.forgot_password_form import ForgotPasswordForm
+from users.forms.login_form import LoginForm
+from users.forms.signup_form import SignupForm, User
+from users.forms.verification_form import VerificationForm
+
 from users.models.token.verification_token import VerificationToken
 # Import our custom password functions instead of Django's
 from users.utils.password_utils import make_password, check_password, get_password_strength, generate_secure_password
@@ -314,7 +314,7 @@ def forgot_password_view(request):
                     print(f"\n🔧 ATTEMPTING TO SEND EMAIL TO: {user.email}")
 
                     # Import the email function
-                    from core.email import send_password_reset_email
+                    from core.services.email_service.email_service import send_password_reset_email
 
                     # Generate email token (you can use the same reset_code or create a different one)
                     email_token = (

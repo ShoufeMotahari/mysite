@@ -7,6 +7,7 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect
 
 from users.models import user
+from users.models.user.user import User
 
 
 def google_login(request):

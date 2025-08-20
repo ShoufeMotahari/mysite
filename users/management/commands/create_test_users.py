@@ -2,7 +2,7 @@ import random
 
 from django.core.management.base import BaseCommand
 
-from users.models import user
+from users.models.user.user import User
 
 
 class Command(BaseCommand):

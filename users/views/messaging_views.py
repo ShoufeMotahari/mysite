@@ -10,7 +10,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
 from users.forms.messaging_forms import AdminMessageForm
-from users.models import adminMessage
+from users.models.admin_message.admin_message import AdminMessage
 
 logger = logging.getLogger(__name__)
 User = get_user_model()

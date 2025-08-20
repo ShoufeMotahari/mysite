@@ -2,7 +2,9 @@ import logging
 from django.contrib import admin, messages
 from django.db.models import Count
 from django.utils.html import format_html
-from users.models.userType import UserType
+
+from users.models.user.user_type import UserType
+
 logger = logging.getLogger(__name__)
 
 @admin.register(UserType)

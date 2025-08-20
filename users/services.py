@@ -6,8 +6,9 @@ from django.conf import settings
 from django.core.mail import send_mail
 from smsir import SmsIr
 
-from filemanager.forms import User
+
 from users.models.token.verification_token import VerificationToken
+from users.models.user.user import User
 
 logger = logging.getLogger("users")
 
@@ -261,3 +262,4 @@ class AuthenticationService:
         except VerificationToken.DoesNotExist:
             logger.error(f"Invalid password reset token: {token_value}")
             return None
+

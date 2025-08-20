@@ -12,13 +12,13 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from core.email import send_password_reset_email
+from core.services.email_service.email_service import send_password_reset_email
 from core.services.sms_service import send_verification_sms
-from users.forms.forms import (
-    ForgotPasswordForm,
-    PasswordEntryForm,
-    VerificationForm,
-)
+from users.forms.forgot_password_form import ForgotPasswordForm
+from users.forms.verification_form import VerificationForm
+from users.models.token.verification_token import VerificationToken
+from users.models.user.user import User
+
 # Import our custom password functions
 from users.utils.password_utils import make_password, check_password, get_password_strength
 

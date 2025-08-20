@@ -1,9 +1,7 @@
 # users/management/commands/create_message_admin_type.py
 from django.core.management.base import BaseCommand
 
-from users.models import (
-    userType,
-)
+from users.models.user.user_type import UserType
 
 
 class Command(BaseCommand):

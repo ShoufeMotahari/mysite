@@ -7,7 +7,7 @@ from django.utils.html import format_html
 from django_jalali.admin.filters import JDateFieldListFilter
 
 from users.admin.in_line.in_ilne import AdminMessageReplyInline, AdminMessageReadStatusInline
-from users.models.adminMessage import AdminMessage
+from users.models.admin_message.admin_message import AdminMessage
 
 logger = logging.getLogger(__name__)
 

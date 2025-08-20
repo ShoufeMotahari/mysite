@@ -1,6 +1,9 @@
 import logging
 from django.contrib import admin
-from users.models.adminMessage import AdminMessageReply, AdminMessageReadStatus
+
+from users.models.admin_message.admin_message_read_status import AdminMessageReadStatus
+from users.models.admin_message.admin_message_reply import AdminMessageReply
+
 logger = logging.getLogger(__name__)
 
 

@@ -1,8 +1,8 @@
 import logging
-from users.models import userType
+
 from django.contrib import admin
 
-from users.models.userType import UserType
+from users.models.user.user_type import UserType
 
 logger = logging.getLogger(__name__)
 

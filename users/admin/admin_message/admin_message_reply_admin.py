@@ -3,7 +3,7 @@ import logging
 from django.contrib import admin
 from django_jalali.admin.filters import JDateFieldListFilter
 
-from users.models.adminMessage import AdminMessageReply
+from users.models.admin_message.admin_message_reply import AdminMessageReply
 
 logger = logging.getLogger(__name__)
 

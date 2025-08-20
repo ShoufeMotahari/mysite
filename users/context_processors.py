@@ -3,6 +3,8 @@
 import logging
 from django.db import IntegrityError, OperationalError
 
+from users.models.comment import Comment
+
 logger = logging.getLogger('users')
 
 

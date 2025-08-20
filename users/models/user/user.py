@@ -6,7 +6,7 @@ import django_jalali.db.models as jmodels
 from django.db import models
 from django.utils import timezone
 
-from users.models.userType import UserType
+from users.models.user.user_type import UserType
 
 logger = logging.getLogger(__name__)
 
