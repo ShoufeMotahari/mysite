@@ -13,7 +13,7 @@ from django.urls import reverse
 from django.utils import timezone
 from PIL import Image as PILImage
 
-logger = logging.getLogger("filemanager")
+logger = logging.getLogger(__name__)
 
 User = get_user_model()
 

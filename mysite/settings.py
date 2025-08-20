@@ -460,7 +460,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # MEDIA_ROOT = BASE_DIR / 'media'
 
-AUTH_USER_MODEL = "users.models.user"
+AUTH_USER_MODEL = "users.User"
 SMS_API_KEY = env("SMS_API_KEY")
 SMS_LINE_NUMBER = env("SMS_LINE_NUMBER")
 SMS_TEMPLATE_ID = env("SMS_TEMPLATE_ID")
