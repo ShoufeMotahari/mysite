@@ -1,9 +1,11 @@
 # core/views.py
 import logging
+
+from django.contrib.admin.views.decorators import staff_member_required
 from django.http import HttpResponse, JsonResponse
 from django.conf import settings
 from django.core.mail import send_mail
-from django.contrib.auth.decorators import staff_member_required
+
 from django.views.decorators.http import require_http_methods
 from django.shortcuts import render
 from django.contrib.auth import get_user_model
@@ -69,18 +71,6 @@ def test_email_configuration_view(request):
             'message': f'Test failed with exception: {str(e)}'
         }, status=500)
 
-
-@staff_member_required
-def email_templates_view(request):
-    """View to display email templates"""
-    templates = EmailTemplate.objects.filter(is_active=True).order_by('-created_jalali')
-
-    context = {
-        'templates': templates,
-        'total_templates': templates.count(),
-    }
-
-    return render(request, 'core/email_templates.html', context)
 
 
 @staff_member_required
@@ -177,66 +167,6 @@ def send_bulk_email_view(request):
             'status': 'error',
             'message': f'Server error: {str(e)}'
         }, status=500)
-
-
-@staff_member_required
-def email_service_test_view(request):
-    """View to test email service directly"""
-    if request.method == 'GET':
-        # Show test form
-        User = get_user_model()
-        active_users = User.objects.filter(is_active=True, email__isnull=False).exclude(email='')[:10]
-
-        context = {
-            'active_users': active_users,
-            'test_users_count': active_users.count()
-        }
-        return render(request, 'core/email_service_test.html', context)
-
-    elif request.method == 'POST':
-        try:
-            # Get form data
-            subject = request.POST.get('subject', 'Test Email').strip()
-            content = request.POST.get('content', 'This is a test email.').strip()
-            user_ids = request.POST.getlist('user_ids')
-
-            if not user_ids:
-                messages.error(request, 'Please select at least one user')
-                return redirect('email-service-test')
-
-            # Get users
-            User = get_user_model()
-            users = User.objects.filter(id__in=user_ids)
-
-            if not users.exists():
-                messages.error(request, 'No valid users found')
-                return redirect('email-service-test')
-
-            # Send email using email service
-            email_service = get_email_service()
-            sender_info = f"{request.user.username} ({request.user.email})"
-
-            success, message, details = email_service.send_email(
-                recipients=users,
-                subject=subject,
-                content=content,
-                sender_info=sender_info
-            )
-
-            if success:
-                messages.success(request, f"✅ {message}")
-                logger.info(f"Email service test successful: {details}")
-            else:
-                messages.error(request, f"❌ {message}")
-                logger.error(f"Email service test failed: {message}")
-
-            return redirect('email-service-test')
-
-        except Exception as e:
-            logger.error(f"Email service test error: {e}")
-            messages.error(request, f"Error: {str(e)}")
-            return redirect('email-service-test')
-
 
 @staff_member_required
 @require_http_methods(["GET"])
