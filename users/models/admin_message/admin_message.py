@@ -4,8 +4,6 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-from users.models.admin_message.admin_message_read_status import AdminMessageReadStatus
-
 logger = logging.getLogger(__name__)
 
 
@@ -32,10 +30,7 @@ class AdminMessage(models.Model):
         verbose_name="فرستنده",
     )
 
-    subject = models.CharField(
-        max_length=200, verbose_name="موضوع", help_text="موضوع پیام"
-    )
-
+    subject = models.CharField(max_length=200, verbose_name="موضوع", help_text="موضوع پیام")
     message = models.TextField(verbose_name="متن پیام", help_text="متن کامل پیام")
 
     priority = models.CharField(
@@ -46,15 +41,13 @@ class AdminMessage(models.Model):
         max_length=10, choices=STATUS_CHOICES, default="unread", verbose_name="وضعیت"
     )
 
-    # Timestamps
     created_at = jmodels.jDateTimeField(auto_now_add=True, verbose_name="تاریخ ایجاد")
     read_at = models.DateTimeField(null=True, blank=True, verbose_name="تاریخ خواندن")
     updated_at = jmodels.jDateTimeField(auto_now=True, verbose_name="تاریخ بروزرسانی")
 
-    # Tracking fields
     read_by = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
-        through="AdminMessageReadStatus",
+        through="users.AdminMessageReadStatus",   # 👈 استفاده از string reference
         related_name="read_admin_messages",
         blank=True,
         verbose_name="خوانده شده توسط",
@@ -75,6 +68,8 @@ class AdminMessage(models.Model):
 
     def mark_as_read(self, user):
         """Mark message as read by a specific user"""
+        from users.models.admin_message.admin_message_read_status import AdminMessageReadStatus  # 👈 import local
+
         read_status, created = AdminMessageReadStatus.objects.get_or_create(
             message=self, user=user, defaults={"read_at": timezone.now()}
         )
@@ -82,33 +77,7 @@ class AdminMessage(models.Model):
             read_status.read_at = timezone.now()
             read_status.save()
 
-        # Update overall status if this is the first read
         if self.status == "unread":
             self.status = "read"
             self.read_at = timezone.now()
             self.save(update_fields=["status", "read_at"])
-
-    def get_priority_color(self):
-        """Get CSS color class for priority"""
-        colors = {
-            "low": "text-muted",
-            "normal": "text-info",
-            "high": "text-warning",
-            "urgent": "text-danger",
-        }
-        return colors.get(self.priority, "text-info")
-
-    def get_priority_icon(self):
-        """Get icon for priority"""
-        icons = {"low": "⬇️", "normal": "➡️", "high": "⬆️", "urgent": "🚨"}
-        return icons.get(self.priority, "➡️")
-
-    @classmethod
-    def get_unread_count(cls):
-        """Get count of unread messages"""
-        return cls.objects.filter(status="unread").count()
-
-    @classmethod
-    def get_recent_messages(cls, limit=5):
-        """Get recent messages for notification"""
-        return cls.objects.filter(status="unread").order_by("-created_at")[:limit]
